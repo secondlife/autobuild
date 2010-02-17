@@ -2,6 +2,8 @@
 
 from distutils.core import setup
 
+# most of this is shamelessly cloned from llbase's setup.py
+
 PACKAGE_NAME = 'llautobuild'
 LLAUTOBUILD_VERSION = '0.0.0'
 LLAUTOBUILD_SOURCE = 'llautobuild'
@@ -22,7 +24,7 @@ setup(
     name=PACKAGE_NAME,
     version=LLAUTOBUILD_VERSION,
     author='Brad Linden',
-    author_email='brad@secondlife.com',
+    author_email='brad@lindenlab.com',
     url='http://bitbucket.org/brad_linden/autobuild/',
     description='Linden Lab Automated Package Management and Build System',
     platforms=["any"],
