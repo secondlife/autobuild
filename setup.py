@@ -4,9 +4,9 @@ from distutils.core import setup
 
 # most of this is shamelessly cloned from llbase's setup.py
 
-PACKAGE_NAME = 'llautobuild'
+PACKAGE_NAME = 'autobuild'
 LLAUTOBUILD_VERSION = '0.0.0'
-LLAUTOBUILD_SOURCE = 'llautobuild'
+LLAUTOBUILD_SOURCE = 'autobuild'
 CLASSIFIERS = """\
 Development Status :: 4 - Beta
 Intended Audience :: Developers
@@ -30,7 +30,7 @@ setup(
     platforms=["any"],
     package_dir={PACKAGE_NAME:LLAUTOBUILD_SOURCE},
     packages=[PACKAGE_NAME],
-    scripts=['scripts/llautobuild'],
+    scripts=['bin/autobuild'],
     license='MIT',
     classifiers=filter(None, CLASSIFIERS.split("\n")),
     #requires=['eventlet', 'elementtree'],
