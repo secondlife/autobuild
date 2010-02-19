@@ -274,15 +274,17 @@ class LinuxSetup(UnixSetup):
         # Only build the server code if we have it.
         platform_build = '%s-%s' % (self.platform(), self.build_type.lower())
 
-        if self.arch() == 'i686' and self.is_internal_tree():
-            return ['viewer-' + platform_build, 'server-' + platform_build]
-        elif self.arch() == 'x86_64' and self.is_internal_tree():
-            # the viewer does not build in 64bit -- kdu5 issues
-            # we can either use openjpeg, or overhaul our viewer to handle kdu5 or higher
-            # doug knows about kdu issues
-            return ['server-' + platform_build]
-        else:
-            return ['viewer-' + platform_build]
+        return ['build-' + platform_build]
+        # disabled indra-specific hacks for separate viewer and server build trees
+        #if self.arch() == 'i686' and self.is_internal_tree():
+        #    return ['viewer-' + platform_build, 'server-' + platform_build]
+        #elif self.arch() == 'x86_64' and self.is_internal_tree():
+        #    # the viewer does not build in 64bit -- kdu5 issues
+        #    # we can either use openjpeg, or overhaul our viewer to handle kdu5 or higher
+        #    # doug knows about kdu issues
+        #    return ['server-' + platform_build]
+        #else:
+        #    return ['viewer-' + platform_build]
 
     def cmake_commandline(self, src_dir, build_dir, opts, simple):
         args = dict(
