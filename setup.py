@@ -30,7 +30,7 @@ setup(
     platforms=["any"],
     package_dir={PACKAGE_NAME:LLAUTOBUILD_SOURCE},
     packages=[PACKAGE_NAME],
-    scripts=['bin/autobuild'],
+    scripts=['bin/autobuild', 'bin/develop', 'bin/install', 'bin/package'],
     license='MIT',
     classifiers=filter(None, CLASSIFIERS.split("\n")),
     #requires=['eventlet', 'elementtree'],
