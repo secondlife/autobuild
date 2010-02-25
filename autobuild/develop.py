@@ -624,14 +624,17 @@ class WindowsSetup(PlatformSetup):
                 # Only run vstool if the build type has changed.
                 continue
             executable = os.path.join('tools','vstool','VSTool.exe')
-            vstool_cmd = (executable +
-                          ' --solution ' +
-                          os.path.join(build_dir,'SecondLife.sln') +
-                          ' --config ' + self.build_type +
-                          ' --startup secondlife-bin')
-            print 'Running %r in %r' % (vstool_cmd, getcwd())
-            self.run(vstool_cmd, name=executable)        
-            print >> open(stamp, 'w'), self.build_type
+            if os.path.exists(executable):
+                vstool_cmd = (executable +
+                              ' --solution ' +
+                              os.path.join(build_dir,'SecondLife.sln') +
+                              ' --config ' + self.build_type +
+                              ' --startup secondlife-bin')
+                print 'Running %r in %r' % (vstool_cmd, getcwd())
+                self.run(vstool_cmd, name=executable)
+                print >> open(stamp, 'w'), self.build_type
+            else:
+                print "WARNING: VSTool.exe not found, skipping..."
         
     def run_build(self, opts, targets):
         for t in targets:
