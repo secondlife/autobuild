@@ -34,38 +34,11 @@ $/LicenseInfo$
 """
 
 import sys
+import os
 import os.path
-
-# Look for indra/lib/python in all possible parent directories ...
-# This is an improvement over the setup-path.py method used previously:
-#  * the script may blocated anywhere inside the source tree
-#  * it doesn't depend on the current directory
-#  * it doesn't depend on another file being present.
-
-def add_indra_lib_path():
-    root = os.path.realpath(__file__)
-    # always insert the directory of the script in the search path
-    dir = os.path.dirname(root)
-    if dir not in sys.path:
-        sys.path.insert(0, dir)
-
-    # Now go look for indra/lib/python in the parent dies
-    while root != os.path.sep:
-        root = os.path.dirname(root)
-        dir = os.path.join(root, 'indra', 'lib', 'python')
-        if os.path.isdir(dir):
-            if dir not in sys.path:
-                sys.path.insert(0, dir)
-            return root
-    else:
-        print >>sys.stderr, "This script is not inside a valid installation."
-        sys.exit(1)
-
-base_dir = add_indra_lib_path()
 
 import copy
 import optparse
-import os
 import platform
 import pprint
 import shutil
@@ -73,6 +46,9 @@ import tarfile
 import tempfile
 import urllib2
 import urlparse
+
+# *HACK - make sure this gets passed in by calling code / command line -brad
+__base_dir = os.getcwd()
 
 try:
     # Python 2.6
@@ -811,10 +787,10 @@ def _default_installable_cache():
                                  'install.cache.%s' % user)
     return cache_dir
 
-def parse_args():
+def parse_args(args):
     parser = optparse.OptionParser(
         usage="usage: %prog [options] [installable1 [installable2...]]",
-        formatter = helpformatter.Formatter(),
+        #formatter = helpformatter.Formatter(),
         description="""This script fetches and installs installable packages.
 It also handles uninstalling those packages and manages the mapping between
 packages and their license.
@@ -858,15 +834,15 @@ darwin/universal/gcc/4.0
         dest='dryrun',
         help='Do not actually install files. Downloads will still happen.')
     parser.add_option(
-        '--install-manifest', 
+        '--package-info',
         type='string',
-        default=os.path.join(base_dir, 'install.xml'),
+        default=os.path.join(__base_dir, 'install.xml'),
         dest='install_filename',
         help='The file used to describe what should be installed.')
     parser.add_option(
         '--installed-manifest', 
         type='string',
-        default=os.path.join(base_dir, 'installed.xml'),
+        default=os.path.join(__base_dir, 'installed.xml'),
         dest='installed_filename',
         help='The file used to record what is installed.')
     parser.add_option(
@@ -892,7 +868,7 @@ You can specify 'all' to do a installation of installables for all platforms."""
     parser.add_option(
         '--install-dir', 
         type='string',
-        default=base_dir,
+        default=__base_dir,
         dest='install_dir',
         help='Where to unpack the installed files.')
     parser.add_option(
@@ -1050,10 +1026,10 @@ installables are removed.""")
         dest='scp',
         help="Specify the path to your scp program.")
 
-    return parser.parse_args()
+    return parser.parse_args(args)
 
-def main():
-    options, args = parse_args()
+def main(args):
+    options, args = parse_args(args)
     installer = Installer(
         options.install_filename,
         options.installed_filename,
@@ -1159,4 +1135,4 @@ def main():
 
 if __name__ == '__main__':
     #print sys.argv
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))
