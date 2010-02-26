@@ -57,8 +57,13 @@ except ImportError:
     # Python 2.5 and earlier
     from md5 import new as md5
 
-from indra.base import llsd
-from indra.util import helpformatter
+llsd = None
+try:
+    from llbase import llsd
+except ImportError:
+    pass
+
+#from indra.util import helpformatter
 
 # *HACK: Necessary for python 2.3. Consider removing this code wart
 # after etch has deployed everywhere. 2008-12-23 Phoenix
@@ -123,6 +128,29 @@ class InstallFile(object):
         file(self.filename, 'wb').write(urllib2.urlopen(self.url).read())
         if self.md5sum and not self._is_md5sum_match():
             raise RuntimeError("Error matching md5 for %s" % self.url)
+
+def _construct_bootstrap_installables():
+    base_url = "http://s3.amazonaws.com/viewer-source-downloads/install_pkgs"
+    package_info = {
+        'llbase': {
+            'packages': {
+                'windows' : {
+                    'url' : "%s/llbase-0.2.0-windows-20100225.tar.bz2" % base_url,
+                    'md5sum' : "436c1abe6be73b287b8d0b29cf3cc764",
+                    },
+                'darwin' : {
+                    'url' : "%s/llbase-0.2.0-darwin-20100225.tar.bz2" % base_url,
+                    'md5sum' : "9d29c1e8c1b26894a5e317ae5d1a6e30",
+                    },
+                'linux' : {
+                    'url' : "%s/llbase-0.2.0-linux-20100225.tar.bz2" % base_url,
+                    'md5sum' : "a5d3edb6b43c46e9392c1c96e51cc3e7",
+                    },
+            },
+            'license': 'mit',
+        },
+    }
+    return dict(installables=package_info, licenses={'mit':''})
 
 class LicenseDefinition(object):
     def __init__(self, definition):
@@ -234,7 +262,11 @@ class Installer(object):
 
     def load(self):
         if os.path.exists(self._install_filename):
-            install = llsd.parse(file(self._install_filename, 'rb').read())
+            if llsd:
+                print "loading %s" % self._install_filename
+                install = llsd.parse(file(self._install_filename, 'rb').read())
+            else:
+                install = _construct_bootstrap_installables()
             try:
                 for name in install['installables']:
                     self._installables[name] = InstallableDefinition(
@@ -247,7 +279,10 @@ class Installer(object):
             except KeyError:
                 pass
         if os.path.exists(self._installed_filename):
-            installed = llsd.parse(file(self._installed_filename, 'rb').read())
+            if llsd:
+                installed = llsd.parse(file(self._installed_filename, 'rb').read())
+            else:
+                installed = dict()
             try:
                 bins = installed['installables']
                 for name in bins:
@@ -1028,6 +1063,36 @@ installables are removed.""")
 
     return parser.parse_args(args)
 
+def _bootstrap_llsd(options, installer):
+    global llsd
+    local_install_path = os.path.join(options.install_dir, 'lib/python2.5')
+    local_install_path = os.path.abspath(local_install_path)
+    sys.path.append(local_install_path)
+
+    try:
+        from llbase import llsd
+        print "found installed llbase package"
+    except ImportError:
+        print "installing llbase package"
+        installer.do_install(['llbase'], options.platform, options.install_dir,
+                             options.cache_dir, options.check_license,
+                             options.scp)
+        print "importing llsd from installed llbase package"
+        try:
+            from llbase import llsd
+        except ImportError, err:
+            print err
+            print "*FIXME - this always fails for now and I don't yet know why, but it works if you try again.  Please run 'autobuild install' again."
+            sys.exit(0)
+
+        installer.save()
+        print "success!"
+
+    # now that llsd is loaded read the package info
+    print "loading again..."
+    installer.load()
+    #print installer._installables
+
 def main(args):
     options, args = parse_args(args)
     installer = Installer(
@@ -1035,6 +1100,9 @@ def main(args):
         options.installed_filename,
         options.dryrun)
 
+    if not llsd:
+        _bootstrap_llsd(options, installer)
+ 
     #
     # Handle the queries for information
     #
