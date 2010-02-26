@@ -24,33 +24,6 @@ $/LicenseInfo$
 import sys
 import os.path
 
-# Look for indra/lib/python in all possible parent directories ...
-# This is an improvement over the setup-path.py method used previously:
-#  * the script may blocated anywhere inside the source tree
-#  * it doesn't depend on the current directory
-#  * it doesn't depend on another file being present.
-
-def add_indra_lib_path():
-    root = os.path.realpath(__file__)
-    # always insert the directory of the script in the search path
-    dir = os.path.dirname(root)
-    if dir not in sys.path:
-        sys.path.insert(0, dir)
-
-    # Now go look for indra/lib/python in the parent dies
-    while root != os.path.sep:
-        root = os.path.dirname(root)
-        dir = os.path.join(root, 'indra', 'lib', 'python')
-        if os.path.isdir(dir):
-            if dir not in sys.path:
-                sys.path.insert(0, dir)
-            break
-    else:
-        print >>sys.stderr, "This script is not inside a valid installation."
-        sys.exit(1)
-
-add_indra_lib_path()
-
 # canonical path of parent directory, avoiding symlinks
 script_path = os.path.dirname(os.path.realpath(__file__))
 base_path = os.path.dirname(script_path)
@@ -175,6 +148,7 @@ class SCPConnection(Connection):
         self.scp_executable = e
 
 
+# *TODO make this use boto.s3 or something
 class S3Connection(Connection):
     """Twiddly bits of talking to S3.  Hi S3!
     """
