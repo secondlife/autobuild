@@ -23,8 +23,8 @@ def main(args):
         return install.main([a for a in args if a != 'install'])
 
     if extra_args[0] == 'configure':
-        import develop
-        return develop.main(args[1:])
+        import configure
+        return configure.main(args[1:])
 
     return 0
 

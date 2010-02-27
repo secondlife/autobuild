@@ -1096,9 +1096,9 @@ def _bootstrap_llsd(options, installer):
 def main(args):
     options, args = parse_args(args)
     if not options.install_dir:
-        import develop
+        import configure
         options.install_dir = os.path.join(
-            develop.setup_platform[sys.platform]().build_dirs()[0],
+            configure.setup_platform[sys.platform]().build_dirs()[0],
             'packages')
 
     installer = Installer(

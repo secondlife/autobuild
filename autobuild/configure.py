@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# @file develop.py
+# @file configure.py
 # @authors Bryan O'Sullivan, Mark Palange, Aaron Brashears
 # @brief Fire and forget script to appropriately configure cmake for SL.
 #
@@ -595,7 +595,7 @@ class WindowsSetup(PlatformSetup):
             path = self.find_in_path(name)[0]
         while retries:
             retries = retries - 1
-            print "develop.py tries to run:", command
+            print "configure.py tries to run:", command
             ret = subprocess.call(command, executable=path)
             print "got ret", ret, "from", command
             if ret == 0:
@@ -691,7 +691,7 @@ setup_platform = {
 
 
 usage_msg = '''
-Usage:   develop.py [options] [command [command-options]]
+Usage:   configure.py [options] [command [command-options]]
 
 Options:
   -h | --help           print this help message
@@ -723,10 +723,10 @@ Command-options for "configure":
 
 Examples:
   Set up a viewer-only project for your system:
-    develop.py configure -DSERVER:BOOL=OFF
+    configure.py configure -DSERVER:BOOL=OFF
   
   Set up a Visual Studio 2005 project with "package" target:
-    develop.py -G vc80 configure -DPACKAGE:BOOL=ON
+    configure.py -G vc80 configure -DPACKAGE:BOOL=ON
 '''
 
 def main(arguments):
@@ -749,7 +749,7 @@ def main(arguments):
         print >> sys.stderr, 'Error:', err
         print >> sys.stderr, """
 Note: You must pass -D options to cmake after the "configure" command
-For example: develop.py configure -DSERVER:BOOL=OFF"""
+For example: configure.py configure -DSERVER:BOOL=OFF"""
         print >> sys.stderr, usage_msg.strip()
         return 1
 
@@ -802,7 +802,7 @@ For example: develop.py configure -DSERVER:BOOL=OFF"""
         elif cmd == 'build':
             for d in setup.build_dirs():
                 if not os.path.exists(d):
-                    raise CommandError('run "develop.py cmake" first')
+                    raise CommandError('run "configure.py configure" first')
             setup.run_cmake()
             opts, targets = setup.parse_build_opts(args)
             setup.run_build(opts, targets)
@@ -812,7 +812,7 @@ For example: develop.py configure -DSERVER:BOOL=OFF"""
             setup.cleanup()
         else:
             print >> sys.stderr, 'Error: unknown subcommand', repr(cmd)
-            print >> sys.stderr, "(run 'develop.py --help' for help)"
+            print >> sys.stderr, "(run 'configure.py --help' for help)"
             return 1
     except getopt.GetoptError, err:
         print >> sys.stderr, 'Error with %r subcommand: %s' % (cmd, err)
