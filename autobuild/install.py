@@ -871,13 +871,13 @@ darwin/universal/gcc/4.0
     parser.add_option(
         '--package-info',
         type='string',
-        default=os.path.join(__base_dir, 'install.xml'),
+        default=os.path.join(__base_dir, 'autobuild.xml'),
         dest='install_filename',
         help='The file used to describe what should be installed.')
     parser.add_option(
         '--installed-manifest', 
         type='string',
-        default=os.path.join(__base_dir, 'installed.xml'),
+        default='autobuild-installed.xml',
         dest='installed_filename',
         help='The file used to record what is installed.')
     parser.add_option(
@@ -903,7 +903,7 @@ You can specify 'all' to do a installation of installables for all platforms."""
     parser.add_option(
         '--install-dir', 
         type='string',
-        default=__base_dir,
+        default=None,
         dest='install_dir',
         help='Where to unpack the installed files.')
     parser.add_option(
@@ -1082,7 +1082,7 @@ def _bootstrap_llsd(options, installer):
             from llbase import llsd
         except ImportError, err:
             print err
-            print "*FIXME - this always fails for now and I don't yet know why, but it works if you try again.  Please run 'autobuild install' again."
+            print "*FIXME - this bootstrapping always fails for now and I don't yet know why, but it works if you try again.  Please run 'autobuild install' again."
             sys.exit(0)
 
         installer.save()
@@ -1095,9 +1095,15 @@ def _bootstrap_llsd(options, installer):
 
 def main(args):
     options, args = parse_args(args)
+    if not options.install_dir:
+        import develop
+        options.install_dir = os.path.join(
+            develop.setup_platform[sys.platform]().build_dirs()[0],
+            'packages')
+
     installer = Installer(
         options.install_filename,
-        options.installed_filename,
+        os.path.join(options.install_dir, options.installed_filename),
         options.dryrun)
 
     if not llsd:

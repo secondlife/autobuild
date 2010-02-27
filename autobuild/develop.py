@@ -150,7 +150,7 @@ class PlatformSetup(object):
                     simple = False
                 try:
                     os.chdir(d)
-                    cmd = self.cmake_commandline(cwd, d, args, simple)
+                    cmd = self.cmake_commandline(os.path.join(cwd, 'src'), d, args, simple)
                     print 'Running %r in %r' % (cmd, d)
                     self.run(cmd, 'cmake')
                 finally:
@@ -751,12 +751,12 @@ def main(arguments):
 Note: You must pass -D options to cmake after the "configure" command
 For example: develop.py configure -DSERVER:BOOL=OFF"""
         print >> sys.stderr, usage_msg.strip()
-        sys.exit(1)
+        return 1
 
     for o, a in opts:
         if o in ('-?', '-h', '--help'):
             print usage_msg.strip()
-            sys.exit(0)
+            return 0
         elif o in ('--standalone',):
             setup.standalone = 'ON'
         elif o in ('--unattended',):
@@ -769,7 +769,7 @@ For example: develop.py configure -DSERVER:BOOL=OFF"""
             else:
                 print >> sys.stderr, 'Error: unknown word size', repr(a)
                 print >> sys.stderr, 'Supported word sizes: 32, 64'
-                sys.exit(1)
+                return 1
         elif o in ('-t', '--type'):
             try:
                 setup.build_type = setup.build_types[a.lower()]
@@ -780,7 +780,7 @@ For example: develop.py configure -DSERVER:BOOL=OFF"""
                 types.sort()
                 for t in types:
                     print ' ', t
-                sys.exit(1)
+                return 1
         elif o in ('-G', '--generator'):
             setup.generator = a
         elif o in ('-N', '--no-distcc'):
@@ -791,10 +791,10 @@ For example: develop.py configure -DSERVER:BOOL=OFF"""
             setup.incredibuild = True
         else:
             print >> sys.stderr, 'INTERNAL ERROR: unhandled option', repr(o)
-            sys.exit(1)
+            return 1
     if not args:
         setup.run_cmake()
-        return
+        return 0
     try:
         cmd = args.pop(0)
         if cmd in ('cmake', 'configure'):
@@ -813,15 +813,15 @@ For example: develop.py configure -DSERVER:BOOL=OFF"""
         else:
             print >> sys.stderr, 'Error: unknown subcommand', repr(cmd)
             print >> sys.stderr, "(run 'develop.py --help' for help)"
-            sys.exit(1)
+            return 1
     except getopt.GetoptError, err:
         print >> sys.stderr, 'Error with %r subcommand: %s' % (cmd, err)
-        sys.exit(1)
+        return 1
 
 
 if __name__ == '__main__':
     try:
-        main(sys.argv[1:])
+        sys.exit(main(sys.argv[1:]))
     except CommandError, err:
         print >> sys.stderr, 'Error:', err
         sys.exit(1)

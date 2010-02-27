@@ -6,7 +6,7 @@ import optparse
 class __OptionParser(optparse.OptionParser):
     def __init__(self):
         optparse.OptionParser.__init__(self)
-        self.add_option('--package-info', default='install.xml',
+        self.add_option('--package-info', default='autobuild.xml',
             help="file containing package info database (for now this is llsd+xml, but it will probably become sqlite)")
         self.add_option('--verbose', '-v', action='store_true', default=False)
         self.add_option('--install-dir', default='build-linux-i686-relwithdebinfo/packages',
@@ -14,13 +14,17 @@ class __OptionParser(optparse.OptionParser):
  
 def main(args):
     parser = __OptionParser()
-    options,args_ = parser.parse_args(args)
+    options,extra_args = parser.parse_args(args)
     if options.verbose:
         print "options:'%r', args:%r" % (options.__dict__, args)
 
-    if 'install' in args_:
+    if extra_args[0] == 'install':
         import install
-        install.main([a for a in args if a != 'install'])
+        return install.main([a for a in args if a != 'install'])
+
+    if extra_args[0] == 'configure':
+        import develop
+        return develop.main(args[1:])
 
     return 0
 
