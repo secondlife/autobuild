@@ -3,7 +3,7 @@
 import sys
 import optparse
 
-class __OptionParser(optparse.OptionParser):
+class OptionParser(optparse.OptionParser):
     def __init__(self):
         optparse.OptionParser.__init__(self)
         self.add_option('--package-info', default='autobuild.xml',
@@ -13,7 +13,7 @@ class __OptionParser(optparse.OptionParser):
             help="directory to install packages into")
  
 def main(args):
-    parser = __OptionParser()
+    parser = OptionParser()
     options,extra_args = parser.parse_args(args)
     if options.verbose:
         print "options:'%r', args:%r" % (options.__dict__, args)
