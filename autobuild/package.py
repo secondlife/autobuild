@@ -30,9 +30,7 @@ base_path = os.path.dirname(script_path)
 
 
 import os
-import popen2
 import tarfile
-import md5
 import optparse
 import time
 import glob
@@ -40,6 +38,13 @@ import re
 import shutil
 import urllib2
 import install
+
+try:
+    from hashlib import md5
+except ImportError:
+    # for older (pre-2.5) versions of python...
+    import md5 as oldmd5
+    md5 = oldmd5.new
 
 #
 # Talking to remote servers
@@ -509,18 +514,18 @@ class Installer(object):
         self.dry_run = dry_run
         pass
     
-    def quick_add(self, tarfilename, url, possible_platforms):
+    def quick_add(self, tarfile, url, possible_platforms):
         """Parsing simplified input to make user's interface simpler.
         @param tarfilename Fully-qualified path to tarfile to upload.
         """
         pkgname, platform_string = dissectTarfileName(tarfilename, possible_platforms)
         platform = platform_string.strip('-').replace('-', '/')
-        md5sum = self.getMd5Sum(tarfilename)
+        md5sum = self.getMd5Sum(tarfile)
         print tarfilename + ':'
         self.add_installable(pkgname, platform, url, md5sum)
         
-    def getMd5Sum(self, tarfilename):
-        md5hash = md5.new(file(tarfilename, 'rb').read())
+    def getMd5Sum(self, tarfile):
+        md5hash = md5(tarfile.read())
         md5sum = md5hash.hexdigest()
         return md5sum
                               
@@ -546,7 +551,7 @@ class Installer(object):
 # Command-line interface.
 #
 
-def parse_args():
+def parse_args(args):
     parser = optparse.OptionParser(
         usage="\n    %prog -t expat GL\n    %prog -u ../tarfile_tmp/expat-1.2.5-darwin-20080810.tar.bz2\n    %prog -i ./tmp/zlib*.tar.bz2 ../glh_lin*.bz2", 
         description="""Create tar archives from library files, and upload as appropriate.  Tarfiles will be formed from paths as specified in config files found in assemblies/3rd_party_libs from same tree as execution location of this script, or alternately 'configdir', if supplied as a command-line argument.""")
@@ -607,7 +612,7 @@ def parse_args():
         dest='dry_run',
         help='Show what would be done, but don\'t actually do anything.')
     parser.add_option_group(group)
-    return parser.parse_args()
+    return parser.parse_args(args)
 
 
 def dissectPlatform(platform):
@@ -660,8 +665,8 @@ S3Conn = S3Connection(S3server_dir)
 
 SCPConn = SCPConnection()
 
-def main():
-    options, args = parse_args()
+def main(args):
+    options, args = parse_args(args)
     config_dir = os.path.realpath(options.configdir)
     tarfiledir = options.tarfiledir
 
@@ -722,7 +727,7 @@ def main():
             else:
                 url = SCPConn.getSCPUrl(basename)
             installer = Installer(options.dry_run)
-            installer.quick_add(tarfilename, url, platforms)
+            installer.quick_add(file(tarfilename, 'rb'), url, platforms)
     if not options.upload and not options.make_tarfile and not options.install:
         print "(Use -h for help)"
         sys.exit(0)
@@ -731,7 +736,7 @@ def main():
         print "This was only a dry-run."
 
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))
 
 
 
