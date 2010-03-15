@@ -26,7 +26,6 @@ import os.path
 
 # canonical path of parent directory, avoiding symlinks
 script_path = os.path.dirname(os.path.realpath(__file__))
-base_path = os.path.dirname(script_path)
 
 
 import os
@@ -311,8 +310,8 @@ class Package(object):
             conf_filename = os.path.join(self.config_dir, platform, filename)
             if self.requireConfigFile and not os.path.exists(conf_filename):
                 # Possible expected case.  Exit gracefully
-                print ValueError("Config file '%s' for library '%s' does not exist.  Please create config file.%s(Use -h for help)" % (conf_filename, self.pkgname, os.linesep))
-                sys.exit(0)
+                print ValueError("Manifest for library '%s' on platform %s does not exist.  Please create manifest section in autobuild.xml.%s(Use -h for help)" % (self.pkgname, platform, os.linesep))
+                sys.exit(1)
             if os.path.exists(conf_filename):
                 self.confFiles[platform] = ConfigFile(conf_filename)
 
@@ -547,74 +546,6 @@ class Installer(object):
             os.system(p_cmd)
 
 
-#
-# Command-line interface.
-#
-
-def parse_args(args):
-    parser = optparse.OptionParser(
-        usage="\n    %prog -t expat GL\n    %prog -u ../tarfile_tmp/expat-1.2.5-darwin-20080810.tar.bz2\n    %prog -i ./tmp/zlib*.tar.bz2 ../glh_lin*.bz2", 
-        description="""Create tar archives from library files, and upload as appropriate.  Tarfiles will be formed from paths as specified in config files found in assemblies/3rd_party_libs from same tree as execution location of this script, or alternately 'configdir', if supplied as a command-line argument.""")
-    parser.add_option(
-        '-t', 
-        action='store_true',
-        default=False,
-        dest='make_tarfile',
-        help='Make tar archive(s).  List names of specific libraries, or leave unspecified to package all known libraries.  Use with --version and --platform.')
-    parser.add_option(
-        '--version', 
-        type='string',
-        default="",
-        dest='version',
-        help='Overrides the version number for the specified library(ies).  If unspecified, the version number in "versions.txt" (in configdir) will be used, if present.  Can be left blank.')
-    parser.add_option(
-        '--platform', 
-        type='string',
-        default=None,
-        dest='platform',
-        help="Specify platform to use: linux, linux64, darwin, or windows.  Left unspecified, all three platforms will be used.")
-    parser.add_option(
-        '-u', '--upload', 
-        action='store_true',
-        default=False,
-        dest='upload',
-        help='Upload tarfile(s). List paths to tarfiles to be uploaded (supports glob expressions).  Use with --s3 option if appropriate (read about --s3 option).')
-    parser.add_option(
-        '-i', '--install', 
-        action='store_true',
-        default=False,
-        dest='install',
-        help='Update install.xml with the data for the specified tarfile(s). List paths to tarfiles to update (supports glob expressions).  Use --s3 option if appropriate (read about --s3 option).')
-    group = optparse.OptionGroup(parser, "S3 Uploading", "*NOTE*: S3 upload does not work on Windows, since command-line tool (s3curl.pl) is not supported there.  Either perform S3 uploads from a unix machine, or see wiki for uploading to S3 from Windows.")
-    
-    group.add_option(
-        '-s', '--s3', 
-        action='store_true',
-        default=False,
-        dest='s3',
-        help='Indicates tarfile(s) belong on S3.  If unspecified, "S3ables.txt" (in configdir) will be used to determine which libraries are stored on S3.  Please verify clearance for public distribution prior to uploading any new libraries to S3.')
-    parser.add_option(
-        '--configdir', 
-        type='string',
-        default=os.path.join(base_path, "assemblies/3rd_party_libs"),
-        dest='configdir',
-        help='Specify the config directory to use.  Defaults to "assemblies/3rd_party_libs" in same tree as script execution.  If configdir specified, tarfiles will be assembled relative to root of tree containing configdir.')
-    parser.add_option(
-        '--tarfiledir', 
-        type='string',
-        default="",
-        dest='tarfiledir',
-        help='Specify the directory in which to store new tarfiles.  Defaults to "tarfile_tmp".')
-    parser.add_option(
-        '--dry-run', 
-        action='store_true',
-        default=False,
-        dest='dry_run',
-        help='Show what would be done, but don\'t actually do anything.')
-    parser.add_option_group(group)
-    return parser.parse_args(args)
-
-
 def dissectPlatform(platform):
     """Try to get important parts from platform.
     @param platform can have the form: operating_system[/arch[/compiler[/compiler_version]]]
@@ -665,8 +596,7 @@ S3Conn = S3Connection(S3server_dir)
 
 SCPConn = SCPConnection()
 
-def main(args):
-    options, args = parse_args(args)
+def main(options, args):
     config_dir = os.path.realpath(options.configdir)
     tarfiledir = options.tarfiledir
 
@@ -736,7 +666,9 @@ def main(args):
         print "This was only a dry-run."
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]))
+    import autobuild_main
+    options, args = autobuild_main.parse_args(sys.argv[1:])
+    sys.exit(main(opts, args))
 
 
 
