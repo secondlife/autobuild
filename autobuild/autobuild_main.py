@@ -9,6 +9,7 @@ class OptionParser(optparse.OptionParser):
         default_platform = {
             'linux2':'linux',
             'win32':'windows',
+            'cygwin':'windows',
         }.get(sys.platform, sys.platform)
 
         #package usage="\n    %prog -t expat GL\n    %prog -u ../tarfile_tmp/expat-1.2.5-darwin-20080810.tar.bz2\n    %prog -i ./tmp/zlib*.tar.bz2 ../glh_lin*.bz2", 
