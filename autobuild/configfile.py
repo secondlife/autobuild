@@ -78,6 +78,11 @@ class PackageInfo(dict):
     def setLicenseName(self, value):
         self.setKey('license', value)
 
+    def uploadToS3(self):
+        return self.getKey('uploadtos3')
+    def setUploadToS3(self, value):
+        self.setKey('uploadtos3', value)
+
     def packagePlatforms(self):
         if self.has_key('packages'):
             return self['packages'].keys()
