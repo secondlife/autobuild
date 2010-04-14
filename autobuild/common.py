@@ -130,6 +130,24 @@ def isPackageInCache(package):
     cachename = os.path.join(Options().getInstallCacheDir(), filename)
     return os.path.exists(cachename)
 
+def doesPackageMatchMD5(package, md5sum):
+    """
+    Returns True if the MD5 sum of the downloaded package archive
+    matches the specified MD5 string.
+    """
+    try:
+        from hashlib import md5      # Python 2.6
+    except ImportError:
+        from md5 import new as md5   # Python 2.5 and earlier
+
+    filename = os.path.basename(package)
+    cachename = os.path.join(Options().getInstallCacheDir(), filename)
+    try:
+        hasher = md5(file(cachename, 'rb').read())
+    except:
+        return False
+    return hasher.hexdigest() == md5sum
+
 def downloadPackage(package):
     """
     Download a package, specified as a URL, to the install cache.
@@ -151,7 +169,7 @@ def downloadPackage(package):
     urllib2.install_opener(opener)
 
     # Attempt to download the remote file 
-    print "Downloading %s to cache %s" % (package, cachename)
+    print "Downloading %s to %s" % (package, cachename)
     result = True
     try:
         file(cachename, 'wb').write(urllib2.urlopen(package).read())
@@ -308,17 +326,29 @@ class Boostrap:
 
     # specify the name and md5sum for all dependent pkgs on S3
     deps = {
-        'llsd': {
-            'package': "llbase-0.2.0-${PLATFORM}-20100225.tar.bz2",
-            'md5sum': None
-            }
+        'llbase': {
+            'windows' : {
+                'filename' : "llbase-0.2.0-windows-20100225.tar.bz2",
+                'md5sum'   : "436c1abe6be73b287b8d0b29cf3cc764",
+                },
+            'darwin' : {
+                'filename' : "llbase-0.2.0-darwin-20100225.tar.bz2",
+                'md5sum'   : "9d29c1e8c1b26894a5e317ae5d1a6e30",
+                },
+            'linux' : {
+                'filename' : "llbase-0.2.0-linux-20100225.tar.bz2",
+                'md5sum'   : "a5d3edb6b43c46e9392c1c96e51cc3e7",
+                },
+            },
         }
 
     def __init__(self):
         """
         Install any dependent packages that are not already installed.
         Then import the python modules into the global namespace for
-        this module.
+        this module. This results in the following global symbols:
+
+        llsd - the llsd module from the llbase package
         """
 
         # get the directory where we keep autobuild's dependencies
@@ -330,18 +360,30 @@ class Boostrap:
             sys.path.append(python_dir)
 
         # install all of our dependent packages, as needed
+        platform = getCurrentPlatform()
         for name in self.deps:
 
+            # get the package specs for this platform
+            if self.deps[name].has_key(platform):
+                specs = self.deps[name][platform]
+            elif self.deps[name].has_key('common'):
+                specs = self.deps[name]['common']
+            else:
+                sys.exit("No package defined for %s for %s" %
+                         (name, platform))
+            
             # get the url and md5 for this package dependency
-            md5sum = self.deps[name].get('md5sum')
-            url = os.path.join(Options().getS3Url(), self.deps[name]['package'])
-            url = url.replace("${PLATFORM}", getCurrentPlatform())
+            md5sum = specs['md5sum']
+            url = os.path.join(Options().getS3Url(), specs['filename'])
 
-            # download & extract the llbase package, if not done already
+            # download & extract the package, if not done already
             if not isPackageInCache(url):
                 print "Installing package '%s'..." % name
-                downloadPackage(url)
-                extractPackage(url, install_dir)
+                if downloadPackage(url):
+                    if not doesPackageMatchMD5(url, md5sum):
+                        sys.exit("MD5 mismatch for: %s" % url)
+                    else:
+                        extractPackage(url, install_dir)
 
         # try to import the llbase package into the global namespace
         global llsd
