@@ -188,7 +188,6 @@ def extractPackage(package, install_dir):
 
     return True
 
-
 ######################################################################
 #
 #   Private module classes and functions below here.
@@ -293,3 +292,65 @@ def __extractall(tar, path=".", members=None):
                 raise
             else:
                 tar._dbg(1, "tarfile: %s" % e)
+
+#
+# Dependent package bootstrapping
+#
+class Boostrap:
+    """
+    Autobuild can depend upon a number of external python modules
+    that are also distributed as autobuild packages. This Bootstrap
+    class deals with downloading and installing those dependencies.
+    This is needed for ConfigFile, so has to be done at this low
+    level. This is why we have methods for downloading and extracting
+    packages in this module.
+    """
+
+    # specify the name and md5sum for all dependent pkgs on S3
+    deps = {
+        'llsd': {
+            'package': "llbase-0.2.0-${PLATFORM}-20100225.tar.bz2",
+            'md5sum': None
+            }
+        }
+
+    def __init__(self):
+        """
+        Install any dependent packages that are not already installed.
+        Then import the python modules into the global namespace for
+        this module.
+        """
+
+        # get the directory where we keep autobuild's dependencies
+        install_dir = getTempDir("autobuild")
+
+        # add its lib/pythonX.X directory to our module search path
+        python_dir = os.path.join(install_dir, "lib", "python2.5")
+        if python_dir not in sys.path:
+            sys.path.append(python_dir)
+
+        # install all of our dependent packages, as needed
+        for name in self.deps:
+
+            # get the url and md5 for this package dependency
+            md5sum = self.deps[name].get('md5sum')
+            url = os.path.join(Options().getS3Url(), self.deps[name]['package'])
+            url = url.replace("${PLATFORM}", getCurrentPlatform())
+
+            # download & extract the llbase package, if not done already
+            if not isPackageInCache(url):
+                print "Installing package '%s'..." % name
+                downloadPackage(url)
+                extractPackage(url, install_dir)
+
+        # try to import the llbase package into the global namespace
+        global llsd
+        try:
+            from llbase import llsd
+        except ImportError:
+            sys.exit("Fatal Error: Could not install llbase package!")
+
+#
+# call the bootstrap code whenever this module is imported
+#
+Boostrap()

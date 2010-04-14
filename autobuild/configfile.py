@@ -28,7 +28,6 @@ THE SOFTWARE.
 $/LicenseInfo$
 """
 
-import sys
 import os
 import common
 
@@ -157,7 +156,6 @@ class ConfigFile:
         self.filename = None
         self.packages = {}
         self.licenses = {}
-        self.__bootstrap()
 
     def load(self, config_filename=None):
         """
@@ -175,7 +173,7 @@ class ConfigFile:
             return False
 
         print "loading %s" % self.filename
-        keys = llsd.parse(file(self.filename, 'rb').read())
+        keys = common.llsd.parse(file(self.filename, 'rb').read())
 
         if keys.has_key('installables'):
             for name in keys['installables']:
@@ -206,7 +204,7 @@ class ConfigFile:
         for name in self.licenses:
             state['licenses'][name] = self.licenses[name]
 
-        file(self.filename, 'wb').write(llsd.format_pretty_xml(state))
+        file(self.filename, 'wb').write(common.llsd.format_pretty_xml(state))
 
     def packageCount(self):
         """
@@ -267,36 +265,3 @@ class ConfigFile:
         """
         self.licenses[name] = value
 
-    def __bootstrap(self):
-        """
-        We use llsd to parse the config file, which lives in the
-        llbase package. This method deals with downloading and
-        installing llbase locally to make this possible.
-        """
-        global llsd
-
-        # get the directory where we keep autobuild's llbase package
-        install_dir = common.getTempDir("autobuild")
-        llbase_dir = os.path.join(install_dir, "lib", "python2.5")
-        if llbase_dir not in sys.path:
-            sys.path.append(llbase_dir)
-
-        # define the version of llbase that we want to use
-        llbase_ver = "0.2.0"
-        llbase_date = "20100225"
-        url = "%s/llbase-%s-%s-%s.tar.bz2" % (common.Options().getS3Url(),
-                                              llbase_ver,
-                                              common.getCurrentPlatform(),
-                                              llbase_date)
-
-        # download & extract the llbase package, if not done already
-        if not common.isPackageInCache(url):
-            print "Installing llbase %s package..." % llbase_ver
-            common.downloadPackage(url)
-            common.extractPackage(url, install_dir)
-
-        # try to import the llbase package...
-        try:
-            from llbase import llsd
-        except ImportError:
-            sys.exit("Fatal Error: Could not install llbase package!")
