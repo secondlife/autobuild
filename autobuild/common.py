@@ -349,6 +349,13 @@ class Boostrap:
                 },
             'pathcheck' : "lib/python2.5/boto"
             },
+        'argparse': {
+            'common' : {
+                'filename' : "argparse-1.1-common-20100415.tar.bz2",
+                'md5sum'   : "d11e7fb3686f16b243821fa0f9d35f4c",
+                },
+            'pathcheck' : "lib/python2.5/argparse.py"
+            },
         }
 
     def __init__(self):
@@ -357,8 +364,9 @@ class Boostrap:
         Then import the python modules into the global namespace for
         this module. This results in the following global symbols:
 
-        llsd    - the llsd module from the llbase package
-        boto.s3 - the Amazon boto.s3 module for uploading to S3
+        llsd     - the llsd module from the llbase package
+        boto.s3  - the Amazon boto.s3 module for uploading to S3
+        argparse - the argparse module use to parse cmd line args
         """
 
         # get the directory where we keep autobuild's dependencies
@@ -417,6 +425,13 @@ class Boostrap:
             import boto.s3
         except ImportError:
             sys.exit("Fatal Error: Could not install boto.s3 package!")
+
+        # try to import the argparse package into the global namespace
+        global argparse
+        try:
+            import argparse
+        except ImportError:
+            sys.exit("Fatal Error: Could not install argparse package!")
 
 #
 # call the bootstrap code whenever this module is imported
