@@ -42,59 +42,104 @@ class PackageInfo(dict):
     The following code shows how to output the package description
     in a human-readable form, where pi is of type PackageInfo.
 
-    print "Copyright:", pi.copyright()
-    print "Description:", pi.description()
-    print "Defined Platforms:", pi.packagePlatforms()
-    for platform in pi.packagePlatforms():
-        print platform,":",
-        print pi.packageUrl(platform)
+    print "Copyright:", pi.copyright
+    print "Description:", pi.description
 
-    You can also add new fields to a PackageInfo structure as
-    follows:
-
-    pi.setKey('mynewfiled', "The field's value")
-
-    Setting a key's value to None with any of the provided setter
-    methods will remove that key from the PackageInfo structure. For
-    example:
+    Setting a key's value to None will remove that key from the
+    PackageInfo structure. For example, the following will cause the
+    copyright field to be removed from the package description.
     
-    pi.setCopyright(None)
+    pi.copyright = None
 
-    Will cause the copyright field to be removed from the package
-    description.
+    See the supported_properties dict for the set of currently
+    supported properties. These map to fields of the same name in the
+    config file.
+
+    Also, see the supported_platform_properties dict for the set of
+    platform-specific fields. These support a property that returns the
+    list of platforms that have a definitions for that field. There are
+    also explicit getter/setter methods to support these. For example:
+
+    for platform in pi.packages:
+        print platform
+        print pi.packagesUrl(platform)
+        print pi.packagesMD5(platform)
+
+    for platform in pi.manifest:
+        print platform
+        print pi.manifestFiles(platform)
+
     """
-    def copyright(self):
-        return self.getKey('copyright')
-    def setCopyright(self, value):
-        self.setKey('copyright', value)
 
-    def description(self):
-        return self.getKey('description')
-    def setDescription(self, value):
-        self.setKey('description', value)
+    # basic read-write properties that describe the package
+    supported_properties = {
+        'copyright' :   'The copyright statement for the source code',
+        'summary' :     'A one-line overview of the package',
+        'description':  'A longer description of the package',
+        'license':      'The name of the software license (not the full text)',
+        'homepage':     'The home page URL for the source code being built',
+        'uploadtos3':   'Whether the package should also be uploaded to Amazon S3',
+        'source':       'URL where source for package lives',
+        'sourcetype':   'The form of the source, e.g., archive, svn, hg, pypi',
+        'sourcedir':    'The directory where sources extract/checkout to',
+        'builddir':     'The directory where the build command installs into',
+        'version':      'The current version of the source package',
+        'patches':      'A list of patch(1) files to apply to the sources',
+        'depends':      'List of packages that this package depends upon',
+        'obsoletes':    'List of packages to uninstalled when this one is installed',
+        }
 
-    def licenseName(self):
-        return self.getKey('license')
-    def setLicenseName(self, value):
-        self.setKey('license', value)
+    # platform-specific read-only properties that list the defined platforms
+    supported_platform_properties = {
+        'packages':     'List of platform-specific packages urls and md5sums',
+        'configure':    'List of platform-specific commands to configure the build',
+        'build':        'List of platform-specific commands to build the software',
+        'postbuild':    'Post build commands to relocate files in the builddir',
+        'manifest':     'List of platform-specific commands to build the software',
+        }
 
-    def uploadToS3(self):
-        return self.getKey('uploadtos3')
-    def setUploadToS3(self, value):
-        self.setKey('uploadtos3', value)
+    def __getattr__(self, name):
+        if self.supported_properties.has_key(name):
+            return self.getKey(name)
+        if self.supported_platform_properties.has_key(name):
+            return self.__platformList(name.replace("Platforms", ""))
+        raise RuntimeError('%s is not a supported property' % name)
 
-    def packagePlatforms(self):
-        if self.has_key('packages'):
-            return self['packages'].keys()
-        return []
-    def packageUrl(self, platform):
+    def __setattr__(self, name, value):
+        if self.supported_properties.has_key(name):
+            self.setKey(name, value)
+        if self.supported_platform_properties.has_key(name):
+            raise RuntimeError("%s is a read-only property" % name)
+        raise RuntimeError('%s is not a supported property' % name)
+
+    def packagesUrl(self, platform):
         return self.__platformKey('packages', platform, 'url')
-    def setPackageUrl(self, platform, value):
+    def setPackagesUrl(self, platform, value):
         return self.__setPlatformKey('packages', platform, 'url', value)
-    def packageMD5(self, platform):
+    def packagesMD5(self, platform):
         return self.__platformKey('packages', platform, 'md5sum')
-    def setPackageMD5(self, platform, value):
+    def setPackagesMD5(self, platform, value):
         return self.__setPlatformKey('packages', platform, 'md5sum', value)
+
+    def configureCommand(self, platform):
+        return self.__platformKey('configure', platform, 'command')
+    def setConfigureCommand(self, platform, value):
+        return self.__setPlatformKey('configure', platform, 'command', value)
+
+    def buildCommand(self, platform):
+        return self.__platformKey('build', platform, 'command')
+    def setBuildCommand(self, platform, value):
+        return self.__setPlatformKey('build', platform, 'command', value)
+
+    def postBuildCommand(self, platform):
+        return self.__platformKey('postbuild', platform, 'command')
+    def setPostBuildCommand(self, platform, value):
+        return self.__setPlatformKey('postbuild', platform, 'command', value)
+
+    def manifestFiles(self, platform):
+        return self.__platformKey('manifest', platform, 'files')
+    def setManifestFiles(self, platform, value):
+        return self.__setPlatformKey('manifest', platform, 'files', value)
 
     def getKey(self, key):
         return self.get(key)
@@ -105,6 +150,10 @@ class PackageInfo(dict):
         else:
             self[key] = value
 
+    def __platformList(self, container):
+        if self.has_key(container):
+            return self[container].keys()
+        return []
     def __platformKey(self, container, platform, key):
         if self.has_key(container) and self[container].has_key(platform):
             return self[container][platform][key]
@@ -136,13 +185,13 @@ class ConfigFile:
 
     c = ConfigFile()
     c.load()
-    print "No. of packages =", c.packageCount()
-    print "No. of licenses =", c.licenseCount()
-    for name in c.packageNames():
+    print "No. of packages =", c.packageCount
+    print "No. of licenses =", c.licenseCount
+    for name in c.packageNames:
         package = c.package(name)
         print "Package '%s'" % name
-        print "  Description: %s" % package.description()
-        print "  Copyright: %s" % package.copyright()
+        print "  Description: %s" % package.description
+        print "  Copyright: %s" % package.copyright
 
     And here's an example of modifying some data in the config file
     and writing the file back to disk. In this case, changing the
@@ -150,9 +199,9 @@ class ConfigFile:
 
     c = ConfigFile()
     c.load()
-    for name in c.packageNames():
+    for name in c.packageNames:
         package = c.package(name)
-        package.setDescription("Lynx woz here")
+        package.description = "Lynx woz here"
         c.setPackage(name, package)
     c.save()
 
@@ -177,7 +226,7 @@ class ConfigFile:
         if not os.path.exists(self.filename):
             return False
 
-        print "loading %s" % self.filename
+        print "Loading %s" % self.filename
         keys = common.llsd.parse(file(self.filename, 'rb').read())
 
         if keys.has_key('installables'):
@@ -211,29 +260,11 @@ class ConfigFile:
 
         file(self.filename, 'wb').write(common.llsd.format_pretty_xml(state))
 
-    def packageCount(self):
-        """
-        Return the number of packages described in this config file.
-        """
-        return len(self.packages)
+    packageCount = property(lambda x: len(x.packages))
+    licenseCount = property(lambda x: len(x.licenses))
 
-    def licenseCount(self):
-        """
-        Return the number of licenses described in this config file.
-        """
-        return len(self.packages)
-
-    def packageNames(self):
-        """
-        Return an array with the names of all packages in this file.
-        """
-        return self.packages.keys()
-
-    def licenseNames(self):
-        """
-        Return an array with the names of all licenses in this file.
-        """
-        return self.licenses.keys()
+    packageNames = property(lambda x: x.packages.keys())
+    licenseNames = property(lambda x: x.licenses.keys())
 
     def package(self, name):
         """
