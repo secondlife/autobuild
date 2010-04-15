@@ -26,10 +26,6 @@ class TestOptions(unittest.TestCase):
         except EarlyExitException:
             pass
 
-    #def test_commands(self):
-    #    for command in ['install', 'configure', 'build', 'package', 'upload']:
-    #        autobuild_main.main([command, '--dry-run'])
-
 if __name__ == '__main__':
     unittest.main()
 
