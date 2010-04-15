@@ -44,7 +44,7 @@ PLATFORM_LINUX   = 'linux'
 PLATFORM_SOLARIS = 'solaris'
 PLATFORM_UNKNOWN = 'unknown'
 
-class Options:
+class Options(object):
     """
     A class to capture all autobuild run-time options.
     """
@@ -314,7 +314,7 @@ def __extractall(tar, path=".", members=None):
 #
 # Dependent package bootstrapping
 #
-class Boostrap:
+class Bootstrap(object):
     """
     Autobuild can depend upon a number of external python modules
     that are also distributed as autobuild packages. This Bootstrap
@@ -362,7 +362,8 @@ class Boostrap:
         """
         Install any dependent packages that are not already installed.
         Then import the python modules into the global namespace for
-        this module. This results in the following global symbols:
+        this module. This results in the following modules being
+        available in the search path:
 
         llsd     - the llsd module from the llbase package
         boto.s3  - the Amazon boto.s3 module for uploading to S3
@@ -412,28 +413,7 @@ class Boostrap:
                 if not os.path.exists(os.path.join(install_dir, pathcheck)):
                     sys.exit("Invalid 'pathcheck' setting for '%s'" % name)
 
-        # try to import the llbase package into the global namespace
-        global llsd
-        try:
-            from llbase import llsd
-        except ImportError:
-            sys.exit("Fatal Error: Could not install llbase package!")
-
-        # try to import the boto.s3 package into the global namespace
-        global boto
-        try:
-            import boto.s3
-        except ImportError:
-            sys.exit("Fatal Error: Could not install boto.s3 package!")
-
-        # try to import the argparse package into the global namespace
-        global argparse
-        try:
-            import argparse
-        except ImportError:
-            sys.exit("Fatal Error: Could not install argparse package!")
-
 #
 # call the bootstrap code whenever this module is imported
 #
-Boostrap()
+Bootstrap()
