@@ -325,6 +325,7 @@ class Boostrap:
     """
 
     # specify the name and md5sum for all dependent pkgs on S3
+    # and a valid path in the archive to check it is installed
     deps = {
         'llbase': {
             'windows' : {
@@ -339,6 +340,14 @@ class Boostrap:
                 'filename' : "llbase-0.2.0-linux-20100225.tar.bz2",
                 'md5sum'   : "a5d3edb6b43c46e9392c1c96e51cc3e7",
                 },
+            'pathcheck' : "lib/python2.5/llbase"
+            },
+        'boto': {
+            'common' : {
+                'filename' : "boto-1.9b-common-20100414.tar.bz2",
+                'md5sum'   : "4c300c070320eb35b6b2baf0364c2e1f",
+                },
+            'pathcheck' : "lib/python2.5/boto"
             },
         }
 
@@ -348,7 +357,8 @@ class Boostrap:
         Then import the python modules into the global namespace for
         this module. This results in the following global symbols:
 
-        llsd - the llsd module from the llbase package
+        llsd    - the llsd module from the llbase package
+        boto.s3 - the Amazon boto.s3 module for uploading to S3
         """
 
         # get the directory where we keep autobuild's dependencies
@@ -375,6 +385,7 @@ class Boostrap:
             # get the url and md5 for this package dependency
             md5sum = specs['md5sum']
             url = os.path.join(Options().getS3Url(), specs['filename'])
+            pathcheck = self.deps[name].get('pathcheck', "")
 
             # download & extract the package, if not done already
             if not isPackageInCache(url):
@@ -384,6 +395,14 @@ class Boostrap:
                         sys.exit("MD5 mismatch for: %s" % url)
                     else:
                         extractPackage(url, install_dir)
+                else:
+                    sys.exit("Could not download: %s" % url)
+
+            # check for package downloaded but install dir nuked
+            if not os.path.exists(os.path.join(install_dir, pathcheck)):
+                extractPackage(url, install_dir)
+                if not os.path.exists(os.path.join(install_dir, pathcheck)):
+                    sys.exit("Invalid 'pathcheck' setting for '%s'" % name)
 
         # try to import the llbase package into the global namespace
         global llsd
@@ -391,6 +410,13 @@ class Boostrap:
             from llbase import llsd
         except ImportError:
             sys.exit("Fatal Error: Could not install llbase package!")
+
+        # try to import the boto.s3 package into the global namespace
+        global boto
+        try:
+            import boto.s3
+        except ImportError:
+            sys.exit("Fatal Error: Could not install boto.s3 package!")
 
 #
 # call the bootstrap code whenever this module is imported
