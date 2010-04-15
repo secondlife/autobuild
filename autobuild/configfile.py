@@ -30,6 +30,7 @@ $/LicenseInfo$
 
 import os
 import common
+from llbase import llsd
 
 class PackageInfo(dict):
     """
@@ -170,7 +171,7 @@ class PackageInfo(dict):
             self[container][platform][key] = value
         
 
-class ConfigFile:
+class ConfigFile(object):
     """
     An autobuild configuration file contains all the package and
     license definitions for a build. Using the ConfigFile class, you
@@ -227,7 +228,7 @@ class ConfigFile:
             return False
 
         print "Loading %s" % self.filename
-        keys = common.llsd.parse(file(self.filename, 'rb').read())
+        keys = llsd.parse(file(self.filename, 'rb').read())
 
         if keys.has_key('installables'):
             for name in keys['installables']:
@@ -258,7 +259,7 @@ class ConfigFile:
         for name in self.licenses:
             state['licenses'][name] = self.licenses[name]
 
-        file(self.filename, 'wb').write(common.llsd.format_pretty_xml(state))
+        file(self.filename, 'wb').write(llsd.format_pretty_xml(state))
 
     packageCount = property(lambda x: len(x.packages))
     licenseCount = property(lambda x: len(x.licenses))
