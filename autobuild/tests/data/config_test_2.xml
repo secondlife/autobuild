@@ -1,0 +1,101 @@
+<?xml version="1.0" ?>
+<llsd>
+<map>
+    <key>installables</key>
+    <map>
+      <key>test1</key>
+      <map>
+        <key>build</key>
+        <map>
+          <key>common</key>
+          <map>
+            <key>command</key>
+            <string>build.sh</string>
+          </map>
+        </map>
+        <key>builddir</key>
+        <string>package-build</string>
+        <key>configure</key>
+        <map>
+          <key>common</key>
+          <map>
+            <key>command</key>
+            <string>configure --enabled-shared</string>
+          </map>
+        </map>
+        <key>copyright</key>
+        <string>Copyright (c) 2010, Linden Research, Inc.</string>
+        <key>depends</key>
+        <map>
+          <key>linux</key>
+          <map>
+            <key>md5sum</key>
+            <string>22eac1bea219257a71907cbe1170c640</string>
+            <key>url</key>
+            <string>http://www.secondlife.com</string>
+          </map>
+        </map>
+        <key>description</key>
+        <string>Test package created by test_configfile.py</string>
+        <key>homepage</key>
+        <string>http://www.secondlife.com/</string>
+        <key>license</key>
+        <string>GPL2</string>
+        <key>manifest</key>
+        <map>
+          <key>common</key>
+          <map>
+            <key>files</key>
+            <string>file1 file2</string>
+          </map>
+          <key>windows</key>
+          <map>
+            <key>files</key>
+            <string>file3</string>
+          </map>
+        </map>
+        <key>obsoletes</key>
+        <string>baz bar foo</string>
+        <key>packages</key>
+        <map>
+          <key>linux</key>
+          <map>
+            <key>md5sum</key>
+            <string>22eac1bea219257a71907cbe1170c640</string>
+            <key>url</key>
+            <string>http://www.secondlife.com</string>
+          </map>
+        </map>
+        <key>patches</key>
+        <string>foo bar</string>
+        <key>postbuild</key>
+        <map>
+          <key>common</key>
+          <map>
+            <key>command</key>
+            <string>postbuild.sh</string>
+          </map>
+        </map>
+        <key>source</key>
+        <string>http://www.secondlife.com/package-source</string>
+        <key>sourcedir</key>
+        <string>package-source</string>
+        <key>sourcetype</key>
+        <string>archive</string>
+        <key>summary</key>
+        <string>Test package</string>
+        <key>uploadtos3</key>
+        <boolean>false</boolean>
+        <key>version</key>
+        <string>1.0</string>
+      </map>
+    </map>
+    <key>licenses</key>
+    <map>
+      <key>GPL</key>
+      <string>Blah blah blah ...</string>
+      <key>GPL2</key>
+      <string>Blah blah blah ...</string>
+    </map>
+  </map>
+</llsd>

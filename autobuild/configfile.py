@@ -111,7 +111,7 @@ class PackageInfo(dict):
 
     def __setattr__(self, name, value):
         if self.supported_properties.has_key(name):
-            self.setKey(name, value)
+            return self.setKey(name, value)
         if self.supported_platform_properties.has_key(name):
             raise RuntimeError("%s is a read-only property" % name)
         raise RuntimeError('%s is not a supported property' % name)
@@ -124,6 +124,15 @@ class PackageInfo(dict):
         return self.__platformKey('packages', platform, 'md5sum')
     def setPackagesMD5(self, platform, value):
         return self.__setPlatformKey('packages', platform, 'md5sum', value)
+
+    def dependsUrl(self, platform):
+        return self.__platformKey('depends', platform, 'url')
+    def setDependsUrl(self, platform, value):
+        return self.__setPlatformKey('depends', platform, 'url', value)
+    def dependsMD5(self, platform):
+        return self.__platformKey('depends', platform, 'md5sum')
+    def setDependsMD5(self, platform, value):
+        return self.__setPlatformKey('depends', platform, 'md5sum', value)
 
     def configureCommand(self, platform):
         return self.__platformKey('configure', platform, 'command')

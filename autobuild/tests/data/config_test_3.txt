@@ -1,0 +1,30 @@
+name: test1
+summary: Test package
+description: Test package created by test_configfile.py
+copyright: Copyright (c) 2010, Linden Research, Inc.
+license: GPL2
+homepage: http://www.secondlife.com/
+uploadtos3: False
+source: http://www.secondlife.com/package-source
+sourcetype: archive
+sourcedir: package-source
+builddir: package-build
+version: 1.0
+patches: foo bar
+obsoletes: baz bar foo
+packagesUrl(linux): http://www.secondlife.com
+packagesMD5(linux): 22eac1bea219257a71907cbe1170c640
+dependsUrl(common): http://www.secondlife.com
+dependsMD5(common): 22eac1bea219257a71907cbe1170c640
+configure(common): configure --enabled-shared
+build(common): build.sh
+postBuild(common): postbuild.sh
+manifest(common): file1 file2
+manifest(windows): file3
+----------------------------------------
+license: GPL
+Blah blah blah ...
+----------------------------------------
+license: GPL2
+Blah blah blah ...
+----------------------------------------
