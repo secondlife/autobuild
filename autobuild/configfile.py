@@ -4,9 +4,9 @@
 @date 2010-04-13
 @brief API to access the autobuild package description config file.
 
-$LicenseInfo:firstyear=2007&license=mit$
+$LicenseInfo:firstyear=2010&license=mit$
 
-Copyright (c) 2007-2009, Linden Research, Inc.
+Copyright (c) 2010, Linden Research, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,9 @@ $/LicenseInfo$
 import os
 import common
 from llbase import llsd
+
+BUILD_CONFIG_FILE="autobuild.xml"
+INSTALL_CONFIG_FILE="packages.xml"
 
 class PackageInfo(dict):
     """
@@ -86,13 +89,13 @@ class PackageInfo(dict):
         'builddir':     'The directory where the build command installs into',
         'version':      'The current version of the source package',
         'patches':      'A list of patch(1) files to apply to the sources',
-        'depends':      'List of packages that this package depends upon',
         'obsoletes':    'List of packages to uninstalled when this one is installed',
         }
 
     # platform-specific read-only properties that list the defined platforms
     supported_platform_properties = {
-        'packages':     'List of platform-specific packages urls and md5sums',
+        'packages':     'List of platform-specific packages for the install command',
+        'depends':      'List of packages that this package depends upon to build',
         'configure':    'List of platform-specific commands to configure the build',
         'build':        'List of platform-specific commands to build the software',
         'postbuild':    'Post build commands to relocate files in the builddir',
@@ -212,24 +215,33 @@ class ConfigFile(object):
         self.packages = {}
         self.licenses = {}
 
-    def load(self, config_filename=None):
+    def load(self, config_filename=BUILD_CONFIG_FILE):
         """
         Load an autobuild configuration file. If no filename is
         specified, then the default of "autobuild.xml" will be used.
+        Returns False if the file could not be loaded successfully.
         """
-        if not config_filename:
-            config_filename = "autobuild.xml"
 
+        # initialize the object state
         self.filename = config_filename
         self.packages = {}
         self.licenses = {}
 
+        # try to find the config file in the current, or any parent, dir
+        dir = os.getcwd()
+        while not os.path.exists(os.path.join(dir, config_filename)) and len(dir) > 3:
+            dir = os.path.dirname(dir)
+
+        # return None if the file does not exist
+        self.filename = os.path.join(dir, config_filename)
         if not os.path.exists(self.filename):
             return False
 
+        # load the file as a serialized LLSD
         print "Loading %s" % self.filename
         keys = llsd.parse(file(self.filename, 'rb').read())
 
+        # pull out the packages and licenses dicts from the LLSD
         if keys.has_key('installables'):
             for name in keys['installables']:
                 self.packages[name] = PackageInfo(keys['installables'][name])
@@ -246,10 +258,13 @@ class ConfigFile(object):
         to the same file that the config data was loaded from
         (or the explicit filename specified in a previous call to
         this save method).
+        Returns False if the file could not be saved successfully.
         """
+        # use the name of file we loaded from, if no filename given
         if config_filename:
             self.filename = config_filename
 
+        # create an appropriate dict structure to write to the file
         state = {}
         state['installables'] = {}
         for name in self.packages:
@@ -259,7 +274,14 @@ class ConfigFile(object):
         for name in self.licenses:
             state['licenses'][name] = self.licenses[name]
 
-        file(self.filename, 'wb').write(llsd.format_pretty_xml(state))
+        # try to write out to the file
+        try:
+            file(self.filename, 'wb').write(llsd.format_pretty_xml(state))
+        except IOError:
+            print "Could not save to file: %s" % self.filename
+            return False
+
+        return True
 
     packageCount = property(lambda x: len(x.packages))
     licenseCount = property(lambda x: len(x.licenses))
