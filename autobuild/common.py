@@ -44,6 +44,13 @@ PLATFORM_LINUX   = 'linux'
 PLATFORM_SOLARIS = 'solaris'
 PLATFORM_UNKNOWN = 'unknown'
 
+PLATFORMS = [
+             PLATFORM_DARWIN,
+             PLATFORM_WINDOWS,
+             PLATFORM_LINUX,
+             PLATFORM_SOLARIS,
+            ]
+
 class Options(object):
     """
     A class to capture all autobuild run-time options.
@@ -205,6 +212,42 @@ def extractPackage(package, install_dir):
         __extractall(tar, path=install_dir)
 
     return True
+
+def split_tarname(pathname):
+    """
+    Given a tarfile pathname of the form:
+    "/some/path/boost-1.39.0-darwin-20100222a.tar.bz2"
+    return the following:
+    ("/some/path", ["boost", "1.39.0", "darwin", "20100222a"], ".tar.bz2")
+    """
+    # Split off the directory name from the unqualified filename.
+    dir, filename = os.path.split(pathname)
+    # dir = "/some/path"
+    # filename = "boost-1.39.0-darwin-20100222a.tar.bz2"
+    # Conceptually we want to split off the extension at this point. It would
+    # be great to use os.path.splitext(). Unfortunately, at least as of Python
+    # 2.5, os.path.splitext("woof.tar.bz2") returns ('woof.tar', '.bz2') --
+    # not what we want. Instead, we'll have to split on '.'. But as the
+    # docstring example points out, doing that too early would confuse things,
+    # as there are dot characters in the embedded version number. So we have
+    # to split on '-' FIRST.
+    fileparts = filename.split('-')
+    # fileparts = ["boost", "1.39.0", "darwin", "20100222a.tar.bz2"]
+    # Almost there -- we just have to lop off the extension. NOW split on '.'.
+    # We know there's at least fileparts[-1] because splitting a string with
+    # no '.' -- even the empty string -- produces a list containing the
+    # original string.
+    extparts = fileparts[-1].split('.')
+    # extparts = ["20100222a", "tar", "bz2"]
+    # Replace the last entry in fileparts with the first part of extparts.
+    fileparts[-1] = extparts[0]
+    # Now fileparts = ["boost", "1.39.0", "darwin", "20100222a"] as desired.
+    # Reconstruct the extension. To preserve the leading '.', don't just
+    # delete extparts[0], replace it with the empty string. Yes, this does
+    # assume that split() returns a list.
+    extparts[0] = ""
+    ext = '.'.join(extparts)
+    return (dir, fileparts, ext)
 
 ######################################################################
 #
