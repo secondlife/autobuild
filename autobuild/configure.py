@@ -689,6 +689,12 @@ setup_platform = {
     'cygwin' : CygwinSetup
     }
 
+def get_package_dir():
+    if sys.platform not in setup_platform.keys():
+        raise RuntimeError("Cannot find package dir for platform %s" % platform)
+    p = setup_platform[sys.platform]()
+    return os.path.join(p.build_dirs()[0], 'packages')
+    
 
 usage_msg = '''
 Usage:   configure.py [options] [command [command-options]]

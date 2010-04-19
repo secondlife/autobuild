@@ -120,6 +120,10 @@ class PackageInfo(dict):
         return self.__platformKey('packages', platform, 'url')
     def setPackagesUrl(self, platform, value):
         return self.__setPlatformKey('packages', platform, 'url', value)
+    def packagesFiles(self, platform):
+        return self.__platformKey('packages', platform, 'files')
+    def setPackagesFiles(self, platform, value):
+        return self.__setPlatformKey('packages', platform, 'files', value)
     def packagesMD5(self, platform):
         return self.__platformKey('packages', platform, 'md5sum')
     def setPackagesMD5(self, platform, value):
@@ -223,6 +227,7 @@ class ConfigFile(object):
         self.filename = None
         self.packages = {}
         self.licenses = {}
+        self.changed = False
 
     def load(self, config_filename=BUILD_CONFIG_FILE):
         """
@@ -235,6 +240,7 @@ class ConfigFile(object):
         self.filename = config_filename
         self.packages = {}
         self.licenses = {}
+        self.changed = False
 
         # try to find the config file in the current, or any parent, dir
         dir = os.getcwd()
@@ -298,6 +304,8 @@ class ConfigFile(object):
     packageNames = property(lambda x: x.packages.keys())
     licenseNames = property(lambda x: x.licenses.keys())
 
+    empty = property(lambda x: len(x.packages) == 0 and len(x.licenses) == 0)
+
     def package(self, name):
         """
         Return a PackageInfo object for the named package in this
@@ -324,6 +332,7 @@ class ConfigFile(object):
         description with the same name.
         """
         self.packages[name] = value
+        self.changed = True
 
     def setLicense(self, name, value):
         """
@@ -332,4 +341,5 @@ class ConfigFile(object):
         same name.
         """
         self.licenses[name] = value
+        self.changed = True
 

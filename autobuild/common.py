@@ -128,14 +128,20 @@ def getTempDir(basename):
         os.makedirs(tmpdir, mode=0755)
     return tmpdir
 
+def getPackageInCache(package):
+    """
+    Return the filename of the package in the local cache.
+    The file may not actually exist.
+    """
+    filename = os.path.basename(package)
+    return os.path.join(Options().getInstallCacheDir(), filename)
+
 def isPackageInCache(package):
     """
     Return True if the specified package has already been downloaded
     to the local package cache.
     """
-    filename = os.path.basename(package)
-    cachename = os.path.join(Options().getInstallCacheDir(), filename)
-    return os.path.exists(cachename)
+    return os.path.exists(getPackageInCache(package))
 
 def doesPackageMatchMD5(package, md5sum):
     """
@@ -147,10 +153,8 @@ def doesPackageMatchMD5(package, md5sum):
     except ImportError:
         from md5 import new as md5   # Python 2.5 and earlier
 
-    filename = os.path.basename(package)
-    cachename = os.path.join(Options().getInstallCacheDir(), filename)
     try:
-        hasher = md5(file(cachename, 'rb').read())
+        hasher = md5(file(getPackageInCache(package), 'rb').read())
     except:
         return False
     return hasher.hexdigest() == md5sum
@@ -163,8 +167,7 @@ def downloadPackage(package):
     """
 
     # have we already downloaded this file to the cache?
-    filename = os.path.basename(package)
-    cachename = os.path.join(Options().getInstallCacheDir(), filename)
+    cachename = getPackageInCache(package)
     if os.path.exists(cachename):
         print "Package already in cache: %s" % cachename
         return True
@@ -190,13 +193,13 @@ def downloadPackage(package):
 
 def extractPackage(package, install_dir):
     """
-    Extract the contents of a downloaded package to the specified directory.
-    Returns False if the package could not be found or extracted.
+    Extract the contents of a downloaded package to the specified
+    directory.  Returns the list of files that were successfully
+    extracted.
     """
 
     # Find the name of the package in the install cache
-    filename = os.path.basename(package)
-    cachename = os.path.join(Options().getInstallCacheDir(), filename)
+    cachename = getPackageInCache(package)
     if not os.path.exists(cachename):
         print "Cannot extract non-existing package: %s" % cachename
         return False
@@ -211,7 +214,16 @@ def extractPackage(package, install_dir):
         # or fallback on pre-python 2.5 behavior
         __extractall(tar, path=install_dir)
 
-    return True
+    return tar.getnames()
+
+def removePackage(package):
+    """
+    Delete the downloaded package from the cache, if it exists there.
+    """
+    cachename = getPackageInCache(package)
+    if os.path.exists(cachename):
+        os.remove(cachename)
+
 
 def split_tarname(pathname):
     """
@@ -431,8 +443,8 @@ class Bootstrap(object):
             elif self.deps[name].has_key('common'):
                 specs = self.deps[name]['common']
             else:
-                sys.exit("No package defined for %s for %s" %
-                         (name, platform))
+                raise RuntimeError("No package defined for %s for %s" %
+                                   (name, platform))
             
             # get the url and md5 for this package dependency
             md5sum = specs['md5sum']
@@ -444,17 +456,17 @@ class Bootstrap(object):
                 print "Installing package '%s'..." % name
                 if downloadPackage(url):
                     if not doesPackageMatchMD5(url, md5sum):
-                        sys.exit("MD5 mismatch for: %s" % url)
+                        raise RuntimeError("MD5 mismatch for: %s" % url)
                     else:
                         extractPackage(url, install_dir)
                 else:
-                    sys.exit("Could not download: %s" % url)
+                    raise RuntimeError("Could not download: %s" % url)
 
             # check for package downloaded but install dir nuked
             if not os.path.exists(os.path.join(install_dir, pathcheck)):
                 extractPackage(url, install_dir)
                 if not os.path.exists(os.path.join(install_dir, pathcheck)):
-                    sys.exit("Invalid 'pathcheck' setting for '%s'" % name)
+                    raise RuntimeError("Invalid 'pathcheck' setting for '%s'" % name)
 
 #
 # call the bootstrap code whenever this module is imported

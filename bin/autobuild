@@ -13,5 +13,10 @@ except ImportError, excp:
     from autobuild import autobuild_main
 
 if __name__ == "__main__":
-    sys.exit( autobuild_main.main(sys.argv[1:]) )
+    try:
+        sys.exit( autobuild_main.main(sys.argv[1:]) )
+    except KeyboardInterrupt, e:
+        sys.exit("Aborted...")
+    except RuntimeError, e:
+        sys.exit("ERROR: %s" % e)
 
