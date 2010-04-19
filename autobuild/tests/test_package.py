@@ -20,14 +20,14 @@ class TestPackager(unittest.TestCase):
     def test_0(self):
         pass
 
-class TestInstallAdapter(unittest.TestCase):
-    def setUp(self):
-        self.installer = package.Installer()
+## class TestInstallAdapter(unittest.TestCase):
+##     def setUp(self):
+##         self.installer = package.Installer()
 
-    def test_getMd5Sum(self):
-        test_tarfile = StringIO.StringIO("foobar");
-        self.assertEquals(self.installer.getMd5Sum(test_tarfile),
-                          hashlib.md5("foobar").hexdigest())
+##     def test_getMd5Sum(self):
+##         test_tarfile = StringIO.StringIO("foobar");
+##         self.assertEquals(self.installer.getMd5Sum(test_tarfile),
+##                           hashlib.md5("foobar").hexdigest())
         
 
 if __name__ == '__main__':
