@@ -33,7 +33,8 @@ import common
 from llbase import llsd
 
 BUILD_CONFIG_FILE="autobuild.xml"
-INSTALL_CONFIG_FILE="packages.xml"
+PACKAGES_CONFIG_FILE="packages.xml"
+INSTALLED_CONFIG_FILE="installed-packages.xml"
 
 class PackageInfo(dict):
     """

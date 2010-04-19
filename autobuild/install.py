@@ -94,13 +94,13 @@ darwin/universal/gcc/4.0
     parser.add_option(
         '--package-info',
         type='string',
-        default=os.path.join(__base_dir, 'packages.xml'),
+        default=os.path.join(__base_dir, configfile.PACKAGES_CONFIG_FILE),
         dest='install_filename',
         help='The file used to describe what should be installed.')
     parser.add_option(
         '--installed-manifest', 
         type='string',
-        default='installed-packages.xml',
+        default=configfile.INSTALLED_CONFIG_FILE,
         dest='installed_filename',
         help='The file used to record what is installed.')
     parser.add_option(
@@ -385,45 +385,45 @@ def handle_edit_args(options, config_file):
             md5sum=options.package_md5):
             return 1
 
-def get_packages_to_install(installables, packages_config, installed_config, preferred_platform):
+def get_packages_to_install(installables, config_file, installed_config, preferred_platform):
 
     # if no installables specified, consider all
     if not len(installables):
-        installables = packages_config.packages
+        installables = config_file.packages
 
     # compile a subset of packages we actually need to install
     to_install = []
     for ifile in installables:
         
-        toinstall_package = packages_config.package(ifile)
-        installed_package = installed_config.package(ifile)
+        toinstall = config_file.package(ifile)
+        installed = installed_config.package(ifile)
 
         # raise error if named package doesn't exist in packages.xml
-        if not toinstall_package:
-            raise RuntimeError('Unknown installable: %s' % installable)
+        if not toinstall:
+            raise RuntimeError('Unknown installable: %s' % ifile)
 
         # work out the platform-specific or common url to use
         platform = preferred_platform
-        if not toinstall_package.packagesUrl(platform):
+        if not toinstall.packagesUrl(platform):
             platform = 'common'
-        if not toinstall_package.packagesUrl(platform):
+        if not toinstall.packagesUrl(platform):
            raise RuntimeError("No url specified for this platform for %s" % ifile)
 
         # install this package if it is new or out of date
-        if installed_package == None or \
-           toinstall_package.packagesUrl(platform) != installed_package.packagesUrl(platform) or \
-           toinstall_package.packagesMD5(platform) != installed_package.packagesMD5(platform):
+        if installed == None or \
+           toinstall.packagesUrl(platform) != installed.packagesUrl(platform) or \
+           toinstall.packagesMD5(platform) != installed.packagesMD5(platform):
             to_install.append(ifile)
 
     return to_install
 
-def check_licenses(installables, packages_config):
+def check_licenses(installables, config_file):
     """
     Return true if we have valid license info for the list of
     installables.
     """
     for ifile in installables:
-        installable = packages_config.package(ifile)
+        installable = config_file.package(ifile)
         license = installable.license
         if not license:
             print >>sys.stderr, "No license info found for", ifile
@@ -431,7 +431,7 @@ def check_licenses(installables, packages_config):
             print >>sys.stderr, '--add-installable option. See', \
                                  sys.argv[0], '--help'
             return False
-        if license not in packages_config.licenses:
+        if license not in config_file.licenses:
             print >>sys.stderr, "Missing license info for '" + license + "'.",
             print >>sys.stderr, 'Please add the license with the',
             print >>sys.stderr, '--add-license option. See', sys.argv[0],
@@ -502,37 +502,37 @@ def main(args):
     installed_filename = os.path.join(install_dir, options.installed_filename)
 
     # load the list of already installed packages
-    installed = configfile.ConfigFile()
-    installed.load(os.path.join(options.install_dir, installed_filename))
+    installed_file = configfile.ConfigFile()
+    installed_file.load(os.path.join(options.install_dir, installed_filename))
 
     # load the list of packages to install
-    config = configfile.ConfigFile()
-    config.load(options.install_filename)
-    if config.empty:
+    config_file = configfile.ConfigFile()
+    config_file.load(options.install_filename)
+    if config_file.empty:
         print "No package information to load from", options.install_filename
         return 0
 
     # get the list of packages to actually installed
-    packages = get_packages_to_install(args, config, installed, options.platform)
+    packages = get_packages_to_install(args, config_file, installed_file, options.platform)
 
     # handle any arguments to query for information
-    if handle_query_args(options, config, installed):
+    if handle_query_args(options, config_file, installed_file):
         return 0
 
     # handle any arguments to query for information
-    if handle_edit_args(options, config):
+    if handle_edit_args(options, config_file):
         return 0
 
     # check the licenses for the packages to install
-    if not check_licenses(packages, config):
+    if not check_licenses(packages, config_file):
         return 1
 
     # do the actual install of the new/updated packages
-    do_install(packages, config, installed, options.platform, install_dir)
+    do_install(packages, config_file, installed_file, options.platform, install_dir)
 
     # *TODO: support uninstalling unused packages too?
     
     # update the installed-packages.xml file, if it was changed
-    if installed.changed:
-        installed.save()
+    if installed_file.changed:
+        installed_file.save()
     return 0
