@@ -51,7 +51,7 @@ PLATFORMS = [
              PLATFORM_SOLARIS,
             ]
 
-def getCurrentPlatform():
+def get_current_platform():
     """
     Return appropriate the autobuild name for the current platform.
     """
@@ -64,7 +64,7 @@ def getCurrentPlatform():
         }
     return platform_map.get(sys.platform, PLATFORM_UNKNOWN)
 
-def getCurrentUser():
+def get_current_user():
     """
     Get the login name for the current user.
     """
@@ -81,33 +81,33 @@ def getCurrentUser():
             raise ctypes.WinError()
         return name.value
 
-def getDefaultSCPCommand():
+def get_default_scp_command():
     """
     Return the full path to the scp command
     """
     return "scp"
 
-def getDefaultInstallCacheDir():
+def get_default_install_cache_dir():
     """
     In general, the installable files do not change much, so find a 
     host/user specific location to cache files.
     """
-    return getTempDir("install.cache")
+    return get_temp_dir("install.cache")
 
-def getS3Url():
+def get_s3_url():
     """
     Return the base URL for Amazon S3 package locations.
     """
     return "http://s3.amazonaws.com/viewer-source-downloads/install_pkgs"
 
-def getTempDir(basename):
+def get_temp_dir(basename):
     """
     Return a temporary directory on the user's machine, uniquified
     with the specified basename string. You may assume that the
     directory exists.
     """
-    user = getCurrentUser()
-    if getCurrentPlatform() == PLATFORM_WINDOWS:
+    user = get_current_user()
+    if get_current_platform() == PLATFORM_WINDOWS:
         installdir = '%s.%s' % (basename, user)
         tmpdir = os.path.join(tempfile.gettempdir(), installdir)
     else:
@@ -116,22 +116,22 @@ def getTempDir(basename):
         os.makedirs(tmpdir, mode=0755)
     return tmpdir
 
-def getPackageInCache(package):
+def get_package_in_cache(package):
     """
     Return the filename of the package in the local cache.
     The file may not actually exist.
     """
     filename = os.path.basename(package)
-    return os.path.join(getDefaultInstallCacheDir(), filename)
+    return os.path.join(get_default_install_cache_dir(), filename)
 
-def isPackageInCache(package):
+def is_package_in_cache(package):
     """
     Return True if the specified package has already been downloaded
     to the local package cache.
     """
-    return os.path.exists(getPackageInCache(package))
+    return os.path.exists(get_package_in_cache(package))
 
-def doesPackageMatchMD5(package, md5sum):
+def does_package_match_md5(package, md5sum):
     """
     Returns True if the MD5 sum of the downloaded package archive
     matches the specified MD5 string.
@@ -142,12 +142,12 @@ def doesPackageMatchMD5(package, md5sum):
         from md5 import new as md5   # Python 2.5 and earlier
 
     try:
-        hasher = md5(file(getPackageInCache(package), 'rb').read())
+        hasher = md5(file(get_package_in_cache(package), 'rb').read())
     except:
         return False
     return hasher.hexdigest() == md5sum
 
-def downloadPackage(package):
+def download_package(package):
     """
     Download a package, specified as a URL, to the install cache.
     If the package already exists in the cache then this is a no-op.
@@ -155,14 +155,14 @@ def downloadPackage(package):
     """
 
     # have we already downloaded this file to the cache?
-    cachename = getPackageInCache(package)
+    cachename = get_package_in_cache(package)
     if os.path.exists(cachename):
         print "Package already in cache: %s" % cachename
         return True
 
     # Set up the 'scp' handler
     opener = urllib2.build_opener()
-    scp_or_http = __SCPOrHTTPHandler(getDefaultSCPCommand())
+    scp_or_http = __SCPOrHTTPHandler(get_default_scp_command())
     opener.add_handler(scp_or_http)
     urllib2.install_opener(opener)
 
@@ -179,7 +179,7 @@ def downloadPackage(package):
     scp_or_http.cleanup()
     return result
 
-def extractPackage(package, install_dir):
+def extract_package(package, install_dir):
     """
     Extract the contents of a downloaded package to the specified
     directory.  Returns the list of files that were successfully
@@ -187,7 +187,7 @@ def extractPackage(package, install_dir):
     """
 
     # Find the name of the package in the install cache
-    cachename = getPackageInCache(package)
+    cachename = get_package_in_cache(package)
     if not os.path.exists(cachename):
         print "Cannot extract non-existing package: %s" % cachename
         return False
@@ -204,11 +204,11 @@ def extractPackage(package, install_dir):
 
     return tar.getnames()
 
-def removePackage(package):
+def remove_package(package):
     """
     Delete the downloaded package from the cache, if it exists there.
     """
-    cachename = getPackageInCache(package)
+    cachename = get_package_in_cache(package)
     if os.path.exists(cachename):
         os.remove(cachename)
 
@@ -414,7 +414,7 @@ class Bootstrap(object):
         """
 
         # get the directory where we keep autobuild's dependencies
-        install_dir = getTempDir("autobuild")
+        install_dir = get_temp_dir("autobuild")
 
         # add its lib/pythonX.X directory to our module search path
         python_dir = os.path.join(install_dir, "lib", "python2.5")
@@ -422,7 +422,7 @@ class Bootstrap(object):
             sys.path.append(python_dir)
 
         # install all of our dependent packages, as needed
-        platform = getCurrentPlatform()
+        platform = get_current_platform()
         for name in self.deps:
 
             # get the package specs for this platform
@@ -436,23 +436,23 @@ class Bootstrap(object):
             
             # get the url and md5 for this package dependency
             md5sum = specs['md5sum']
-            url = os.path.join(getS3Url(), specs['filename'])
+            url = os.path.join(get_s3_url(), specs['filename'])
             pathcheck = self.deps[name].get('pathcheck', "")
 
             # download & extract the package, if not done already
-            if not isPackageInCache(url):
+            if not is_package_in_cache(url):
                 print "Installing package '%s'..." % name
-                if downloadPackage(url):
-                    if not doesPackageMatchMD5(url, md5sum):
+                if download_package(url):
+                    if not does_package_match_md5(url, md5sum):
                         raise RuntimeError("MD5 mismatch for: %s" % url)
                     else:
-                        extractPackage(url, install_dir)
+                        extract_package(url, install_dir)
                 else:
                     raise RuntimeError("Could not download: %s" % url)
 
             # check for package downloaded but install dir nuked
             if not os.path.exists(os.path.join(install_dir, pathcheck)):
-                extractPackage(url, install_dir)
+                extract_package(url, install_dir)
                 if not os.path.exists(os.path.join(install_dir, pathcheck)):
                     raise RuntimeError("Invalid 'pathcheck' setting for '%s'" % name)
 

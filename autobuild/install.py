@@ -112,17 +112,17 @@ darwin/universal/gcc/4.0
     parser.add_option(
         '-p', '--platform', 
         type='string',
-        default=common.getCurrentPlatform(),
+        default=common.get_current_platform(),
         dest='platform',
         help="""Override the automatically determined platform. \
 You can specify 'all' to do a installation of installables for all platforms.""")
     parser.add_option(
         '--cache-dir', 
         type='string',
-        default=common.getDefaultInstallCacheDir(),
+        default=common.get_default_install_cache_dir(),
         dest='cache_dir',
         help='Where to download files. Default: %s'% \
-             (common.getDefaultInstallCacheDir()))
+             (common.get_default_install_cache_dir()))
     parser.add_option(
         '--install-dir', 
         type='string',
@@ -461,22 +461,22 @@ def do_install(installables, config_file, installed_file, preferred_platform, in
 
         url = package.packagesUrl(platform)
         md5 = package.packagesMD5(platform)
-        cachefile = common.getPackageInCache(url)
+        cachefile = common.get_package_in_cache(url)
 
         # download the package, if it's not already in our cache
-        if not common.isPackageInCache(url):
+        if not common.is_package_in_cache(url):
 
             # download the package to the cache
-            if not common.downloadPackage(url):
+            if not common.download_package(url):
                 raise RuntimeError("Failed to download %s" % url)
 
             # error out if MD5 doesn't matches
-            if not common.doesPackageMatchMD5(url, md5):
-                common.removePackage(url)
+            if not common.does_package_match_md5(url, md5):
+                common.remove_package(url)
                 raise RuntimeError("md5 mismatch for %s" % cachefile)
 
         # extract the files from the package
-        files = common.extractPackage(url, install_dir)
+        files = common.extract_package(url, install_dir)
 
         # update the installed-packages.xml file
         package = installed_file.package(ifile)
