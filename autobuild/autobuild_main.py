@@ -74,8 +74,8 @@ def main(args):
         return 1
 
     if extra_args[0] == 'install':
-        import install
-        return install.main([a for a in args if a != 'install'])
+        import autobuild_tool_install
+        return autobuild_tool_install.main([a for a in args if a != 'install'])
 
     if extra_args[0] == 'configure':
         import configure
