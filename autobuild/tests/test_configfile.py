@@ -15,7 +15,7 @@ class TestConfigFile(unittest.TestCase):
         self.failed = False
         self.tmp_file = None
 
-    def setTmpFile(self, n):
+    def set_temp_file(self, n):
         """
         Write to a different tmp file for each test, so we can remove
         it if the test passes, or leave it around for debugging if it
@@ -44,7 +44,7 @@ class TestConfigFile(unittest.TestCase):
         """
         Create a new config file from scratch
         """
-        self.setTmpFile(0)
+        self.set_temp_file(0)
 
         c = configfile.ConfigFile()
 
@@ -52,21 +52,21 @@ class TestConfigFile(unittest.TestCase):
         p.summary = "Test package"
         p.description = "Test package created by test_configfile.py"
         p.copyright = "Copyright (c) 2010, Linden Research, Inc."
-        p.setPackagesUrl('linux', 'http://www.secondlife.com')
-        p.setPackagesMD5('linux', '22eac1bea219257a71907cbe1170c640')
-        c.setPackage('test1', p)
+        p.set_packages_url('linux', 'http://www.secondlife.com')
+        p.set_packages_md5('linux', '22eac1bea219257a71907cbe1170c640')
+        c.set_package('test1', p)
 
         p = configfile.PackageInfo()
         p.summary = "Another package"
         p.description = "A second test package created by test_configfile.py"
         p.copyright = "Copyright (c) 2010, Linden Research, Inc."
-        p.setPackagesUrl('common', 'http://www.secondlife.com/package-common')
-        p.setPackagesMD5('common', '22eac1bea219257a71907cbe1170c640')
-        p.setPackagesUrl('windows', 'http://www.secondlife.com/package-windows')
-        p.setPackagesMD5('windows', '28189f725a5c53684ce1c925ee5fecd7')
-        c.setPackage('test2', p)
+        p.set_packages_url('common', 'http://www.secondlife.com/package-common')
+        p.set_packages_md5('common', '22eac1bea219257a71907cbe1170c640')
+        p.set_packages_url('windows', 'http://www.secondlife.com/package-windows')
+        p.set_packages_md5('windows', '28189f725a5c53684ce1c925ee5fecd7')
+        c.set_package('test2', p)
 
-        c.setLicense('GPL', 'Blah blah blah ...')
+        c.set_license('GPL', 'Blah blah blah ...')
 
         c.save(self.tmp_file)
         self.diff(self.tmp_file, "data/config_test_0.xml")
@@ -75,7 +75,7 @@ class TestConfigFile(unittest.TestCase):
         """
         Create a new config file with all supported fields
         """
-        self.setTmpFile(1)
+        self.set_temp_file(1)
 
         c = configfile.ConfigFile()
 
@@ -94,23 +94,23 @@ class TestConfigFile(unittest.TestCase):
         p.patches = "foo bar"
         p.obsoletes = "baz bar foo"
 
-        p.setPackagesUrl('linux', 'http://www.secondlife.com')
-        p.setPackagesMD5('linux', '22eac1bea219257a71907cbe1170c640')
+        p.set_packages_url('linux', 'http://www.secondlife.com')
+        p.set_packages_md5('linux', '22eac1bea219257a71907cbe1170c640')
 
-        p.setDependsUrl('linux', 'http://www.secondlife.com')
-        p.setDependsMD5('linux', '22eac1bea219257a71907cbe1170c640')
+        p.set_depends_url('linux', 'http://www.secondlife.com')
+        p.set_depends_md5('linux', '22eac1bea219257a71907cbe1170c640')
 
-        p.setConfigureCommand('common', 'configure --enabled-shared')
-        p.setBuildCommand('common', 'build.sh')
-        p.setPostBuildCommand('common', 'postbuild.sh')
+        p.set_configure_command('common', 'configure --enabled-shared')
+        p.set_build_command('common', 'build.sh')
+        p.set_post_build_command('common', 'postbuild.sh')
 
-        p.setManifestFiles('common', 'file1 file2')
-        p.setManifestFiles('windows', 'file3')
+        p.set_manifest_files('common', 'file1 file2')
+        p.set_manifest_files('windows', 'file3')
 
-        c.setPackage('test1', p)
+        c.set_package('test1', p)
 
-        c.setLicense('GPL', 'Blah blah blah ...')
-        c.setLicense('GPL2', 'Blah blah blah ...')
+        c.set_license('GPL', 'Blah blah blah ...')
+        c.set_license('GPL2', 'Blah blah blah ...')
 
         c.save(self.tmp_file)
         self.diff(self.tmp_file, "data/config_test_1.xml")
@@ -119,7 +119,7 @@ class TestConfigFile(unittest.TestCase):
         """
         Read and write an existing config file
         """
-        self.setTmpFile(2)
+        self.set_temp_file(2)
 
         c = configfile.ConfigFile()
         c.load(os.path.join(sys.path[0], "data/config_test_2.xml"))
@@ -130,7 +130,7 @@ class TestConfigFile(unittest.TestCase):
         """
         Read a config file and print some fields
         """
-        self.setTmpFile(3)
+        self.set_temp_file(3)
 
         c = configfile.ConfigFile()
         c.load(os.path.join(sys.path[0], "data/config_test_3.xml"))
@@ -153,18 +153,18 @@ class TestConfigFile(unittest.TestCase):
             lines.append("patches: %s\n" % p.patches)
             lines.append("obsoletes: %s\n" % p.obsoletes)
 
-            lines.append("packagesUrl(linux): %s\n" % p.packagesUrl('linux'))
-            lines.append("packagesMD5(linux): %s\n" % p.packagesMD5('linux'))
+            lines.append("packages_url(linux): %s\n" % p.packages_url('linux'))
+            lines.append("packages_md5(linux): %s\n" % p.packages_md5('linux'))
 
-            lines.append("dependsUrl(common): %s\n" % p.dependsUrl('linux'))
-            lines.append("dependsMD5(common): %s\n" % p.dependsMD5('linux'))
+            lines.append("depends_url(common): %s\n" % p.depends_url('linux'))
+            lines.append("depends_md5(common): %s\n" % p.depends_md5('linux'))
 
-            lines.append("configure(common): %s\n" % p.configureCommand('common'))
-            lines.append("build(common): %s\n" % p.buildCommand('common'))
-            lines.append("postBuild(common): %s\n" % p.postBuildCommand('common'))
+            lines.append("configure(common): %s\n" % p.configure_command('common'))
+            lines.append("build(common): %s\n" % p.build_command('common'))
+            lines.append("postBuild(common): %s\n" % p.post_build_command('common'))
 
-            lines.append("manifest(common): %s\n" % p.manifestFiles('common'))
-            lines.append("manifest(windows): %s\n" % p.manifestFiles('windows'))
+            lines.append("manifest(common): %s\n" % p.manifest_files('common'))
+            lines.append("manifest(windows): %s\n" % p.manifest_files('windows'))
             lines.append("-" * 40 + "\n")
 
         for name in c.licenses:
@@ -179,7 +179,7 @@ class TestConfigFile(unittest.TestCase):
         """
         Test property checking logic on PackageInfo
         """
-        self.setTmpFile(4)
+        self.set_temp_file(4)
 
         c = configfile.ConfigFile()
         p = configfile.PackageInfo()

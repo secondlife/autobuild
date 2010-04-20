@@ -404,15 +404,15 @@ def get_packages_to_install(installables, config_file, installed_config, preferr
 
         # work out the platform-specific or common url to use
         platform = preferred_platform
-        if not toinstall.packagesUrl(platform):
+        if not toinstall.packages_url(platform):
             platform = 'common'
-        if not toinstall.packagesUrl(platform):
+        if not toinstall.packages_url(platform):
            raise RuntimeError("No url specified for this platform for %s" % ifile)
 
         # install this package if it is new or out of date
         if installed == None or \
-           toinstall.packagesUrl(platform) != installed.packagesUrl(platform) or \
-           toinstall.packagesMD5(platform) != installed.packagesMD5(platform):
+           toinstall.packages_url(platform) != installed.packages_url(platform) or \
+           toinstall.packages_md5(platform) != installed.packages_md5(platform):
             to_install.append(ifile)
 
     return to_install
@@ -456,11 +456,11 @@ def do_install(installables, config_file, installed_file, preferred_platform, in
         # find the url/md5 for the platform, or fallback to 'common'
         package = config_file.package(ifile)
         platform = preferred_platform
-        if not package.packagesUrl(platform):
+        if not package.packages_url(platform):
             platform = 'common'
 
-        url = package.packagesUrl(platform)
-        md5 = package.packagesMD5(platform)
+        url = package.packages_url(platform)
+        md5 = package.packages_md5(platform)
         cachefile = common.get_package_in_cache(url)
 
         # download the package, if it's not already in our cache
@@ -482,10 +482,10 @@ def do_install(installables, config_file, installed_file, preferred_platform, in
         package = installed_file.package(ifile)
         if not package:
             package = configfile.PackageInfo()
-        package.setPackagesUrl(platform, url)
-        package.setPackagesMD5(platform, md5)
-        package.setPackagesFiles(platform, files)
-        installed_file.setPackage(ifile, package)
+        package.set_packages_url(platform, url)
+        package.set_packages_md5(platform, md5)
+        package.set_packages_files(platform, files)
+        installed_file.set_package(ifile, package)
 
 
 def main(args):

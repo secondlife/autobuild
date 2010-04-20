@@ -67,12 +67,12 @@ class PackageInfo(dict):
 
     for platform in pi.packages:
         print platform
-        print pi.packagesUrl(platform)
-        print pi.packagesMD5(platform)
+        print pi.packages_url(platform)
+        print pi.packages_md5(platform)
 
     for platform in pi.manifest:
         print platform
-        print pi.manifestFiles(platform)
+        print pi.manifest_files(platform)
 
     """
 
@@ -105,78 +105,78 @@ class PackageInfo(dict):
 
     def __getattr__(self, name):
         if self.supported_properties.has_key(name):
-            return self.getKey(name)
+            return self.get_key(name)
         if self.supported_platform_properties.has_key(name):
-            return self.__platformList(name.replace("Platforms", ""))
+            return self.__platform_list(name.replace("Platforms", ""))
         raise RuntimeError('%s is not a supported property' % name)
 
     def __setattr__(self, name, value):
         if self.supported_properties.has_key(name):
-            return self.setKey(name, value)
+            return self.set_key(name, value)
         if self.supported_platform_properties.has_key(name):
             raise RuntimeError("%s is a read-only property" % name)
         raise RuntimeError('%s is not a supported property' % name)
 
-    def packagesUrl(self, platform):
-        return self.__platformKey('packages', platform, 'url')
-    def setPackagesUrl(self, platform, value):
-        return self.__setPlatformKey('packages', platform, 'url', value)
-    def packagesFiles(self, platform):
-        return self.__platformKey('packages', platform, 'files')
-    def setPackagesFiles(self, platform, value):
-        return self.__setPlatformKey('packages', platform, 'files', value)
-    def packagesMD5(self, platform):
-        return self.__platformKey('packages', platform, 'md5sum')
-    def setPackagesMD5(self, platform, value):
-        return self.__setPlatformKey('packages', platform, 'md5sum', value)
+    def packages_url(self, platform):
+        return self.__platform_key('packages', platform, 'url')
+    def set_packages_url(self, platform, value):
+        return self.__set_platform_key('packages', platform, 'url', value)
+    def packages_files(self, platform):
+        return self.__platform_key('packages', platform, 'files')
+    def set_packages_files(self, platform, value):
+        return self.__set_platform_key('packages', platform, 'files', value)
+    def packages_md5(self, platform):
+        return self.__platform_key('packages', platform, 'md5sum')
+    def set_packages_md5(self, platform, value):
+        return self.__set_platform_key('packages', platform, 'md5sum', value)
 
-    def dependsUrl(self, platform):
-        return self.__platformKey('depends', platform, 'url')
-    def setDependsUrl(self, platform, value):
-        return self.__setPlatformKey('depends', platform, 'url', value)
-    def dependsMD5(self, platform):
-        return self.__platformKey('depends', platform, 'md5sum')
-    def setDependsMD5(self, platform, value):
-        return self.__setPlatformKey('depends', platform, 'md5sum', value)
+    def depends_url(self, platform):
+        return self.__platform_key('depends', platform, 'url')
+    def set_depends_url(self, platform, value):
+        return self.__set_platform_key('depends', platform, 'url', value)
+    def depends_md5(self, platform):
+        return self.__platform_key('depends', platform, 'md5sum')
+    def set_depends_md5(self, platform, value):
+        return self.__set_platform_key('depends', platform, 'md5sum', value)
 
-    def configureCommand(self, platform):
-        return self.__platformKey('configure', platform, 'command')
-    def setConfigureCommand(self, platform, value):
-        return self.__setPlatformKey('configure', platform, 'command', value)
+    def configure_command(self, platform):
+        return self.__platform_key('configure', platform, 'command')
+    def set_configure_command(self, platform, value):
+        return self.__set_platform_key('configure', platform, 'command', value)
 
-    def buildCommand(self, platform):
-        return self.__platformKey('build', platform, 'command')
-    def setBuildCommand(self, platform, value):
-        return self.__setPlatformKey('build', platform, 'command', value)
+    def build_command(self, platform):
+        return self.__platform_key('build', platform, 'command')
+    def set_build_command(self, platform, value):
+        return self.__set_platform_key('build', platform, 'command', value)
 
-    def postBuildCommand(self, platform):
-        return self.__platformKey('postbuild', platform, 'command')
-    def setPostBuildCommand(self, platform, value):
-        return self.__setPlatformKey('postbuild', platform, 'command', value)
+    def post_build_command(self, platform):
+        return self.__platform_key('postbuild', platform, 'command')
+    def set_post_build_command(self, platform, value):
+        return self.__set_platform_key('postbuild', platform, 'command', value)
 
-    def manifestFiles(self, platform):
-        return self.__platformKey('manifest', platform, 'files')
-    def setManifestFiles(self, platform, value):
-        return self.__setPlatformKey('manifest', platform, 'files', value)
+    def manifest_files(self, platform):
+        return self.__platform_key('manifest', platform, 'files')
+    def set_manifest_files(self, platform, value):
+        return self.__set_platform_key('manifest', platform, 'files', value)
 
-    def getKey(self, key):
+    def get_key(self, key):
         return self.get(key)
-    def setKey(self, key, value):
+    def set_key(self, key, value):
         if value is None:
             if self.has_key(key):
                 del self[key]
         else:
             self[key] = value
 
-    def __platformList(self, container):
+    def __platform_list(self, container):
         if self.has_key(container):
             return self[container].keys()
         return []
-    def __platformKey(self, container, platform, key):
+    def __platform_key(self, container, platform, key):
         if self.has_key(container) and self[container].has_key(platform):
             return self[container][platform][key]
         return None
-    def __setPlatformKey(self, container, platform, key, value):
+    def __set_platform_key(self, container, platform, key, value):
         if not self.has_key(container):
             self[container] = {}
         if not self[container].has_key(platform):
@@ -203,9 +203,9 @@ class ConfigFile(object):
 
     c = ConfigFile()
     c.load()
-    print "No. of packages =", c.packageCount
-    print "No. of licenses =", c.licenseCount
-    for name in c.packageNames:
+    print "No. of packages =", c.package_count
+    print "No. of licenses =", c.license_count
+    for name in c.package_names:
         package = c.package(name)
         print "Package '%s'" % name
         print "  Description: %s" % package.description
@@ -217,10 +217,10 @@ class ConfigFile(object):
 
     c = ConfigFile()
     c.load()
-    for name in c.packageNames:
+    for name in c.package_names:
         package = c.package(name)
         package.description = "Lynx woz here"
-        c.setPackage(name, package)
+        c.set_package(name, package)
     c.save()
 
     """
@@ -299,11 +299,11 @@ class ConfigFile(object):
 
         return True
 
-    packageCount = property(lambda x: len(x.packages))
-    licenseCount = property(lambda x: len(x.licenses))
+    package_count = property(lambda x: len(x.packages))
+    license_count = property(lambda x: len(x.licenses))
 
-    packageNames = property(lambda x: x.packages.keys())
-    licenseNames = property(lambda x: x.licenses.keys())
+    package_names = property(lambda x: x.packages.keys())
+    license_names = property(lambda x: x.licenses.keys())
 
     empty = property(lambda x: len(x.packages) == 0 and len(x.licenses) == 0)
 
@@ -326,7 +326,7 @@ class ConfigFile(object):
             return None
         return self.licenses[name]
 
-    def setPackage(self, name, value):
+    def set_package(self, name, value):
         """
         Add/Update the PackageInfo object for a named package to this
         config file. This will overwrite any existing package
@@ -335,7 +335,7 @@ class ConfigFile(object):
         self.packages[name] = value
         self.changed = True
 
-    def setLicense(self, name, value):
+    def set_license(self, name, value):
         """
         Add/Update the string for a named license to this config
         file. This will overwrite any existing license string with the

@@ -12,10 +12,10 @@ builddir: package-build
 version: 1.0
 patches: foo bar
 obsoletes: baz bar foo
-packagesUrl(linux): http://www.secondlife.com
-packagesMD5(linux): 22eac1bea219257a71907cbe1170c640
-dependsUrl(common): http://www.secondlife.com
-dependsMD5(common): 22eac1bea219257a71907cbe1170c640
+packages_url(linux): http://www.secondlife.com
+packages_md5(linux): 22eac1bea219257a71907cbe1170c640
+depends_url(common): http://www.secondlife.com
+depends_md5(common): 22eac1bea219257a71907cbe1170c640
 configure(common): configure --enabled-shared
 build(common): build.sh
 postBuild(common): postbuild.sh
