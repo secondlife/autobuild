@@ -1,4 +1,13 @@
-#!/usr/bin/env python
+# $LicenseInfo:firstyear=2010&license=mit$
+# Copyright (c) 2010, Linden Research, Inc.
+# $/LicenseInfo$
+
+"""
+High-level option parsing functionality for autobuild.
+
+This module parses the autobuild command line and runs the appropriate
+sub-command.
+"""
 
 import sys
 import os

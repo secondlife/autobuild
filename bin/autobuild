@@ -1,4 +1,12 @@
 #!/usr/bin/env python
+#
+# $LicenseInfo:firstyear=2010&license=mit$
+# Copyright (c) 2010, Linden Research, Inc.
+# $/LicenseInfo$
+
+"""
+Command to manage the creation and installation of package archives.
+"""
 
 import sys
 import os

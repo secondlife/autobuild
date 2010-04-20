@@ -1,4 +1,10 @@
-#!/usr/bin/env python
+# $LicenseInfo:firstyear=2010&license=mit$
+# Copyright (c) 2010, Linden Research, Inc.
+# $/LicenseInfo$
+
+"""
+Autobuild sub-command to build the source for a package.
+"""
 
 import sys
 import os
