@@ -18,6 +18,7 @@ Date   : 2010-04-13
 
 import os
 import sys
+import glob
 import shutil
 import tarfile
 import tempfile
@@ -71,7 +72,10 @@ def get_default_scp_command():
     """
     Return the full path to the scp command
     """
-    return "scp"
+    scp = find_executable(['pscp', 'pscp.exe', 'scp', 'scp.exe'])
+    if not scp:
+        raise RuntimeError("Cannot find an appropriate scp or pscp command.")
+    return scp
 
 def get_default_install_cache_dir():
     """
@@ -101,6 +105,21 @@ def get_temp_dir(basename):
     if not os.path.exists(tmpdir):
         os.makedirs(tmpdir, mode=0755)
     return tmpdir
+
+def find_executable(executables):
+    """
+    Given an executable name, or a list of executable names, return the
+    name of the executable that can be found in the path. The names can
+    have wildcards in them.
+    """
+    if type(executables) == type(""):
+        executables = [executables]
+    for p in os.environ.get('PATH', "").split(os.pathsep):
+        for e in executables:
+            path = glob.glob(os.path.join(p, e))
+            if path:
+                return path[0]
+    return None
 
 def get_package_in_cache(package):
     """

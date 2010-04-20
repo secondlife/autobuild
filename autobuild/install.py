@@ -151,7 +151,7 @@ def handle_query_args(options, config_file, installed_file):
     if options.list_licenses:
         return print_list("Licenses", config_file.licenses)
 
-    if options.export_manifest or True:
+    if options.export_manifest:
         for name in installed_file.packages:
             package = installed_file.package(name)
             pprint.pprint(package)

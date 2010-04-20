@@ -60,7 +60,6 @@ class SCPConnection(Connection):
     def __init__(self, server="install-packages.lindenlab.com",
                  dest_dir="/local/www/install-packages/doc"):
         self.setDestination(server, dest_dir)
-        self.findSCPExecutable()
 
     # *TODO: make this method 'static'?
     # *TODO: fix docstring -- current docsctring should be comment in Pkg class
@@ -77,9 +76,7 @@ class SCPConnection(Connection):
                 uploadables.append(file)
         if uploadables:
             print "Uploading to: %s" % self.scp_dest
-            if not self.scp_executable:
-                self.findSCPExecutable()
-            command = [self.scp_executable] + uploadables + [self.scp_dest]
+            command = [get_default_scp_command()] + uploadables + [self.scp_dest]
             if dry_run:
                 print " ".join(command)
             else:
@@ -118,22 +115,6 @@ class SCPConnection(Connection):
         # at final location, should be in root dir of served dir
         self.url = "http://" + self.server + "/" + self.basename
         self.SCPurl = "scp:" + self.scp_dest + "/" + self.basename
-
-    def findSCPExecutable(self):
-        """Cross-platform way to find existing scp executable."""
-        # try taking advantage of possible existing tunnel using putty first
-        found = findExecutable(['pscp', 'pscp.exe', 'scp', 'scp.exe'])
-        if not found:
-            # Possible expected condition.
-            raise UploadError("scp or pscp executable not found.  Verify that an scp executable is in your path.")
-        self.scp_executable = found
-
-def findExecutable(executables):
-    for p in os.environ.get('PATH', "").split(os.pathsep):
-        for e in executables:
-            if glob.glob(os.path.join(p, e)):
-                return e
-    return None
 
 # *TODO make this use boto.s3 or something
 class S3Connection(Connection):
