@@ -236,7 +236,6 @@ class ConfigFile(object):
                 dir = os.path.dirname(dir)
             self.filename = os.path.join(dir, config_filename)
 
-        # return None if the file does not exist
         if not os.path.exists(self.filename):
             return False
 
