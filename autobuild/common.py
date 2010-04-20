@@ -51,35 +51,6 @@ PLATFORMS = [
              PLATFORM_SOLARIS,
             ]
 
-class Options(object):
-    """
-    A class to capture all autobuild run-time options.
-    """
-    scp_cmd = "scp"
-    s3_url = "http://s3.amazonaws.com/viewer-source-downloads/install_pkgs"
-    install_cache_dir = None
-
-    def getSCPCommand(self):
-        """
-        Return the full path to the scp command
-        """
-        return Options.scp_cmd
-
-    def getInstallCacheDir(self):
-        """
-        In general, the installable files do not change much, so find a 
-        host/user specific location to cache files.
-        """
-        if not Options.install_cache_dir:
-            Options.install_cache_dir = getTempDir("install.cache")
-        return Options.install_cache_dir
-
-    def getS3Url(self):
-        """
-        Return the base URL for Amazon S3 package locations.
-        """
-        return Options.s3_url
-
 def getCurrentPlatform():
     """
     Return appropriate the autobuild name for the current platform.
@@ -110,7 +81,24 @@ def getCurrentUser():
             raise ctypes.WinError()
         return name.value
 
+def getDefaultSCPCommand():
+    """
+    Return the full path to the scp command
+    """
+    return "scp"
 
+def getDefaultInstallCacheDir():
+    """
+    In general, the installable files do not change much, so find a 
+    host/user specific location to cache files.
+    """
+    return getTempDir("install.cache")
+
+def getS3Url():
+    """
+    Return the base URL for Amazon S3 package locations.
+    """
+    return "http://s3.amazonaws.com/viewer-source-downloads/install_pkgs"
 
 def getTempDir(basename):
     """
@@ -134,7 +122,7 @@ def getPackageInCache(package):
     The file may not actually exist.
     """
     filename = os.path.basename(package)
-    return os.path.join(Options().getInstallCacheDir(), filename)
+    return os.path.join(getDefaultInstallCacheDir(), filename)
 
 def isPackageInCache(package):
     """
@@ -174,7 +162,7 @@ def downloadPackage(package):
 
     # Set up the 'scp' handler
     opener = urllib2.build_opener()
-    scp_or_http = __SCPOrHTTPHandler(Options().getSCPCommand())
+    scp_or_http = __SCPOrHTTPHandler(getDefaultSCPCommand())
     opener.add_handler(scp_or_http)
     urllib2.install_opener(opener)
 
@@ -448,7 +436,7 @@ class Bootstrap(object):
             
             # get the url and md5 for this package dependency
             md5sum = specs['md5sum']
-            url = os.path.join(Options().getS3Url(), specs['filename'])
+            url = os.path.join(getS3Url(), specs['filename'])
             pathcheck = self.deps[name].get('pathcheck', "")
 
             # download & extract the package, if not done already

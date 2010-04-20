@@ -119,10 +119,10 @@ You can specify 'all' to do a installation of installables for all platforms."""
     parser.add_option(
         '--cache-dir', 
         type='string',
-        default=common.Options().getInstallCacheDir(),
+        default=common.getDefaultInstallCacheDir(),
         dest='cache_dir',
         help='Where to download files. Default: %s'% \
-             (common.Options().getInstallCacheDir()))
+             (common.getDefaultInstallCacheDir()))
     parser.add_option(
         '--install-dir', 
         type='string',
