@@ -63,6 +63,10 @@ to represent a platform-independent package.
 
 def add_arguments(parser):
     parser.add_argument(
+        'package',
+        nargs='*',
+        help='List of packages to consider for installation.')
+    parser.add_argument(
         '--dry-run', 
         action='store_true',
         default=False,
@@ -113,6 +117,64 @@ def add_arguments(parser):
         dest='list_licenses',
         help="List known licenses and exit.")
     parser.add_argument(
+        '--export-manifest', 
+        action='store_true',
+        default=False,
+        dest='export_manifest',
+        help="Print the install manifest to stdout and exit.")
+
+def add_old_arguments(parser):
+    parser.add_option(
+        '--dry-run', 
+        action='store_true',
+        default=False,
+        dest='dryrun',
+        help='Do not actually install files. Downloads will still happen.')
+    parser.add_option(
+        '--package-info',
+        default=configfile.PACKAGES_CONFIG_FILE,
+        dest='install_filename',
+        help='The file used to describe what should be installed.')
+    parser.add_option(
+        '--installed-manifest', 
+        default=configfile.INSTALLED_CONFIG_FILE,
+        dest='installed_filename',
+        help='The file used to record what is installed.')
+    parser.add_option(
+        '-p', '--platform', 
+        default=common.get_current_platform(),
+        dest='platform',
+        help='Override the automatically determined platform.')
+    parser.add_option(
+        '--install-dir', 
+        default=None,
+        dest='install_dir',
+        help='Where to unpack the installed files.')
+    parser.add_option(
+        '--list', 
+        action='store_true',
+        default=False,
+        dest='list_installables',
+        help="List the installables specified in the package file.")
+    parser.add_option(
+        '--list-installed', 
+        action='store_true',
+        default=False,
+        dest='list_installed',
+        help="List the installed package names and exit.")
+    parser.add_option(
+        '--skip-license-check', 
+        action='store_false',
+        default=True,
+        dest='check_license',
+        help="Do not perform the license check.")
+    parser.add_option(
+        '--list-licenses', 
+        action='store_true',
+        default=False,
+        dest='list_licenses',
+        help="List known licenses and exit.")
+    parser.add_option(
         '--export-manifest', 
         action='store_true',
         default=False,
@@ -210,7 +272,7 @@ def check_licenses(installables, config_file):
             return False
     return True
 
-def do_install(installables, config_file, installed_file, preferred_platform, install_dir, dry_run):
+def do_install(installables, config_file, installed_file, preferred_platform, install_dir, dryrun):
     """
     Install the specified list of installables. This will download the
     packages to the local cache, extract the contents of those
@@ -263,7 +325,7 @@ def do_install(installables, config_file, installed_file, preferred_platform, in
         package.set_packages_files(platform, files)
         installed_file.set_package(ifile, package)
 
-def install_packages(options, args)
+def install_packages(options, args):
     # write packages into 'packages' subdir of build directory by default
     if not options.install_dir:
         import configure
@@ -306,23 +368,25 @@ def install_packages(options, args)
         installed_file.save()
     return 0
 
+# The Old Way
 def main(args):
-    # parse command line options 
     parser = optparse.OptionParser(
         usage="usage: %prog [options] [installable1 [installable2...]]",
         description=__help)
+    add_old_arguments(parser)
     options, args = parser.parse_args(args)
     install_packages(options, args)
 
+# The New Way
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
-        return dict(name='install', description='Fetches and installs package archives.')
+        return dict(name='install', description='Fetch and install package archives.')
 
     def register(self, parser):
         add_arguments(parser)
 
     def run(self, args):
-        pass
+        install_packages(args, args.package)
 
 if __name__ == '__main__':
     sys.exit("Please invoke this script using 'autobuild install'")
