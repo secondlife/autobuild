@@ -31,17 +31,13 @@ class OptionParser(optparse.OptionParser):
             help='Overrides the version number for the specified library(ies).  If unspecified, the version number in "versions.txt" (in configdir) will be used, if present.  Can be left blank.')
         #self.add_option('-i', '--install', action='store_true', default=False, dest='install',
         #    help='Update autobuild.xml with the data for the specified tarfile(s). List paths to tarfiles to update (supports glob expressions).  Use --s3 option if appropriate (read about --s3 option).')
-        group = optparse.OptionGroup(self, "S3 Uploading", "*NOTE*: S3 upload does not work on Windows, since command-line tool (s3curl.pl) is not supported there.  Either perform S3 uploads from a unix machine, or see wiki for uploading to S3 from Windows.")
 
-        group.add_option('-s', '--s3', action='store_true', default=False, dest='s3',
-            help='Indicates tarfile(s) belong on S3.  If unspecified, "S3ables.txt" (in configdir) will be used to determine which libraries are stored on S3.  Please verify clearance for public distribution prior to uploading any new libraries to S3.')
         self.add_option('--configdir', type='string', default=os.getcwd(), dest='configdir',
             help='Specify the config directory to use.  Defaults to current working directory.  If configdir specified, tarfiles will be assembled relative to root of tree containing configdir.')
         self.add_option('--tarfiledir', type='string', default="", dest='tarfiledir',
             help='Specify the directory in which to store new tarfiles.  Defaults to "tarfile_tmp".')
         self.add_option('--dry-run', action='store_true', default=False, dest='dry_run',
             help='Show what would be done, but don\'t actually do anything.')
-        self.add_option_group(group)
         ##########
         # END packaging options
         ##########

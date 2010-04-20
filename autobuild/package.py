@@ -472,31 +472,21 @@ def dissectTarfileName(tarfilename):
         raise UploadError("Error: tarfilename %r must be canonical. Does not contain platform string." %
                           tarfilename)
 
-def checkTarfileForUpload(config, tarfilename, check=False):
+def checkTarfileForUpload(config, tarfilename):
     """Get status on S3ability of a tarfile.  Returns boolean."""
     pkgname, platform = dissectTarfileName(tarfilename)
 
     info = config.package(pkgname)      # from tarfile name
-    # TODO: Review this logic. The former S3ables machinery simply said that
-    # if a package was named in S3ables, then it should be uploaded to S3. Its
-    # absence from S3ables could mean either that it was unknown, or that it
-    # was known and should not be uploaded to S3. Now we can distinguish
-    # between an unknown package (info is None) and a known package that
-    # should not be uploaded to S3 (not info.uploadtos3).
     if info is None:
-        # We've never heard of this package; did user say it's okay to ask?
-        if check:
-            print ("%s not yet confirmed uploadable to S3." % tarfilename)
-            sys.stdout.flush()
-            go = raw_input("Is this package cleared for open-source distribution? (Answer no if not sure) (y/N) ")
-            return go == 'y'
-        # If we have no clue, and it's not okay to ask, then we don't know how
-        # to proceed. A safe guess would be to skip uploading to S3 -- but
-        # that presents the likelihood of nasty surprises later. Inform the
-        # user.
+        # We don't know how to proceed. A safe guess would be to skip
+        # uploading to S3 -- but that presents the likelihood of nasty
+        # surprises later (e.g. broken open-source build). Inform the user.
         raise UploadError("Unknown package %s (tarfile %s) -- can't decide whether to upload to S3"
                           % (pkgname, tarfilename))
     # Here info is definitely not None.
+    if info.uploadtos3 is None:
+        raise UploadError("Package %s (tarfile %s) does not specify whether to upload to S3" %
+                          (pkgname, tarfilename))
     return info.uploadtos3
 
 
@@ -559,7 +549,7 @@ def make_tarfile(files, platforms, config_dir, tarfiledir, version, dry_run=Fals
 
 # This function is intended for use by another Python script. It takes a
 # specific argument list and indicates error by raising an exception.
-def upload(wildfiles, s3check=False, dry_run=False):
+def upload(wildfiles, dry_run=False):
     if not wildfiles:
         raise UploadError("Error: no tarfiles specified to upload.")
     # mmm, globs...
@@ -575,7 +565,7 @@ def upload(wildfiles, s3check=False, dry_run=False):
     config = ConfigFile()
     config.load()
     for tarfilename in tarfiles:
-        up = checkTarfileForUpload(config, tarfilename, check=s3check)
+        up = checkTarfileForUpload(config, tarfilename)
         if up:
             # Normally, check that we've successfully uploaded the tarfile to
             # our scp repository before uploading to S3. (But why? We've just
@@ -609,7 +599,7 @@ def make_tarfile_main(options, args):
 # terminates. It might also be chatty on sys.stdout.
 def upload_main(options, args):
     try:
-        upload(args, options.s3, options.dry_run)
+        upload(args, options.dry_run)
     except (UploadError, SCPConnectionError), err:
         sys.exit(os.linesep.join((str(err), "(Use -h for help)")))
 
