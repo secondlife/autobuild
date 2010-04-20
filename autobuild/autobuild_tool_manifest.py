@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # $/LicenseInfo$
@@ -15,7 +16,7 @@ import re
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
         return dict(name='manifest', 
-            description="Adds manifest entries to the autobuild configuration file by recursively "
+            description="Add manifest entries to the autobuild configuration file by recursively "
             "searching all directories under the root directory for files matching the provided "
             "patterns.")
      
@@ -37,7 +38,7 @@ class autobuild_tool(autobuild_base.autobuild_base):
         if args.package:
             packageInfo = config.package(args.package)
         elif config.package_count is 1:
-            packageInfo = config.package(config.package_names.next())
+            packageInfo = config.package(config.package_names[0])
         elif config.package_count > 1:
             raise PackageSelectionAmbiguousException()
         else:
