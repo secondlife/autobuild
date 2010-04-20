@@ -126,25 +126,32 @@ def upload(wildfiles, dry_run=False):
         raise UploadError("No files found matching %s. Nothing to upload." %
                           " or ".join(repr(w) for w in wildfiles))
 
-    SCPConn.upload(tarfiles, None, None, dry_run)
+    # Check whether the config file specifies S3 upload; if it doesn't say,
+    # that's an error. Do this before SCP upload so that such an error doesn't
+    # leave us in the awkward position of having to rename the tarfile to
+    # retry the upload to SCP and S3. Collect any tarfiles that should be
+    # uploaded to S3 in a separate list.
     config = ConfigFile()
     config.load()
-    for tarfilename in tarfiles:
-        up = checkTarfileForUpload(config, tarfilename)
-        if up:
-            # Normally, check that we've successfully uploaded the tarfile to
-            # our scp repository before uploading to S3. (But why? We've just
-            # put it there in the preceding lines? If we're concerned about
-            # upload failure, shouldn't we notice that as part of SCPConn.
-            # upload() instead of waiting until now? And the message below
-            # seems to suggest more of a user operation sequence error --
-            # which I think is now logically impossible -- than a network
-            # failure.) In any case: if dry_run is set, we won't have uploaded
-            # to our scp repository, so don't even perform this test as it
-            # would definitely fail.
-            if not (dry_run or SCPConn.SCPFileExists(tarfilename)):
-                raise SCPConnectionError("Error: File must exist on internal server before uploading to S3")
-            S3Conn.upload(tarfilename, None, dry_run)
+    s3ables = [tarfile for tarfile in tarfiles if checkTarfileForUpload(config, tarfile)]
+
+    # Now upload to our internal install-packages server.
+    SCPConn.upload(tarfiles, None, None, dry_run)
+
+    # Finally, upload to S3 any tarfiles that should be uploaded to S3.
+    for tarfilename in s3ables:
+        # Normally, check that we've successfully uploaded the tarfile to our
+        # scp repository before uploading to S3. (But why? We've just put it
+        # there in the preceding lines? If we're concerned about upload
+        # failure, shouldn't we notice that as part of SCPConn.upload()
+        # instead of waiting until now? And the message below seems to suggest
+        # more of a user operation sequence error -- which I think is now
+        # logically impossible -- than a network failure.) In any case: if
+        # dry_run is set, we won't have uploaded to our scp repository, so
+        # don't even perform this test as it would definitely fail.
+        if not (dry_run or SCPConn.SCPFileExists(tarfilename)):
+            raise SCPConnectionError("Error: File must exist on internal server before uploading to S3")
+        S3Conn.upload(tarfilename, None, dry_run)
 
 # This function is reached from autobuild_main, which always passes generic
 # optparse-style (options, args). On error, it prints a message and
