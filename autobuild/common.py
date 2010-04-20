@@ -20,6 +20,7 @@ import os
 import sys
 import glob
 import shutil
+import subprocess
 import tarfile
 import tempfile
 import urllib2
@@ -295,18 +296,10 @@ class __SCPOrHTTPHandler(urllib2.BaseHandler):
     def do_scp(self, remote):
         if not self._dir:
             self._dir = tempfile.mkdtemp()
-        local = os.path.join(self._dir, remote.split('/')[-1:][0])
-        command = []
-        for part in (self._scp, remote, local):
-            if ' ' in part:
-                # I hate shell escaping.
-                part.replace('\\', '\\\\')
-                part.replace('"', '\\"')
-                command.append('"%s"' % part)
-            else:
-                command.append(part)
-        #print "forking:", command
-        rv = os.system(' '.join(command))
+        local = os.path.join(self._dir, remote.split('/')[-1])
+        command = (self._scp, remote, local)
+        #print "forking:", ' '.join(command)
+        rv = subprocess.call(command)
         if rv != 0:
             raise RuntimeError("Cannot fetch: %s" % remote)
         return file(local, 'rb')
