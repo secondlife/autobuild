@@ -70,11 +70,11 @@ def main(args):
 
     if extra_args[0] == 'package':
         import package
-        return package.make_tarfile_main(options, extra_args[1:])
+        return package.main(options, extra_args[1:])
 
     if extra_args[0] == 'upload':
-        import package
-        return package.upload_main(options, extra_args[1:])
+        import upload
+        return upload.main(options, extra_args[1:])
 
     if extra_args[0] == 'build':
         import build
