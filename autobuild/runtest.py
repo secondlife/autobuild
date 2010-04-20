@@ -12,8 +12,6 @@ import unittest
 sys.path.append(os.getcwd() + '/../')		# for autobuild scripts
 sys.path.append(os.getcwd() + '/tests/')	# for test suites
 
-import test_main
-
 class text_colours:
 	warning = '\033[91m'
 	title = '\033[92m'
@@ -83,48 +81,48 @@ if __name__ == '__main__':
 #-------------------------
 # simple version:
 
-#	parser.add_argument(
-#        '--RunTests', action=add_run_tests, nargs='+',
-#        help='Run a list of unit tests '
-#             '(default: run them all)')
-#
-#	parser.add_argument(
-#        '--SkipTests', action=add_skip_tests, nargs='+',
-#        help='Skip a list of unit tests '
-#             '(default: run them all)')
-#
-#	find_all_tests()
+	parser.add_argument(
+        '--RunTests', action=add_run_tests, nargs='+',
+        help='Run a list of unit tests '
+             '(default: run them all)')
+
+	parser.add_argument(
+        '--SkipTests', action=add_skip_tests, nargs='+',
+        help='Skip a list of unit tests '
+             '(default: run them all)')
+
+	find_all_tests()
 
 
 #-------------------------
 # subcommand version:
 
-	subparsers = parser.add_subparsers(title='Sub Commands',
-					description='Valid Sub Commands',
-					help='Sub Command help')
-
-	parser_testlists = subparsers.add_parser('RunTests',
-		help='Provide lists of source files to test or skip');
-	
-	parser_testlists.add_argument(
-        '--SkipList', action=add_run_tests, nargs='+',
-        help='Run a list of unit tests'
-             '(default: run them all)')
-
-	parser_testlists.add_argument(
-        '--RunList', action=add_skip_tests, nargs='+',
-        help='Skip a list of unit tests'
-             '(default: run them all)')
-
-	parser_testlists.set_defaults(func=find_all_tests)
+#	subparsers = parser.add_subparsers(title='Sub Commands',
+#					description='Valid Sub Commands',
+#					help='Sub Command help')
+#
+#	parser_testlists = subparsers.add_parser('RunTests',
+#		help='Provide lists of source files to test or skip');
+#	
+#	parser_testlists.add_argument(
+#        '--SkipList', action=add_run_tests, nargs='+',
+#        help='Run a list of unit tests'
+#             '(default: run them all)')
+#
+#	parser_testlists.add_argument(
+#        '--RunList', action=add_skip_tests, nargs='+',
+#        help='Skip a list of unit tests'
+#             '(default: run them all)')
+#
+#	parser_testlists.set_defaults(func=find_all_tests)
 
 #-------------------------
 
 	args = parser.parse_args()
 
 	# subcommand version leaves this as the default argument
-	if(args.func):
-		args.func();
+#	if(args.func):
+#		args.func();
 
 	if(len(main_test_run_list) != 0):
 		run_list_of_tests(main_test_run_list, main_test_skip_list)
