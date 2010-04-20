@@ -28,14 +28,10 @@ import optparse
 import pprint
 import common
 import configfile
+import autobuild_base
 from llbase import llsd
 
-
-# *TODO: update this to work for argparse
-def parse_args(args):
-    parser = optparse.OptionParser(
-        usage="usage: %prog [options] [installable1 [installable2...]]",
-        description="""\
+__help = """\
 This autobuild command fetches and installs package archives.
 
 The command will read a packages.xml file and install any new or
@@ -63,7 +59,9 @@ specified. You can specify more than one package on the command line.
 
 Supported platforms include: windows, darwin, linux, and a common platform
 to represent a platform-independent package.
-""")
+"""
+
+def parse_args(parser):
     parser.add_option(
         '--dry-run', 
         action='store_true',
@@ -124,8 +122,6 @@ to represent a platform-independent package.
         default=False,
         dest='export_manifest',
         help="Print the install manifest to stdout and exit.")
-
-    return parser.parse_args(args)
 
 def print_list(label, array):
     """
@@ -272,8 +268,12 @@ def do_install(installables, config_file, installed_file, preferred_platform, in
         installed_file.set_package(ifile, package)
 
 def main(args):
-    # parse command line options
-    options, args = parse_args(args)
+    # parse command line options 
+    parser = optparse.OptionParser(
+        usage="usage: %prog [options] [installable1 [installable2...]]",
+        description=__help)
+    parse_args(parser)
+    options, args = parser.parse_args(args)
 
     # write packages into 'packages' subdir of build directory by default
     if not options.install_dir:
@@ -316,6 +316,17 @@ def main(args):
     if installed_file.changed:
         installed_file.save()
     return 0
+
+class autobuild_tool(autobuild_base.autobuild_base):
+    def get_details(self):
+        return dict(name='install', description='Fetches and installs package archives.')
+
+    def register(self, parser):
+        parse_args(parser)
+
+    def run(self, args):
+        argstring = ('%r' % optional_value)+''.join(main_args)
+        print "ARGS', argstring
 
 if __name__ == '__main__':
     sys.exit("Please invoke this script using 'autobuild install'")
