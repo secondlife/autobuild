@@ -112,7 +112,7 @@ def find_executable(executables):
     name of the executable that can be found in the path. The names can
     have wildcards in them.
     """
-    if type(executables) == type(""):
+    if isinstance(executables, basestring):
         executables = [executables]
     for p in os.environ.get('PATH', "").split(os.pathsep):
         for e in executables:
