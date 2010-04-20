@@ -230,12 +230,13 @@ class ConfigFile(object):
         self.changed = False
 
         # try to find the config file in the current, or any parent, dir
-        dir = os.getcwd()
-        while not os.path.exists(os.path.join(dir, config_filename)) and len(dir) > 3:
-            dir = os.path.dirname(dir)
+        if not os.path.isabs(config_filename):
+            dir = os.getcwd()
+            while not os.path.exists(os.path.join(dir, config_filename)) and len(dir) > 3:
+                dir = os.path.dirname(dir)
+            self.filename = os.path.join(dir, config_filename)
 
         # return None if the file does not exist
-        self.filename = os.path.join(dir, config_filename)
         if not os.path.exists(self.filename):
             return False
 
