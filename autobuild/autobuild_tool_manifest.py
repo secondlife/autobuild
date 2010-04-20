@@ -1,3 +1,8 @@
+# $LicenseInfo:firstyear=2010&license=mit$
+# Copyright (c) 2010, Linden Research, Inc.
+# $/LicenseInfo$
+
+
 import autobuild_base
 from common import get_current_platform
 import configfile
