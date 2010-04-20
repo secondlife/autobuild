@@ -23,7 +23,6 @@ $/LicenseInfo$
 
 import sys
 import os
-import glob
 import common
 from configfile import ConfigFile
 from connection import SCPConnection, S3Connection, S3ConnectionError, SCPConnectionError
@@ -118,10 +117,12 @@ def getPlatformString(platform):
 def upload(wildfiles, dry_run=False):
     if not wildfiles:
         raise UploadError("Error: no tarfiles specified to upload.")
-    # mmm, globs...
-    # Cute Python trick: to "flatten" a list of lists to a single
-    # concatenated list, use sum(list_of_lists, []).
-    tarfiles = sum((glob.glob(a) for a in wildfiles), [])
+    wildfiles = wildfiles[:1]
+    # This logic used to perform glob expansion on all of wildfiles. Now we
+    # accept a single tarfile name which must match a real file, rather than
+    # being a glob pattern. That's why we only look at wildfiles[:1], and why
+    # we capture a 'tarfiles' list.
+    tarfiles = [tarfile for tarfile in wildfiles if os.path.exists(tarfile)]
     if not tarfiles:
         raise UploadError("No files found matching %s. Nothing to upload." %
                           " or ".join(repr(w) for w in wildfiles))
