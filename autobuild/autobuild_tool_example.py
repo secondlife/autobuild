@@ -41,6 +41,10 @@ class autobuild_tool(autobuild_base.autobuild_base):
 			help='Test Tool Internal Help')
 
 		parser.add_argument(
+			'--TestArgList', nargs='+',
+			help='Test Tool Internal Help')
+
+		parser.add_argument(
 			'--option', action=run_test_option,
 			help='Test Tool test optional')
 
@@ -53,6 +57,9 @@ class autobuild_tool(autobuild_base.autobuild_base):
 		global main_args
 		argstring = ('%r' % optional_value)+''.join(main_args)
 		print 'the answer is:' + argstring
+		print 'and the returned args are:'
+		for arg in locals().items():
+			print arg
 
 if __name__ == "__main__":
 	sys.exit( autobuild_tool().main( sys.argv[1:] ) )
