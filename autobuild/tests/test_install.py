@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import unittest
-from autobuild import install
+from autobuild import autobuild_tool_install
 
 class TestOptions(unittest.TestCase):
     def setUp(self):

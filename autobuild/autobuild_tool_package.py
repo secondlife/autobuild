@@ -12,6 +12,7 @@ import tarfile
 import time
 import re
 import common
+import autobuild_base
 from connection import SCPConnection, S3Connection
 
 # better way to do this?
@@ -279,9 +280,7 @@ def make_tarfile(files, platforms, config_dir, tarfiledir, version, dry_run=Fals
     pkg = Package(files, platforms, config_dir, tarfiledir, dry_run)
     pkg.createAll(version)
 
-# This function is reached from autobuild_main, which always passes generic
-# optparse-style (options, args).
-def main(options, args):
+def create_package(options, args):
     make_tarfile(args,
                  [options.platform] if options.platform else common.PLATFORMS,
                  os.path.realpath(options.configdir),
@@ -291,6 +290,20 @@ def main(options, args):
 
     if options.dry_run:
         print "This was only a dry-run."
+
+def add_arguments(parser):
+    pass
+
+# define the entry point to this autobuild tool
+class autobuild_tool(autobuild_base.autobuild_base):
+    def get_details(self):
+        return dict(name='package', description='Creates archives of build output, ready for upload to the server.')
+
+    def register(self, parser):
+        add_arguments(parser)
+
+    def run(self, args):
+        create_package(args, args.package)
 
 if __name__ == '__main__':
     sys.exit("Please invoke this script using 'autobuild package'")

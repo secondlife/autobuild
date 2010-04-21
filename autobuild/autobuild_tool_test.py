@@ -5,11 +5,11 @@
 
 import sys
 import os
-import autobuild.common
+import common
 import argparse
 import unittest
 
-import autobuild.autobuild_base
+import autobuild_base
 
 optional_value = 0
 main_args = []

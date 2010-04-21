@@ -49,12 +49,14 @@ class PackageInfo(dict):
     Also, see the supported_platform_properties dict for the set of
     platform-specific fields. These support a property that returns the
     list of platforms that have a definitions for that field. There are
-    also explicit getter/setter methods to support these. For example:
+    also explicit getter/setter methods to support these. The getter 
+    will return the definition for the platform 'common' if the specified
+    platform is not defined (or None if neither are defined). E.g.,
 
     for platform in pi.packages:
         print platform
-        print pi.packages_url(platform)
-        print pi.packages_md5(platform)
+        print pi.archives_url(platform)
+        print pi.archives_md5(platform)
 
     for platform in pi.manifest:
         print platform
@@ -68,6 +70,7 @@ class PackageInfo(dict):
         'summary' :     'A one-line overview of the package',
         'description':  'A longer description of the package',
         'license':      'The name of the software license (not the full text)',
+        'licensefile':  'The relative path to the license file in the archive',
         'homepage':     'The home page URL for the source code being built',
         'uploadtos3':   'Whether the package should also be uploaded to Amazon S3',
         'source':       'URL where source for package lives',
@@ -81,8 +84,8 @@ class PackageInfo(dict):
 
     # platform-specific read-only properties that list the defined platforms
     supported_platform_properties = {
-        'packages':     'List of platform-specific packages for the install command',
-        'depends':      'List of packages that this package depends upon to build',
+        'archives':     'List of platform-specific archives for the install command',
+        'dependencies': 'List of packages that this package depends upon to build',
         'configure':    'List of platform-specific commands to configure the build',
         'build':        'List of platform-specific commands to build the software',
         'postbuild':    'Post build commands to relocate files in the builddir',
@@ -103,18 +106,26 @@ class PackageInfo(dict):
             raise RuntimeError("%s is a read-only property" % name)
         raise RuntimeError('%s is not a supported property' % name)
 
-    def packages_url(self, platform):
-        return self.__platform_key('packages', platform, 'url')
-    def set_packages_url(self, platform, value):
-        return self.__set_platform_key('packages', platform, 'url', value)
-    def packages_files(self, platform):
-        return self.__platform_key('packages', platform, 'files')
-    def set_packages_files(self, platform, value):
-        return self.__set_platform_key('packages', platform, 'files', value)
-    def packages_md5(self, platform):
-        return self.__platform_key('packages', platform, 'md5sum')
-    def set_packages_md5(self, platform, value):
-        return self.__set_platform_key('packages', platform, 'md5sum', value)
+    def archives_url(self, platform):
+        # *TODO: remove legacy support for 'packages'
+        url = self.__platform_key('archives', platform, 'url')
+        if not url:
+            url = self.__platform_key('packages', platform, 'url')
+        return url
+    def set_archives_url(self, platform, value):
+        return self.__set_platform_key('archives', platform, 'url', value)
+    def archives_files(self, platform):
+        return self.__platform_key('archives', platform, 'files')
+    def set_archives_files(self, platform, value):
+        return self.__set_platform_key('archives', platform, 'files', value)
+    def archives_md5(self, platform):
+        # *TODO: remove legacy support for 'packages'
+        md5sum = self.__platform_key('archives', platform, 'md5sum')
+        if not md5sum:
+            md5sum = self.__platform_key('packages', platform, 'md5sum')
+        return md5sum
+    def set_archives_md5(self, platform, value):
+        return self.__set_platform_key('archives', platform, 'md5sum', value)
 
     def depends_url(self, platform):
         return self.__platform_key('depends', platform, 'url')
@@ -159,9 +170,13 @@ class PackageInfo(dict):
             return self[container].keys()
         return []
     def __platform_key(self, container, platform, key):
-        if self.has_key(container) and self[container].has_key(platform):
+        try:
             return self[container][platform][key]
-        return None
+        except KeyError:
+            try:
+                return self[container]['common'][key]
+            except KeyError:
+                return None
     def __set_platform_key(self, container, platform, key, value):
         if not self.has_key(container):
             self[container] = {}
@@ -177,12 +192,13 @@ class PackageInfo(dict):
 class ConfigFile(object):
     """
     An autobuild configuration file contains all the package and
-    license definitions for a build. Using the ConfigFile class, you
+    for a build or an install. Using the ConfigFile class, you
     can read, manipulate, and save autobuild configuration files.
 
     Conceptually, a ConfigFile contains a set of named PackageInfo 
-    objects that describe each package, and a set of named software
-    license strings.
+    objects that describe each package. This generic format is used
+    by several autobuild files, such as packages.xml, autobuild.xml,
+    and installed-packages.xml.
 
     Here's an example of reading a configuration file and printing
     some interesting information from it:
@@ -190,7 +206,6 @@ class ConfigFile(object):
     c = ConfigFile()
     c.load()
     print "No. of packages =", c.package_count
-    print "No. of licenses =", c.license_count
     for name in c.package_names:
         package = c.package(name)
         print "Package '%s'" % name
@@ -213,7 +228,6 @@ class ConfigFile(object):
     def __init__(self):
         self.filename = None
         self.packages = {}
-        self.licenses = {}
         self.changed = False
 
     def load(self, config_filename=BUILD_CONFIG_FILE):
@@ -226,7 +240,6 @@ class ConfigFile(object):
         # initialize the object state
         self.filename = config_filename
         self.packages = {}
-        self.licenses = {}
         self.changed = False
 
         # try to find the config file in the current, or any parent, dir
@@ -243,15 +256,21 @@ class ConfigFile(object):
         print "Loading %s" % self.filename
         keys = llsd.parse(file(self.filename, 'rb').read())
 
-        # pull out the packages and licenses dicts from the LLSD
         if keys.has_key('installables'):
+            # support the old 'installables' format for a short while...
+            # *TODO: remove this legacy support
             for name in keys['installables']:
                 self.packages[name] = PackageInfo(keys['installables'][name])
 
-        if keys.has_key('licenses'):
-            for name in keys['licenses']:
-                self.licenses[name] = keys['licenses'][name]
+        elif keys.has_key('package_name'):
+            # support the old 'package_name' format for a short while...
+            # *TODO: remove this legacy support
+            self.packages[keys['package_name']] = PackageInfo(keys)
 
+        else:
+            # pull out the packages dicts from the LLSD
+            for name in keys.keys():
+                self.packages[name] = PackageInfo(keys[name])
 
     def save(self, config_filename=None):
         """
@@ -268,13 +287,8 @@ class ConfigFile(object):
 
         # create an appropriate dict structure to write to the file
         state = {}
-        state['installables'] = {}
         for name in self.packages:
-            state['installables'][name] = dict(self.packages[name])
-
-        state['licenses'] = {}
-        for name in self.licenses:
-            state['licenses'][name] = self.licenses[name]
+            state[name] = dict(self.packages[name])
 
         # try to write out to the file
         try:
@@ -285,13 +299,16 @@ class ConfigFile(object):
 
         return True
 
+    # return the number of packages in this file and their names
     package_count = property(lambda x: len(x.packages))
-    license_count = property(lambda x: len(x.licenses))
-
     package_names = property(lambda x: x.packages.keys())
-    license_names = property(lambda x: x.licenses.keys())
 
-    empty = property(lambda x: len(x.packages) == 0 and len(x.licenses) == 0)
+    # test whether the file is empty, i.e., contains no packages
+    empty = property(lambda x: len(x.packages) == 0)
+
+    # check that a file contains only 1 package, and return it (or None)
+    package_definition = property(lambda x: len(x.packages) == 1 and \
+                                  x.packages[x.packages.keys()[0]] or None)
 
     def package(self, name):
         """
@@ -303,15 +320,6 @@ class ConfigFile(object):
             return None
         return self.packages[name]
 
-    def license(self, name):
-        """
-        Return the named license in this config file as a string.
-        None will be returned if no such named license exists.
-        """
-        if not self.licenses.has_key(name):
-            return None
-        return self.licenses[name]
-
     def set_package(self, name, value):
         """
         Add/Update the PackageInfo object for a named package to this
@@ -320,13 +328,3 @@ class ConfigFile(object):
         """
         self.packages[name] = value
         self.changed = True
-
-    def set_license(self, name, value):
-        """
-        Add/Update the string for a named license to this config
-        file. This will overwrite any existing license string with the
-        same name.
-        """
-        self.licenses[name] = value
-        self.changed = True
-

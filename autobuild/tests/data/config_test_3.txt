@@ -12,8 +12,8 @@ builddir: package-build
 version: 1.0
 patches: foo bar
 obsoletes: baz bar foo
-packages_url(linux): http://www.secondlife.com
-packages_md5(linux): 22eac1bea219257a71907cbe1170c640
+archives_url(linux): http://www.secondlife.com
+archives_md5(linux): 22eac1bea219257a71907cbe1170c640
 depends_url(common): http://www.secondlife.com
 depends_md5(common): 22eac1bea219257a71907cbe1170c640
 configure(common): configure --enabled-shared
@@ -21,10 +21,4 @@ build(common): build.sh
 postBuild(common): postbuild.sh
 manifest(common): file1 file2
 manifest(windows): file3
-----------------------------------------
-license: GPL
-Blah blah blah ...
-----------------------------------------
-license: GPL2
-Blah blah blah ...
 ----------------------------------------
