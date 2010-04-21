@@ -37,14 +37,17 @@ class autobuild_tool(autobuild_base.autobuild_base):
         config.load();
         if args.package:
             packageInfo = config.package(args.package)
+            if packageInfo is None:
+                raise UnkownPackageError("package '%s' not found" % args.package)
         elif config.package_count is 1:
             packageInfo = config.package(config.package_names[0])
         elif config.package_count > 1:
-            raise PackageSelectionAmbiguousException()
+            raise PackageSelectionAmbiguousError('configuration contains multiple packages '
+                'without a particular one being selected')
         else:
-            raise NoPackagesDefinedException()
+            raise NoPackagesDefinedError('configuration does not define any packages')
         if not packageInfo:
-            raise NoPackageSelectedException()
+            raise NoPackageSelectedError()
         root = args.rootdir;
         data = {'root':root,'patterns':args.patterns,'files':[]}
         path.walk(root, _collect_manifest_files, data)
@@ -55,15 +58,19 @@ class autobuild_tool(autobuild_base.autobuild_base):
         config.save()
 
 
-class PackageSelectionAmbiguousException(Exception):
+class PackageSelectionAmbiguousError(Exception):
 	pass
 
 
-class NoPackageSelectedException(Exception):
+class NoPackageSelectedError(Exception):
 	pass
 
 
-class NoPackagesDefinedException(Exception):
+class NoPackagesDefinedError(Exception):
+	pass
+
+
+class UnkownPackageError(Exception):
 	pass
 
 
