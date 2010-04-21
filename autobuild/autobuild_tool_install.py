@@ -123,64 +123,6 @@ def add_arguments(parser):
         dest='export_manifest',
         help="Print the install manifest to stdout and exit.")
 
-def add_old_arguments(parser):
-    parser.add_option(
-        '--dry-run', 
-        action='store_true',
-        default=False,
-        dest='dryrun',
-        help='Do not actually install files. Downloads will still happen.')
-    parser.add_option(
-        '--package-info',
-        default=configfile.PACKAGES_CONFIG_FILE,
-        dest='install_filename',
-        help='The file used to describe what should be installed.')
-    parser.add_option(
-        '--installed-manifest', 
-        default=configfile.INSTALLED_CONFIG_FILE,
-        dest='installed_filename',
-        help='The file used to record what is installed.')
-    parser.add_option(
-        '-p', '--platform', 
-        default=common.get_current_platform(),
-        dest='platform',
-        help='Override the automatically determined platform.')
-    parser.add_option(
-        '--install-dir', 
-        default=None,
-        dest='install_dir',
-        help='Where to unpack the installed files.')
-    parser.add_option(
-        '--list', 
-        action='store_true',
-        default=False,
-        dest='list_archives',
-        help="List the archives specified in the package file.")
-    parser.add_option(
-        '--list-installed', 
-        action='store_true',
-        default=False,
-        dest='list_installed',
-        help="List the installed package names and exit.")
-    parser.add_option(
-        '--skip-license-check', 
-        action='store_false',
-        default=True,
-        dest='check_license',
-        help="Do not perform the license check.")
-    parser.add_option(
-        '--list-licenses', 
-        action='store_true',
-        default=False,
-        dest='list_licenses',
-        help="List known licenses and exit.")
-    parser.add_option(
-        '--export-manifest', 
-        action='store_true',
-        default=False,
-        dest='export_manifest',
-        help="Print the install manifest to stdout and exit.")
-
 def print_list(label, array):
     """
     Pretty print an array of strings with a given label prefix.
@@ -205,8 +147,10 @@ def handle_query_args(options, config_file, installed_file):
 
     if options.list_licenses:
         licenses = []
-        for p in config_file.packages:
-            licenses.append(p.license)
+        for pname in config_file.packages:
+            package = config_file.package(pname)
+            if package.license:
+                licenses.append(package.license)
         return print_list("Licenses", licenses)
 
     if options.export_manifest:
@@ -364,16 +308,7 @@ def install_packages(options, args):
         print "All packages are up to date."
     return 0
 
-# The Old Way
-def main(args):
-    parser = optparse.OptionParser(
-        usage="usage: %prog [options] [package1 [package2...]]",
-        description=__help)
-    add_old_arguments(parser)
-    options, args = parser.parse_args(args)
-    install_packages(options, args)
-
-# The New Way
+# define the entry point to this autobuild tool
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
         return dict(name='install', description='Fetch and install package archives.')
