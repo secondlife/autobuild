@@ -80,7 +80,7 @@ def get_default_scp_command():
 
 def get_default_install_cache_dir():
     """
-    In general, the installable files do not change much, so find a 
+    In general, the package archives do not change much, so find a 
     host/user specific location to cache files.
     """
     return get_temp_dir("install.cache")

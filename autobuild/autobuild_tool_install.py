@@ -48,10 +48,10 @@ If an MD5 checksum is provided for a package in the packages.xml file,
 this will be used to validate the downloaded package. The package will
 not be installed if the MD5 sum does not match.
 
-A package description can include the name of the license that applies to
-the package. The packages.xml must contain the full text for each license
-specified in the file. A package will not be downloaded without a correct
-license description.
+A package description must include the name of the license that applies to
+the package. It may also contain the archive-relative path(s) to the full
+text license file that is stored in the package archive. Both of these
+metadata will be checked during the install process.
 
 If no packages are specified on the command line, then the defaut
 behavior is to install all known archives appropriate for the platform
@@ -96,8 +96,8 @@ def add_arguments(parser):
         '--list', 
         action='store_true',
         default=False,
-        dest='list_installables',
-        help="List the installables specified in the package file.")
+        dest='list_archives',
+        help="List the archives specified in the package file.")
     parser.add_argument(
         '--list-installed', 
         action='store_true',
@@ -154,8 +154,8 @@ def add_old_arguments(parser):
         '--list', 
         action='store_true',
         default=False,
-        dest='list_installables',
-        help="List the installables specified in the package file.")
+        dest='list_archives',
+        help="List the archives specified in the package file.")
     parser.add_option(
         '--list-installed', 
         action='store_true',
@@ -187,6 +187,7 @@ def print_list(label, array):
     """
     list = "none"
     if array:
+        array.sort()
         list = ", ".join(array)
     print "%s: %s" % (label, list)
     return True
@@ -199,11 +200,14 @@ def handle_query_args(options, config_file, installed_file):
     if options.list_installed:
         return print_list("Installed", installed_file.packages)
 
-    if options.list_installables:
+    if options.list_archives:
         return print_list("Packages", config_file.packages)
 
     if options.list_licenses:
-        return print_list("Licenses", config_file.licenses)
+        licenses = []
+        for p in config_file.packages:
+            licenses.append(p.license)
+        return print_list("Licenses", licenses)
 
     if options.export_manifest:
         for name in installed_file.packages:
@@ -213,68 +217,58 @@ def handle_query_args(options, config_file, installed_file):
 
     return False
 
-def get_packages_to_install(installables, config_file, installed_config, preferred_platform):
+def get_packages_to_install(packages, config_file, installed_config, preferred_platform):
     """
     Given the (potentially empty) list of package archives on the command line, work out
     the set of packages that are out of date and require a new download/install. This will
     return [] if all packages are up to date.
     """
 
-    # if no installables specified, consider all
-    if not len(installables):
-        installables = config_file.packages
+    # if no packages specified, consider all
+    if not len(packages):
+        packages = config_file.packages
 
     # compile a subset of packages we actually need to install
     to_install = []
-    for ifile in installables:
+    for pname in packages:
         
-        toinstall = config_file.package(ifile)
-        installed = installed_config.package(ifile)
+        toinstall = config_file.package(pname)
+        installed = installed_config.package(pname)
 
         # raise error if named package doesn't exist in packages.xml
         if not toinstall:
-            raise RuntimeError('Unknown installable: %s' % ifile)
+            raise RuntimeError('Unknown package: %s' % pname)
 
         # work out the platform-specific or common url to use
         platform = preferred_platform
         if not toinstall.packages_url(platform):
             platform = 'common'
         if not toinstall.packages_url(platform):
-           raise RuntimeError("No url specified for this platform for %s" % ifile)
+           raise RuntimeError("No url specified for this platform for %s" % pname)
 
         # install this package if it is new or out of date
         if installed == None or \
            toinstall.packages_url(platform) != installed.packages_url(platform) or \
            toinstall.packages_md5(platform) != installed.packages_md5(platform):
-            to_install.append(ifile)
+            to_install.append(pname)
 
     return to_install
 
-def check_licenses(installables, config_file):
+def pre_install_license_check(packages, config_file):
     """
-    Return true if we have valid license info for the list of
-    installables.
+    Return true if all specified packages have a license property set.
     """
-    for ifile in installables:
-        installable = config_file.package(ifile)
-        license = installable.license
+    for pname in packages:
+        package = config_file.package(pname)
+        license = package.license
         if not license:
-            print >>sys.stderr, "No license info found for", ifile
-            print >>sys.stderr, 'Please add the license with the',
-            print >>sys.stderr, '--add-installable option. See', \
-                                 sys.argv[0], '--help'
-            return False
-        if license not in config_file.licenses:
-            print >>sys.stderr, "Missing license info for '" + license + "'.",
-            print >>sys.stderr, 'Please add the license with the',
-            print >>sys.stderr, '--add-license option. See', sys.argv[0],
-            print >>sys.stderr, '--help'
-            return False
+            raise RuntimeError("No license specified for %s. Aborting..." % pname)
+
     return True
 
-def do_install(installables, config_file, installed_file, preferred_platform, install_dir, dryrun):
+def do_install(packages, config_file, installed_file, preferred_platform, install_dir, dryrun):
     """
-    Install the specified list of installables. This will download the
+    Install the specified list of packages. This will download the
     packages to the local cache, extract the contents of those
     archives to the install dir, and update the installed_file config.
     """
@@ -284,10 +278,10 @@ def do_install(installables, config_file, installed_file, preferred_platform, in
         os.makedirs(install_dir)
 
     # Filter for files which we actually requested to install.
-    for ifile in installables:
+    for pname in packages:
 
         # find the url/md5 for the platform, or fallback to 'common'
-        package = config_file.package(ifile)
+        package = config_file.package(pname)
         platform = preferred_platform
         if not package.packages_url(platform):
             platform = 'common'
@@ -310,20 +304,20 @@ def do_install(installables, config_file, installed_file, preferred_platform, in
 
         # dry run mode = download but don't install packages
         if dryrun:
-            print "Dry run mode: not installing %s" % ifile
+            print "Dry run mode: not installing %s" % pname
             continue
 
         # extract the files from the package
         files = common.extract_package(url, install_dir)
 
         # update the installed-packages.xml file
-        package = installed_file.package(ifile)
+        package = installed_file.package(pname)
         if not package:
             package = configfile.PackageInfo()
         package.set_packages_url(platform, url)
         package.set_packages_md5(platform, md5)
         package.set_packages_files(platform, files)
-        installed_file.set_package(ifile, package)
+        installed_file.set_package(pname, package)
 
 def install_packages(options, args):
     # write packages into 'packages' subdir of build directory by default
@@ -355,8 +349,8 @@ def install_packages(options, args):
     if handle_query_args(options, config_file, installed_file):
         return 0
 
-    # check the licenses for the packages to install
-    if options.check_license and not check_licenses(packages, config_file):
+    # check the license properties for the packages to install
+    if options.check_license and not pre_install_license_check(packages, config_file):
         return 1
 
     # do the actual install of the new/updated packages
@@ -366,12 +360,14 @@ def install_packages(options, args):
     # update the installed-packages.xml file, if it was changed
     if installed_file.changed:
         installed_file.save()
+    else:
+        print "All packages are up to date."
     return 0
 
 # The Old Way
 def main(args):
     parser = optparse.OptionParser(
-        usage="usage: %prog [options] [installable1 [installable2...]]",
+        usage="usage: %prog [options] [package1 [package2...]]",
         description=__help)
     add_old_arguments(parser)
     options, args = parser.parse_args(args)

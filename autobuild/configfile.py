@@ -68,6 +68,7 @@ class PackageInfo(dict):
         'summary' :     'A one-line overview of the package',
         'description':  'A longer description of the package',
         'license':      'The name of the software license (not the full text)',
+        'licensefile':  'The relative path to the license file in the archive',
         'homepage':     'The home page URL for the source code being built',
         'uploadtos3':   'Whether the package should also be uploaded to Amazon S3',
         'source':       'URL where source for package lives',
@@ -183,12 +184,13 @@ class PackageInfo(dict):
 class ConfigFile(object):
     """
     An autobuild configuration file contains all the package and
-    license definitions for a build. Using the ConfigFile class, you
+    for a build or an install. Using the ConfigFile class, you
     can read, manipulate, and save autobuild configuration files.
 
     Conceptually, a ConfigFile contains a set of named PackageInfo 
-    objects that describe each package, and a set of named software
-    license strings.
+    objects that describe each package. This generic format is used
+    by several autobuild files, such as packages.xml, autobuild.xml,
+    and installed-packages.xml.
 
     Here's an example of reading a configuration file and printing
     some interesting information from it:
@@ -196,7 +198,6 @@ class ConfigFile(object):
     c = ConfigFile()
     c.load()
     print "No. of packages =", c.package_count
-    print "No. of licenses =", c.license_count
     for name in c.package_names:
         package = c.package(name)
         print "Package '%s'" % name
@@ -219,7 +220,6 @@ class ConfigFile(object):
     def __init__(self):
         self.filename = None
         self.packages = {}
-        self.licenses = {}
         self.changed = False
 
     def load(self, config_filename=BUILD_CONFIG_FILE):
@@ -231,9 +231,7 @@ class ConfigFile(object):
 
         # initialize the object state
         self.filename = config_filename
-        self.package_definition = None
         self.packages = {}
-        self.licenses = {}
         self.changed = False
 
         # try to find the config file in the current, or any parent, dir
@@ -251,18 +249,21 @@ class ConfigFile(object):
         print "Loading %s" % self.filename
         keys = llsd.parse(file(self.filename, 'rb').read())
 
-        if keys.has_key('package_name'):
-            self.package_definition = PackageInfo(keys)
+        if keys.has_key('installables'):
+            # support the old 'installables' format for a short while...
+            # *TODO: remove this legacy support
+            for name in keys['installables']:
+                self.packages[name] = PackageInfo(keys['installables'][name])
+
+        elif keys.has_key('package_name'):
+            # support the old 'package_name' format for a short while...
+            # *TODO: remove this legacy support
+            self.packages[keys['package_name']] = PackageInfo(keys)
+
         else:
-            # pull out the packages and licenses dicts from the LLSD
-            if keys.has_key('installables'):
-                for name in keys['installables']:
-                    self.packages[name] = PackageInfo(keys['installables'][name])
-
-            if keys.has_key('licenses'):
-                for name in keys['licenses']:
-                    self.licenses[name] = keys['licenses'][name]
-
+            # pull out the packages dicts from the LLSD
+            for name in keys.keys():
+                self.packages[name] = PackageInfo(keys[name])
 
     def save(self, config_filename=None):
         """
@@ -279,13 +280,8 @@ class ConfigFile(object):
 
         # create an appropriate dict structure to write to the file
         state = {}
-        state['installables'] = {}
         for name in self.packages:
-            state['installables'][name] = dict(self.packages[name])
-
-        state['licenses'] = {}
-        for name in self.licenses:
-            state['licenses'][name] = self.licenses[name]
+            state[name] = dict(self.packages[name])
 
         # try to write out to the file
         try:
@@ -296,13 +292,16 @@ class ConfigFile(object):
 
         return True
 
+    # return the number of packages in this file and their names
     package_count = property(lambda x: len(x.packages))
-    license_count = property(lambda x: len(x.licenses))
-
     package_names = property(lambda x: x.packages.keys())
-    license_names = property(lambda x: x.licenses.keys())
 
-    empty = property(lambda x: len(x.packages) == 0 and len(x.licenses) == 0)
+    # test whether the file is empty, i.e., contains no packages
+    empty = property(lambda x: len(x.packages) == 0)
+
+    # check that a file contains only 1 package, and return it (or None)
+    package_definition = property(lambda x: len(x.packages) == 1 and \
+                                  x.packages[x.packages.keys()[0]] or None)
 
     def package(self, name):
         """
@@ -314,15 +313,6 @@ class ConfigFile(object):
             return None
         return self.packages[name]
 
-    def license(self, name):
-        """
-        Return the named license in this config file as a string.
-        None will be returned if no such named license exists.
-        """
-        if not self.licenses.has_key(name):
-            return None
-        return self.licenses[name]
-
     def set_package(self, name, value):
         """
         Add/Update the PackageInfo object for a named package to this
@@ -331,13 +321,3 @@ class ConfigFile(object):
         """
         self.packages[name] = value
         self.changed = True
-
-    def set_license(self, name, value):
-        """
-        Add/Update the string for a named license to this config
-        file. This will overwrite any existing license string with the
-        same name.
-        """
-        self.licenses[name] = value
-        self.changed = True
-
