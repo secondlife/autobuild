@@ -65,10 +65,9 @@ class autobuild_tool(autobuild_base.autobuild_base):
             print
         if info.summary is not None and self._display_flags['summary']:
             print info.summary
-            print
         if info.description is not None and self._display_flags['description']:
-            print info.description
             print
+            print info.description
         if info.license is not None and self._display_flags['license']:
             print "License:", info.license
         if info.homepage is not None and self._display_flags['homepage']:
@@ -93,37 +92,40 @@ class autobuild_tool(autobuild_base.autobuild_base):
             print "Obsoletes:"
             for obsolete in info.obsoletes:
                 print "\t", obsolete
-        if info.packages is not None and len(info.packages) > 0 and self._display_flags['packages']:
+        if info.archives is not None and len(info.archives) > 0 and self._display_flags['archives']:
             print
-            self._pretty_print_platform_packages(info)
-        if info.depends is not None and len(info.depends) > 0 and self._display_flags['depends']:
+            self._pretty_print_platform_archives(info)
+        if(
+        info.dependencies is not None and 
+        len(info.dependencies) > 0 and 
+        self._display_flags['dependencies']):
             print
             self._pretty_print_platform_depends(info)
         if (info.configure is not None and
-            len(info.configure) > 0 and 
-            self._display_flags['configure']):
+        len(info.configure) > 0 and 
+        self._display_flags['configure']):
             print
             self._pretty_print_platform_configure(info)
         if info.build is not None and len(info.build) > 0 and self._display_flags['build']:
             print
             self._pretty_print_platform_build(info)
         if (info.postbuild is not None and 
-            len(info.postbuild) > 0 and 
-            self._display_flags['postbuild']):
+        len(info.postbuild) > 0 and 
+        self._display_flags['postbuild']):
             print
             self._pretty_print_platform_post_build(info)
         if info.manifest is not None and len(info.manifest) > 0 and self._display_flags['manifest']:
             print
             self._pretty_print_platform_manifest(info)
         
-    def _pretty_print_platform_packages(self, info):
-        print "Packages:"
-        for platform in info.packages:
+    def _pretty_print_platform_archives(self, info):
+        print "Archives:"
+        for platform in info.archives:
             print platform
-            print "\turl:", info.packages_url(platform)
-            print "\tmd5:", info.packages_md5(platform)
+            print "\turl:", info.archives_url(platform)
+            print "\tmd5:", info.archives_md5(platform)
             print "\tfiles:"
-            for file in info.packages_files(platform):
+            for file in info.archives_files(platform):
                 print "\t\t", file
 
     def _pretty_print_platform_depends(self, info):
@@ -172,8 +174,8 @@ class autobuild_tool(autobuild_base.autobuild_base):
         'obsoletes': True,
         
         # Platform properties:
-        'packages': True,
-        'depends': True,
+        'archives': True,
+        'dependencies': True,
         'configure': True,
         'build': True,
         'postbuild': True,

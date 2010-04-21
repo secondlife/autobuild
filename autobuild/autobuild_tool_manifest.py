@@ -22,8 +22,8 @@ class autobuild_tool(autobuild_base.autobuild_base):
      
     def register(self, parser):
         parser.add_argument('-v', '--version', action='version', version='manifest tool 1.0')
-        parser.add_argument('patterns', nargs='+',
-            help='File patterns to match when searching for files to add to the manifest')
+        parser.add_argument('pattern', nargs='+',
+            help='File pattern to match when searching for files to add to the manifest')
         parser.add_argument('-p','--package',
             help="The package to which this manifest should be added")
         parser.add_argument('--platform', default=get_current_platform(),
@@ -39,17 +39,12 @@ class autobuild_tool(autobuild_base.autobuild_base):
             packageInfo = config.package(args.package)
             if packageInfo is None:
                 raise UnkownPackageError("package '%s' not found" % args.package)
-        elif config.package_count is 1:
-            packageInfo = config.package(config.package_names[0])
-        elif config.package_count > 1:
-            raise PackageSelectionAmbiguousError('configuration contains multiple packages '
-                'without a particular one being selected')
+        elif config.package_definition is not None:
+            packageInfo = config.package_definition
         else:
-            raise NoPackagesDefinedError('configuration does not define any packages')
-        if not packageInfo:
-            raise NoPackageSelectedError()
+            raise DefaultPackageUndefinedError("default package not defined")
         root = args.rootdir;
-        data = {'root':root,'patterns':args.patterns,'files':[]}
+        data = {'root':root,'patterns':args.pattern,'files':[]}
         path.walk(root, _collect_manifest_files, data)
         if args.verbose:
             for file in data['files']:
@@ -58,15 +53,7 @@ class autobuild_tool(autobuild_base.autobuild_base):
         config.save()
 
 
-class PackageSelectionAmbiguousError(Exception):
-	pass
-
-
-class NoPackageSelectedError(Exception):
-	pass
-
-
-class NoPackagesDefinedError(Exception):
+class DefaultPackageUndefinedError(Exception):
 	pass
 
 
