@@ -197,7 +197,8 @@ def get_packages_to_install(packages, config_file, installed_config, platform):
 
 def pre_install_license_check(packages, config_file):
     """
-    Return true if all specified packages have a license property set.
+    Raises a runtime exception if any of the specified packages do not have a
+    license property set.
     """
     for pname in packages:
         package = config_file.package(pname)
@@ -205,7 +206,25 @@ def pre_install_license_check(packages, config_file):
         if not license:
             raise RuntimeError("No license specified for %s. Aborting..." % pname)
 
-    return True
+def post_install_license_check(packages, config_file, install_dir):
+    """
+    Raises a runtime exception if the licensefile property for any of
+    the specified packages does not refer to a valid file in the
+    extracted archive, or does not specify an http:// URL to the
+    license description.
+    """
+    for pname in packages:
+        package = config_file.package(pname)
+        licensefile = package.licensefile
+        # if not specified, assume a default naming convention
+        if not licensefile:
+            licensefile = 'LICENSES/%s.txt' % pname
+        # if a URL is given, assuming it's valid for now
+        if licensefile.startswith('http://'):
+            continue
+        # otherwise, assert that the license file is in the archive
+        if not os.path.exists(os.path.join(install_dir, licensefile)):
+            raise RuntimeError("Invalid or undefined licensefile for %s" % pname)
 
 def do_install(packages, config_file, installed_file, platform, install_dir, dryrun):
     """
@@ -287,12 +306,16 @@ def install_packages(options, args):
         return 0
 
     # check the license properties for the packages to install
-    if options.check_license and not pre_install_license_check(packages, config_file):
-        return 1
+    if options.check_license:
+        pre_install_license_check(packages, config_file)
 
     # do the actual install of the new/updated packages
     do_install(packages, config_file, installed_file, options.platform, install_dir,
                options.dryrun)
+
+    # check the licensefile properties for the newly installed packages
+    if options.check_license:
+        post_install_license_check(packages, config_file, install_dir)
 
     # update the installed-packages.xml file, if it was changed
     if installed_file.changed:
