@@ -2,9 +2,7 @@
 
 import sys
 import unittest
-#import autobuild
-from autobuild import autobuild_main
-
+import autobuild.autobuild_main
 
 captured_stdout = ''
 
@@ -25,7 +23,7 @@ class TestOptions(unittest.TestCase):
         sys.stdout = CatchStdOut()
         self.old_stderr = sys.stderr
         sys.stderr = CatchStdOut()
-        self.autobuild_fixture = autobuild_main.Autobuild()
+        self.autobuild_fixture = autobuild.autobuild_main.Autobuild()
         def mock_exit(value=None, message=None):
             if(message):
                 print message
@@ -44,7 +42,7 @@ class TestOptions(unittest.TestCase):
         sys.stderr = self.old_stderr
         sys.exit = self.old_exit
 
-        if(False):
+        if(True):
             print '\nCaptured StdOut:\n****\n' + captured_stdout + '****\n'
         pass
 

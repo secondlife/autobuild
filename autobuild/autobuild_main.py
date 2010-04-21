@@ -17,7 +17,10 @@ class Autobuild():
             help='Sub Command help')
 
     def listdir(self, dir):
-        return os.listdir(dir)
+        files = os.listdir(dir)
+        if 'autobuild_tool_test.py' in files:
+            del files[files.index('autobuild_tool_test.py')]
+        return files
 
     def register_tool(self, tool):
         newtool = tool.autobuild_tool()
