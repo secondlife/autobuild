@@ -55,8 +55,8 @@ class PackageInfo(dict):
 
     for platform in pi.packages:
         print platform
-        print pi.packages_url(platform)
-        print pi.packages_md5(platform)
+        print pi.archives_url(platform)
+        print pi.archives_md5(platform)
 
     for platform in pi.manifest:
         print platform
@@ -84,8 +84,8 @@ class PackageInfo(dict):
 
     # platform-specific read-only properties that list the defined platforms
     supported_platform_properties = {
-        'packages':     'List of platform-specific packages for the install command',
-        'depends':      'List of packages that this package depends upon to build',
+        'archives':     'List of platform-specific archives for the install command',
+        'dependencies': 'List of packages that this package depends upon to build',
         'configure':    'List of platform-specific commands to configure the build',
         'build':        'List of platform-specific commands to build the software',
         'postbuild':    'Post build commands to relocate files in the builddir',
@@ -106,18 +106,26 @@ class PackageInfo(dict):
             raise RuntimeError("%s is a read-only property" % name)
         raise RuntimeError('%s is not a supported property' % name)
 
-    def packages_url(self, platform):
-        return self.__platform_key('packages', platform, 'url')
-    def set_packages_url(self, platform, value):
-        return self.__set_platform_key('packages', platform, 'url', value)
-    def packages_files(self, platform):
-        return self.__platform_key('packages', platform, 'files')
-    def set_packages_files(self, platform, value):
-        return self.__set_platform_key('packages', platform, 'files', value)
-    def packages_md5(self, platform):
-        return self.__platform_key('packages', platform, 'md5sum')
-    def set_packages_md5(self, platform, value):
-        return self.__set_platform_key('packages', platform, 'md5sum', value)
+    def archives_url(self, platform):
+        # *TODO: remove legacy support for 'packages'
+        url = self.__platform_key('archives', platform, 'url')
+        if not url:
+            url = self.__platform_key('packages', platform, 'url')
+        return url
+    def set_archives_url(self, platform, value):
+        return self.__set_platform_key('archives', platform, 'url', value)
+    def archives_files(self, platform):
+        return self.__platform_key('archives', platform, 'files')
+    def set_archives_files(self, platform, value):
+        return self.__set_platform_key('archives', platform, 'files', value)
+    def archives_md5(self, platform):
+        # *TODO: remove legacy support for 'packages'
+        md5sum = self.__platform_key('archives', platform, 'md5sum')
+        if not md5sum:
+            md5sum = self.__platform_key('packages', platform, 'md5sum')
+        return md5sum
+    def set_archives_md5(self, platform, value):
+        return self.__set_platform_key('archives', platform, 'md5sum', value)
 
     def depends_url(self, platform):
         return self.__platform_key('depends', platform, 'url')

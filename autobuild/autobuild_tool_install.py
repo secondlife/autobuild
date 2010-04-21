@@ -184,13 +184,13 @@ def get_packages_to_install(packages, config_file, installed_config, platform):
             raise RuntimeError('Unknown package: %s' % pname)
 
         # check that we have a platform-specific or common url to use
-        if not toinstall.packages_url(platform):
+        if not toinstall.archives_url(platform):
            raise RuntimeError("No url specified for this platform for %s" % pname)
 
         # install this package if it is new or out of date
         if installed == None or \
-           toinstall.packages_url(platform) != installed.packages_url(platform) or \
-           toinstall.packages_md5(platform) != installed.packages_md5(platform):
+           toinstall.archives_url(platform) != installed.archives_url(platform) or \
+           toinstall.archives_md5(platform) != installed.archives_md5(platform):
             to_install.append(pname)
 
     return to_install
@@ -242,8 +242,8 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
 
         # find the url/md5 for the platform, or fallback to 'common'
         package = config_file.package(pname)
-        url = package.packages_url(platform)
-        md5 = package.packages_md5(platform)
+        url = package.archives_url(platform)
+        md5 = package.archives_md5(platform)
         cachefile = common.get_package_in_cache(url)
 
         # download the package, if it's not already in our cache
@@ -270,9 +270,9 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
         package = installed_file.package(pname)
         if not package:
             package = configfile.PackageInfo()
-        package.set_packages_url(platform, url)
-        package.set_packages_md5(platform, md5)
-        package.set_packages_files(platform, files)
+        package.set_archives_url(platform, url)
+        package.set_archives_md5(platform, md5)
+        package.set_archives_files(platform, files)
         installed_file.set_package(pname, package)
 
 def install_packages(options, args):

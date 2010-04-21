@@ -52,21 +52,19 @@ class TestConfigFile(unittest.TestCase):
         p.summary = "Test package"
         p.description = "Test package created by test_configfile.py"
         p.copyright = "Copyright (c) 2010, Linden Research, Inc."
-        p.set_packages_url('linux', 'http://www.secondlife.com')
-        p.set_packages_md5('linux', '22eac1bea219257a71907cbe1170c640')
+        p.set_archives_url('linux', 'http://www.secondlife.com')
+        p.set_archives_md5('linux', '22eac1bea219257a71907cbe1170c640')
         c.set_package('test1', p)
 
         p = configfile.PackageInfo()
         p.summary = "Another package"
         p.description = "A second test package created by test_configfile.py"
         p.copyright = "Copyright (c) 2010, Linden Research, Inc."
-        p.set_packages_url('common', 'http://www.secondlife.com/package-common')
-        p.set_packages_md5('common', '22eac1bea219257a71907cbe1170c640')
-        p.set_packages_url('windows', 'http://www.secondlife.com/package-windows')
-        p.set_packages_md5('windows', '28189f725a5c53684ce1c925ee5fecd7')
+        p.set_archives_url('common', 'http://www.secondlife.com/package-common')
+        p.set_archives_md5('common', '22eac1bea219257a71907cbe1170c640')
+        p.set_archives_url('windows', 'http://www.secondlife.com/package-windows')
+        p.set_archives_md5('windows', '28189f725a5c53684ce1c925ee5fecd7')
         c.set_package('test2', p)
-
-        c.set_license('GPL', 'Blah blah blah ...')
 
         c.save(self.tmp_file)
         self.diff(self.tmp_file, "data/config_test_0.xml")
@@ -84,6 +82,7 @@ class TestConfigFile(unittest.TestCase):
         p.description = "Test package created by test_configfile.py"
         p.copyright = "Copyright (c) 2010, Linden Research, Inc."
         p.license = "GPL2"
+        p.licensefile = "http://develop.secondlife.com/develop-on-sl-platform/viewer-licensing/gpl/"
         p.homepage = "http://www.secondlife.com/"
         p.uploadtos3 = False
         p.source = "http://www.secondlife.com/package-source"
@@ -94,8 +93,8 @@ class TestConfigFile(unittest.TestCase):
         p.patches = "foo bar"
         p.obsoletes = "baz bar foo"
 
-        p.set_packages_url('linux', 'http://www.secondlife.com')
-        p.set_packages_md5('linux', '22eac1bea219257a71907cbe1170c640')
+        p.set_archives_url('linux', 'http://www.secondlife.com')
+        p.set_archives_md5('linux', '22eac1bea219257a71907cbe1170c640')
 
         p.set_depends_url('linux', 'http://www.secondlife.com')
         p.set_depends_md5('linux', '22eac1bea219257a71907cbe1170c640')
@@ -108,9 +107,6 @@ class TestConfigFile(unittest.TestCase):
         p.set_manifest_files('windows', 'file3')
 
         c.set_package('test1', p)
-
-        c.set_license('GPL', 'Blah blah blah ...')
-        c.set_license('GPL2', 'Blah blah blah ...')
 
         c.save(self.tmp_file)
         self.diff(self.tmp_file, "data/config_test_1.xml")
@@ -153,8 +149,8 @@ class TestConfigFile(unittest.TestCase):
             lines.append("patches: %s\n" % p.patches)
             lines.append("obsoletes: %s\n" % p.obsoletes)
 
-            lines.append("packages_url(linux): %s\n" % p.packages_url('linux'))
-            lines.append("packages_md5(linux): %s\n" % p.packages_md5('linux'))
+            lines.append("archives_url(linux): %s\n" % p.archives_url('linux'))
+            lines.append("archives_md5(linux): %s\n" % p.archives_md5('linux'))
 
             lines.append("depends_url(common): %s\n" % p.depends_url('linux'))
             lines.append("depends_md5(common): %s\n" % p.depends_md5('linux'))
@@ -167,11 +163,6 @@ class TestConfigFile(unittest.TestCase):
             lines.append("manifest(windows): %s\n" % p.manifest_files('windows'))
             lines.append("-" * 40 + "\n")
 
-        for name in c.licenses:
-            lines.append("license: %s\n" % name)
-            lines.append("%s\n" % c.license(name))
-            lines.append("-" * 40 + "\n")
-            
         open(self.tmp_file, "w").writelines(lines)
         self.diff(self.tmp_file, "data/config_test_3.txt")
 
