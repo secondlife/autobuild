@@ -161,7 +161,7 @@ def handle_query_args(options, config_file, installed_file):
 
     return False
 
-def get_packages_to_install(packages, config_file, installed_config, preferred_platform):
+def get_packages_to_install(packages, config_file, installed_config, platform):
     """
     Given the (potentially empty) list of package archives on the command line, work out
     the set of packages that are out of date and require a new download/install. This will
@@ -183,10 +183,7 @@ def get_packages_to_install(packages, config_file, installed_config, preferred_p
         if not toinstall:
             raise RuntimeError('Unknown package: %s' % pname)
 
-        # work out the platform-specific or common url to use
-        platform = preferred_platform
-        if not toinstall.packages_url(platform):
-            platform = 'common'
+        # check that we have a platform-specific or common url to use
         if not toinstall.packages_url(platform):
            raise RuntimeError("No url specified for this platform for %s" % pname)
 
@@ -210,7 +207,7 @@ def pre_install_license_check(packages, config_file):
 
     return True
 
-def do_install(packages, config_file, installed_file, preferred_platform, install_dir, dryrun):
+def do_install(packages, config_file, installed_file, platform, install_dir, dryrun):
     """
     Install the specified list of packages. This will download the
     packages to the local cache, extract the contents of those
@@ -226,10 +223,6 @@ def do_install(packages, config_file, installed_file, preferred_platform, instal
 
         # find the url/md5 for the platform, or fallback to 'common'
         package = config_file.package(pname)
-        platform = preferred_platform
-        if not package.packages_url(platform):
-            platform = 'common'
-
         url = package.packages_url(platform)
         md5 = package.packages_md5(platform)
         cachefile = common.get_package_in_cache(url)

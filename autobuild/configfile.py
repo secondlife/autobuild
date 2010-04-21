@@ -49,7 +49,9 @@ class PackageInfo(dict):
     Also, see the supported_platform_properties dict for the set of
     platform-specific fields. These support a property that returns the
     list of platforms that have a definitions for that field. There are
-    also explicit getter/setter methods to support these. For example:
+    also explicit getter/setter methods to support these. The getter 
+    will return the definition for the platform 'common' if the specified
+    platform is not defined (or None if neither are defined). E.g.,
 
     for platform in pi.packages:
         print platform
@@ -166,9 +168,7 @@ class PackageInfo(dict):
             try:
                 return self[container]['common'][key]
             except KeyError:
-                pass
- 
-        return None
+                return None
     def __set_platform_key(self, container, platform, key, value):
         if not self.has_key(container):
             self[container] = {}
