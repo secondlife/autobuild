@@ -42,7 +42,7 @@ class TestOptions(unittest.TestCase):
         sys.stderr = self.old_stderr
         sys.exit = self.old_exit
 
-        if(True):
+        if(False):
             print '\nCaptured StdOut:\n****\n' + captured_stdout + '****\n'
         pass
 
@@ -50,15 +50,6 @@ class TestOptions(unittest.TestCase):
         """test_empty_options: no options, should print usage and exit"""
         try:
             ret = self.autobuild_fixture.main([])
-        except EarlyExitException:
-            self.assertNotEquals(-1, captured_stdout.find('usage:'))
-        pass
-
-    def test_help(self):
-        """test_help: make sure -h kicks you out with something starting with usage """
-        try:
-            ret = self.autobuild_fixture.main(['-h'])
-            self.fail()
         except EarlyExitException:
             self.assertNotEquals(-1, captured_stdout.find('usage:'))
         pass
@@ -82,9 +73,12 @@ class TestOptions(unittest.TestCase):
         pass
         
     def test_tool_search_for_tools(self):
-        """test_tool_search_for_tools: check that autobuild ToolsHelp shows test tools help"""
-        ret = self.autobuild_fixture.main(['ToolsHelp'])
-        self.assertNotEquals(-1, captured_stdout.find("Test Tool for Autobuild"))
+        """test_tool_search_for_tools: check that autobuild --help shows test tools help"""
+        try:
+            ret = self.autobuild_fixture.main(['--help'])
+            self.fail()
+        except EarlyExitException:
+            self.assertNotEquals(-1, captured_stdout.find("Test Tool for Autobuild"))
         pass
         
     def test_tool_version(self):

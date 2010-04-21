@@ -5,10 +5,18 @@ import os
 import common
 import argparse
 
+class run_help(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        parser.parent.search_for_and_import_tools(parser.parent.tools_list)
+        parser.parent.register_tools(parser.parent.tools_list)
+        print parser.format_help()
+        parser.exit(0)
+
+
 class Autobuild():
     def __init__(self):
         self.parser = argparse.ArgumentParser(
-            description='Autobuild', prog='Autobuild')
+            description='Autobuild', prog='Autobuild', add_help=False)
         
         self.parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
 
@@ -61,28 +69,23 @@ class Autobuild():
 
     def main(self, args_in):
     
-        parser_find_tools_help = self.subparsers.add_parser('ToolsHelp',
-        help='Find all valid Autobuild Tools and show help');
+        self.tools_list = []
         
-        parser_find_tools_help.set_defaults(tools_help_requested=True)
-
-        tools_list = []
+        self.parser.parent = self
+        parser_find_tools_help = self.parser.add_argument('--help',
+        help='Find all valid Autobuild Tools and show help', action=run_help,
+        nargs='?', default=argparse.SUPPRESS);
         
         tool_to_run = -1;
 
         for arg in args_in:
-            if arg[0] != '-' and arg != 'ToolsHelp':
-                tool_to_run = self.try_to_import_tool(arg, tools_list)
+            if arg[0] != '-':
+                tool_to_run = self.try_to_import_tool(arg, self.tools_list)
                 break
 
         args = self.parser.parse_args(args_in)
-
-        if tool_to_run == -1:
-            if getattr(args,'tools_help_requested', False):
-                self.search_for_and_import_tools(tools_list)
-                self.register_tools(tools_list)
-                self.parser.print_help()
-        else:
+ 
+        if tool_to_run != -1:
             tool_to_run.run(args)
 
         return 0
