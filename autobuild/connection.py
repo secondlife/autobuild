@@ -16,9 +16,7 @@ import glob
 import urllib2
 import subprocess
 import common
-
-# canonical path of parent directory, avoiding symlinks
-script_path = os.path.dirname(os.path.realpath(__file__))
+import boto.s3.connection
 
 class ConnectionError(Exception):
     def __init__(self,msg):
@@ -115,29 +113,45 @@ class SCPConnection(Connection):
         self.SCPurl = "scp:" + self.scp_dest + "/" + self.basename
 
 
-# *TODO make this use boto.s3 or something
 class S3Connection(Connection):
     """Twiddly bits of talking to S3.  Hi S3!
     """
-    exec_location = script_path      # offer option to specify this?
-    exec_name = "s3curl.pl"
-    S3executable = os.path.join(exec_location, exec_name)
-
     # keep S3 url http instead of https
     amazonS3_server = "http://s3.amazonaws.com/"
-    S3_upload_params = {
-            "S3_id": "--id=1E4G7QTW0VT7Z3KJSJ02",
-            "S3_key": "--key=GuchuxQF1ADPCz3568ADS/Vc5bds807e7pj1ybU+",
-            "perms": "--acl=public-read",
-                        }
+    S3_upload_params = dict(
+                            id="1E4G7QTW0VT7Z3KJSJ02",
+                            key="GuchuxQF1ADPCz3568ADS/Vc5bds807e7pj1ybU+",
+                            acl="public-read",
+                       )
 
     def __init__(self, S3_dest_dir="viewer-source-downloads/install_pkgs"):
         """Set server dir for all transactions.
         Alternately, use member methods directly, supplying S3_dest_dir.
         """
         # here by design -- server dir should be specified explicitly
-        self.S3_dest_dir = S3_dest_dir
-        self._server_dir = self.amazonS3_server + self.S3_dest_dir
+        self.connection = boto.s3.connection.S3Connection(self.S3_upload_params["id"],
+                                                          self.S3_upload_params["key"])
+        # in case S3_dest_dir is explicitly passed as None
+        self.bucket = None
+        self.partial_key = ""
+        # initialize self.bucket, self.partial_key
+        self.setS3DestDir(S3_dest_dir)
+
+    def _get_key(self, pathname):
+        """
+        @param pathname Local filesystem pathname for which to get the
+        corresponding S3 key object. Relies on the current self.bucket and
+        self.partial_key (from S3_dest_dir). Extracts just the basename from
+        pathname and glues it onto self.partial_key.
+        """
+        if self.bucket is None:
+            # This object was initialized with S3_dest_dir=None, and we've
+            # received no subsequent setS3DestDir() call with a non-None value.
+            raise S3ConnectionError("Error: S3 destination directory must be set.")
+        # I find new_key() a somewhat misleading method name: it doesn't have
+        # any effect on S3; it merely instantiates a new Key object tied to
+        # the bucket on which you make the call.
+        return self.bucket.new_key('/'.join((self.partial_key, os.path.basename(filename))))
 
     def upload(self, filename, S3_dest_dir=None, dry_run=False):
         """Upload file specified by filename to S3.
@@ -145,48 +159,38 @@ class S3Connection(Connection):
         NOTE:  Knowest whither thou uploadest! Ill fortune will befall
         those who upload blindly.
         """
-        if sys.platform == 'win32':
-            raise S3ConnectionError("Error: Cannot upload to S3.  Helper script 's3curl.pl' is not Windows-compatible. Try uploading from a unix environment, or see the wiki for uploading to S3 from Windows.")
-        if self.S3FileExists(filename, S3_dest_dir):
-            print ("Info: A file with name '%s' in dir '%s' already exists on S3. Not uploading." % (self.basename, self.S3_dest_dir))
-        else:  # elsing explicitly just because it makes me feel better. crazy?
-            print "Uploading to: %s" % self.url
-            params = ["perl", self.S3executable]  # windows users may not have file association
-            params.extend(self.S3_upload_params.values())
-            params.append(self.last_S3_param)
-            #print "Executing: %s" % exec_str
-            if dry_run:
-                print " ".join(params)
-            else:
-                subprocess.call(params)
+        if S3_dest_dir is not None:
+            self.setS3DestDir(S3_dest_dir)
+        # Get the S3 key object on which we can perform operations.
+        key = self._get_key(filename)
+        if key.exists():
+            raise S3ConnectionError("A file with name '%s/%s' already exists on S3. Not uploading."
+                                    % (self.bucket.name, key.name))
 
-    def S3FileExists(self, filename, S3_dest_dir=None):
-        """Set class vars and check if url for file exists on S3.
+        print "Uploading to: %s" % self.getUrl(filename)
+        if not dry_run:
+            key.set_contents_from_filename(filename)
+            key.set_acl(self.S3_upload_params["acl"])
+
+    def S3FileExists(self, filename):
+        """Check if file exists on S3.
         @param filename Filename (incl. path) of file to be uploaded.
-        @param S3_dest_dir If provided, (re-)sets destination dir on S3.
         @return Returns boolean indicating whether file already exists on S3.
         """
-        self.setS3DestDir(S3_dest_dir)
-        self.setS3FileParams(filename)
-        return self.fileExists(self.url)
+        return self._get_key(filename).exists()
 
     def setS3DestDir(self, S3_dest_dir):
         """Set class vars for the destination dir on S3."""
-        if S3_dest_dir != None:  # allow: == ""
-            self.S3_dest_dir = S3_dest_dir
-        if self.S3_dest_dir == None:
-            raise S3ConnectionError("Error: S3 destination directory must be set.")
-        self._server_dir = self.amazonS3_server + self.S3_dest_dir
+        if S3_dest_dir is None:  # allow: == ""
+            return
+        # We don't actually store S3_dest_dir itself any more. The important
+        # side effect of setting S3_dest_dir is to set self.bucket and
+        # self.partial_key.
+        # To get the bucket name, split off only before the FIRST slash.
+        bucketname, self.partial_key = S3_dest_dir.split('/', 1)
+        self.bucket = self.connection.get_bucket(bucketname)
 
     def getUrl(self, filename):
         """Return the url the pkg would be at if on the server."""
-        self.setS3FileParams(filename)
-        return self.url
-
-    def setS3FileParams(self, filename):
-        """Set parameters for upload that are file specific."""
-        self.basename = os.path.basename(filename)
-        self.url = self._server_dir + "/" + self.basename
-        # yes, the " " really belongs after the "--".  Strange.
-        self.last_S3_param = "-- " + self.url
-        self.S3_upload_params['putstr'] = "--put="+filename
+        key = self._get_key(filename)
+        return "%s%s/%s" % (self.amazonS3_server + self.bucket.name + self._get_key(filename).name)
