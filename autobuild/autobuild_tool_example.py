@@ -42,7 +42,8 @@ class autobuild_tool(autobuild_base.autobuild_base):
 	# when run from autobuild 'description' forms the help for this subcommand
 	# when run standalone it forms the tool desciption
 	def get_details(self):
-		return dict(name='example', description='Example Tool for Autobuild')
+		return dict(name=self.name_from_file(__file__),
+                    description='Example Tool for Autobuild')
 	
 	# called by autobuild to add help and options to the autobuild parser, and by
 	# standalone code to set up argparse

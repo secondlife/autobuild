@@ -299,7 +299,8 @@ def add_arguments(parser):
 # define the entry point to this autobuild tool
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
-        return dict(name='package', description='Creates archives of build output, ready for upload to the server.')
+        return dict(name=self.name_from_file(__file__),
+                    description='Creates archives of build output, ready for upload to the server.')
 
     def register(self, parser):
         add_arguments(parser)
@@ -308,4 +309,5 @@ class autobuild_tool(autobuild_base.autobuild_base):
         create_package(args, args.package)
 
 if __name__ == '__main__':
-    sys.exit("Please invoke this script using 'autobuild package'")
+    sys.exit("Please invoke this script using 'autobuild %s'" %
+             autobuild_tool().get_details()["name"])

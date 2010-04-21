@@ -85,7 +85,8 @@ import autobuild_base
 
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
-        return dict(name='source_environment', description='Prints out the shell environment Autobuild-based buildscripts to use (by calling \'eval\').')
+        return dict(name=self.name_from_file(__file__),
+                    description='Prints out the shell environment Autobuild-based buildscripts to use (by calling \'eval\').')
     
     # called by autobuild to add help and options to the autobuild parser, and by
     # standalone code to set up argparse

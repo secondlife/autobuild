@@ -329,7 +329,8 @@ def install_packages(options, args):
 # define the entry point to this autobuild tool
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
-        return dict(name='install', description='Fetch and install package archives.')
+        return dict(name=self.name_from_file(__file__),
+                    description='Fetch and install package archives.')
 
     def register(self, parser):
         add_arguments(parser)
@@ -338,4 +339,5 @@ class autobuild_tool(autobuild_base.autobuild_base):
         install_packages(args, args.package)
 
 if __name__ == '__main__':
-    sys.exit("Please invoke this script using 'autobuild install'")
+    sys.exit("Please invoke this script using 'autobuild %s'" %
+             autobuild_tool().get_details()["name"])

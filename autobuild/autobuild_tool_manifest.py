@@ -14,7 +14,7 @@ import re
 
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
-        return dict(name='manifest', 
+        return dict(name=self.name_from_file(__file__),
             description="Add manifest entries to the autobuild configuration file by recursively "
             "searching all directories under the root directory for files matching the provided "
             "patterns.")
