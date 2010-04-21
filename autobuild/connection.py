@@ -18,7 +18,9 @@ import subprocess
 import common
 import boto.s3.connection
 
-class ConnectionError(Exception):
+AutobuildError = common.AutobuildError
+
+class ConnectionError(AutobuildError):
     def __init__(self,msg):
         self.msg = msg
 

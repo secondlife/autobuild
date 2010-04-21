@@ -18,6 +18,8 @@ import os
 import common
 from llbase import llsd
 
+AutobuildError = common.AutobuildError
+
 BUILD_CONFIG_FILE="autobuild.xml"
 PACKAGES_CONFIG_FILE="packages.xml"
 INSTALLED_CONFIG_FILE="installed-packages.xml"
@@ -97,14 +99,14 @@ class PackageInfo(dict):
             return self.get_key(name)
         if self.supported_platform_properties.has_key(name):
             return self.__platform_list(name.replace("Platforms", ""))
-        raise RuntimeError('%s is not a supported property' % name)
+        raise AutobuildError('%s is not a supported property' % name)
 
     def __setattr__(self, name, value):
         if self.supported_properties.has_key(name):
             return self.set_key(name, value)
         if self.supported_platform_properties.has_key(name):
-            raise RuntimeError("%s is a read-only property" % name)
-        raise RuntimeError('%s is not a supported property' % name)
+            raise AutobuildError("%s is a read-only property" % name)
+        raise AutobuildError('%s is not a supported property' % name)
 
     def archives_url(self, platform):
         # *TODO: remove legacy support for 'packages'

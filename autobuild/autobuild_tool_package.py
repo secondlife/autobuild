@@ -15,11 +15,13 @@ import common
 import autobuild_base
 from connection import SCPConnection, S3Connection
 
+AutobuildError = common.AutobuildError
+
 # better way to do this?
 S3Conn = S3Connection()
 SCPConn = SCPConnection()
 
-class ConfigError(Exception):
+class ConfigError(AutobuildError):
     pass
 
 #

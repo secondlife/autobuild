@@ -25,6 +25,9 @@ import tarfile
 import tempfile
 import urllib2
 
+class AutobuildError(RuntimeError):
+    pass
+
 # define the supported platforms
 PLATFORM_DARWIN  = 'darwin'
 PLATFORM_WINDOWS = 'windows'
@@ -75,7 +78,7 @@ def get_default_scp_command():
     """
     scp = find_executable(['pscp', 'pscp.exe', 'scp', 'scp.exe'])
     if not scp:
-        raise RuntimeError("Cannot find an appropriate scp or pscp command.")
+        raise AutobuildError("Cannot find an appropriate scp or pscp command.")
     return scp
 
 def get_default_install_cache_dir():
@@ -301,7 +304,7 @@ class __SCPOrHTTPHandler(urllib2.BaseHandler):
         #print "forking:", ' '.join(command)
         rv = subprocess.call(command)
         if rv != 0:
-            raise RuntimeError("Cannot fetch: %s" % remote)
+            raise AutobuildError("Cannot fetch: %s" % remote)
         return file(local, 'rb')
 
     def cleanup(self):
@@ -429,7 +432,7 @@ class Bootstrap(object):
             elif self.deps[name].has_key('common'):
                 specs = self.deps[name]['common']
             else:
-                raise RuntimeError("No package defined for %s for %s" %
+                raise AutobuildError("No package defined for %s for %s" %
                                    (name, platform))
             
             # get the url and md5 for this package dependency
@@ -442,17 +445,17 @@ class Bootstrap(object):
                 print "Installing package '%s'..." % name
                 if download_package(url):
                     if not does_package_match_md5(url, md5sum):
-                        raise RuntimeError("MD5 mismatch for: %s" % url)
+                        raise AutobuildError("MD5 mismatch for: %s" % url)
                     else:
                         extract_package(url, install_dir)
                 else:
-                    raise RuntimeError("Could not download: %s" % url)
+                    raise AutobuildError("Could not download: %s" % url)
 
             # check for package downloaded but install dir nuked
             if not os.path.exists(os.path.join(install_dir, pathcheck)):
                 extract_package(url, install_dir)
                 if not os.path.exists(os.path.join(install_dir, pathcheck)):
-                    raise RuntimeError("Invalid 'pathcheck' setting for '%s'" % name)
+                    raise AutobuildError("Invalid 'pathcheck' setting for '%s'" % name)
 
 #
 # call the bootstrap code whenever this module is imported
