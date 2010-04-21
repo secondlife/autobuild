@@ -12,17 +12,17 @@ import sys
 import os
 
 try:
-    from autobuild import autobuild_main
+    from autobuild.autobuild_main import Autobuild
 except ImportError, excp:
     # we're in a dev sandbox (not installed), so append dirname(argv[0])/.. to
     # the module path
     script_path = os.path.dirname(__file__)
     sys.path.append(os.path.dirname(script_path))
-    from autobuild import autobuild_main
+    from autobuild.autobuild_main import Autobuild
 
 if __name__ == "__main__":
     try:
-        sys.exit( autobuild_main.main(sys.argv[1:]) )
+        sys.exit( Autobuild().main(sys.argv[1:]) )
     except KeyboardInterrupt, e:
         sys.exit("Aborted...")
     except RuntimeError, e:

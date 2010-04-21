@@ -159,8 +159,14 @@ class PackageInfo(dict):
             return self[container].keys()
         return []
     def __platform_key(self, container, platform, key):
-        if self.has_key(container) and self[container].has_key(platform):
+        try:
             return self[container][platform][key]
+        except KeyError:
+            try:
+                return self[container]['common'][key]
+            except KeyError:
+                pass
+ 
         return None
     def __set_platform_key(self, container, platform, key, value):
         if not self.has_key(container):
@@ -225,6 +231,7 @@ class ConfigFile(object):
 
         # initialize the object state
         self.filename = config_filename
+        self.package_definition = None
         self.packages = {}
         self.licenses = {}
         self.changed = False
@@ -244,14 +251,17 @@ class ConfigFile(object):
         print "Loading %s" % self.filename
         keys = llsd.parse(file(self.filename, 'rb').read())
 
-        # pull out the packages and licenses dicts from the LLSD
-        if keys.has_key('installables'):
-            for name in keys['installables']:
-                self.packages[name] = PackageInfo(keys['installables'][name])
+        if keys.has_key('package_name'):
+            self.package_definition = PackageInfo(keys)
+        else:
+            # pull out the packages and licenses dicts from the LLSD
+            if keys.has_key('installables'):
+                for name in keys['installables']:
+                    self.packages[name] = PackageInfo(keys['installables'][name])
 
-        if keys.has_key('licenses'):
-            for name in keys['licenses']:
-                self.licenses[name] = keys['licenses'][name]
+            if keys.has_key('licenses'):
+                for name in keys['licenses']:
+                    self.licenses[name] = keys['licenses'][name]
 
 
     def save(self, config_filename=None):
