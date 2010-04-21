@@ -77,7 +77,11 @@ class autobuild_tool(autobuild_base.autobuild_base):
             print
             print info.description
         if info.license is not None and self._display_flags['license']:
-            print "License:", info.license
+            print "License:", info.license,
+            if info.licensefile is not None and self._display_flags['licensefile']:
+                print "(" + info.licensefile +")"
+            else:
+                print
         if info.homepage is not None and self._display_flags['homepage']:
             print "homepage:", info.homepage
         if info.uploadtos3 is not None and self._display_flags['uploadtos3']:
@@ -171,6 +175,7 @@ class autobuild_tool(autobuild_base.autobuild_base):
         'summary' : True,
         'description': True,
         'license': True,
+        'licensefile': True,
         'homepage': True,
         'uploadtos3': True,
         'source': True,
