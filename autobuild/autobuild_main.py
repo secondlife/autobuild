@@ -2,7 +2,7 @@
 
 import sys
 import os
-import common
+import autobuild.common
 import argparse
 
 class run_help(argparse.Action):
@@ -75,6 +75,10 @@ class Autobuild(object):
         parser_find_tools_help = self.parser.add_argument('--help',
         help='Find all valid Autobuild Tools and show help', action=run_help,
         nargs='?', default=argparse.SUPPRESS);
+
+        parser_find_tools_help = self.parser.add_argument('--dry-run',
+        help='Run tool in dry run mode if available', action='store_true',
+        default=argparse.SUPPRESS);
         
         tool_to_run = -1;
 
