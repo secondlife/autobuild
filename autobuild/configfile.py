@@ -68,8 +68,9 @@ class PackageInfo(dict):
 
     # basic read-write properties that describe the package
     supported_properties = {
-        'copyright' :   'The copyright statement for the source code',
-        'summary' :     'A one-line overview of the package',
+        'name':         'The name of this package',
+        'copyright':    'The copyright statement for the source code',
+        'summary':      'A one-line overview of the package',
         'description':  'A longer description of the package',
         'license':      'The name of the software license (not the full text)',
         'licensefile':  'The relative path to the license file in the archive',
@@ -93,6 +94,12 @@ class PackageInfo(dict):
         'postbuild':    'Post build commands to relocate files in the builddir',
         'manifest':     'List of platform-specific commands to build the software',
         }
+
+    def __init__(self, dictvalue=None, name=None):
+        if dictvalue:
+            for key in dictvalue.keys():
+                self[key] = dictvalue[key]
+        self.name = name
 
     def __getattr__(self, name):
         if self.supported_properties.has_key(name):
@@ -265,17 +272,17 @@ class ConfigFile(object):
             # support the old 'installables' format for a short while...
             # *TODO: remove this legacy support
             for name in keys['installables']:
-                self.packages[name] = PackageInfo(keys['installables'][name])
+                self.packages[name] = PackageInfo(keys['installables'][name], name)
 
         elif keys.has_key('package_name'):
             # support the old 'package_name' format for a short while...
             # *TODO: remove this legacy support
-            self.packages[keys['package_name']] = PackageInfo(keys)
+            self.packages[keys['package_name']] = PackageInfo(keys, keys['package_name'])
 
         else:
             # pull out the packages dicts from the LLSD
             for name in keys.keys():
-                self.packages[name] = PackageInfo(keys[name])
+                self.packages[name] = PackageInfo(keys[name], name)
 
     def save(self, config_filename=None):
         """
@@ -296,6 +303,9 @@ class ConfigFile(object):
         state = {}
         for name in self.packages:
             state[name] = dict(self.packages[name])
+            # don't write out the package name - its the key name
+            if state[name].has_key('name'):
+                del state[name]['name']
 
         # try to write out to the file
         try:

@@ -33,7 +33,7 @@
       </map>
       <key>copyright</key>
       <string>Copyright (c) 2010, Linden Research, Inc.</string>
-      <key>depends</key>
+      <key>dependencies</key>
       <map>
         <key>linux</key>
         <map>
@@ -56,12 +56,17 @@
         <key>common</key>
         <map>
           <key>files</key>
-          <string>file1 file2</string>
+          <array>
+            <string>file1</string>
+            <string>file2</string>
+          </array>
         </map>
         <key>windows</key>
         <map>
           <key>files</key>
-          <string>file3</string>
+          <array>
+            <string>file3</string>
+          </array>
         </map>
       </map>
       <key>obsoletes</key>
