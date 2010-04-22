@@ -50,19 +50,20 @@ class _LoadingConfig(object):
         config = configfile.ConfigFile()
         self.machine.config = config
         try:
-            config.load(machine.args.file)
-        except:
+            config.load(self.machine.args.file)
+        except AutobuildError:
             pass
-        name = None
-        while name is None or name == '':
-            print "Enter package name."
-            name = _input_text("name")
+        print "Enter package name."
+        name = _input_text("name")
         if config.package(name) is not None:
-            print "The package '%s' is already defined; overwrite?" % name
-            if _input_yes_or_no() is False:
+            print "The package '%s' is already defined; ok to modify?" % name
+            if _input_yes_or_no():
+                packageInfo = config.package(name)
+            else:
                 self.machine.set_activity(_Ending(self.machine))
                 return
-        packageInfo = configfile.PackageInfo() 
+        else:
+            packageInfo = configfile.PackageInfo() 
         config.set_package(name, packageInfo)
         self.machine.packageInfo = packageInfo
         self.machine.set_activity(_SelectingPlatform(self.machine))
@@ -205,7 +206,7 @@ class _Packaging(object):
             print "Enter files (wildcards *, ?. and [...] supported) to add to the manifest or an",\
                 "empty line to finish."
             while True:
-                pattern = _input_text("file")
+                pattern = _input_text("file", empty_line_ok=True)
                 if pattern == "":
                     break
                 patterns.append(pattern)
@@ -252,15 +253,22 @@ class _Ending(object):
         self.machine = machine
 
     def enter(self):
+        print "Done bootstrapping."
         self.machine.ask_to_save()
     
     def exit(self):
         pass
 
 
-def _input_text(tag=""):
-    return raw_input("[%s]> " % tag)
-
+def _input_text(tag="", empty_line_ok=False):
+    if empty_line_ok:
+        return raw_input("[%s]> " % tag)
+    else:
+        while True:
+            line = raw_input("[%s]> " % tag)
+            if line != "":
+                break
+        return line
 
 def _input_yes_or_no():
     while True:

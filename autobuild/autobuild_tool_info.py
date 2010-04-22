@@ -5,14 +5,14 @@
 
 
 import argparse
-import common
 import os
 import sys
 
 import autobuild_base
+import common
+from common import AutobuildError
 import configfile
 
-AutobuildError = common.AutobuildError
 
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
