@@ -189,7 +189,7 @@ class _Packaging(object):
             print "Enter license."
             license = _input_text("license")
         print "Enter license file."
-        machine.packageInfo.licensefile = _input_text("file")
+        self.machine.packageInfo.licensefile = _input_text("file")
         self.machine.packageInfo.license = license
 
     def _build_manifest(self):
