@@ -103,8 +103,8 @@ class TestConfigFile(unittest.TestCase):
         p.set_build_command('common', 'build.sh')
         p.set_post_build_command('common', 'postbuild.sh')
 
-        p.set_manifest_files('common', 'file1 file2')
-        p.set_manifest_files('windows', 'file3')
+        p.set_manifest_files('common', ['file1','file2'])
+        p.set_manifest_files('windows', ['file3'])
 
         c.set_package('test1', p)
 
