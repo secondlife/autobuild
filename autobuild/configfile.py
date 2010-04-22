@@ -129,14 +129,14 @@ class PackageInfo(dict):
     def set_archives_md5(self, platform, value):
         return self.__set_platform_key('archives', platform, 'md5sum', value)
 
-    def depends_url(self, platform):
-        return self.__platform_key('depends', platform, 'url')
-    def set_depends_url(self, platform, value):
-        return self.__set_platform_key('depends', platform, 'url', value)
-    def depends_md5(self, platform):
-        return self.__platform_key('depends', platform, 'md5sum')
-    def set_depends_md5(self, platform, value):
-        return self.__set_platform_key('depends', platform, 'md5sum', value)
+    def dependencies_url(self, platform):
+        return self.__platform_key('dependencies', platform, 'url')
+    def set_dependencies_url(self, platform, value):
+        return self.__set_platform_key('dependencies', platform, 'url', value)
+    def dependencies_md5(self, platform):
+        return self.__platform_key('dependencies', platform, 'md5sum')
+    def set_dependencies_md5(self, platform, value):
+        return self.__set_platform_key('dependencies', platform, 'md5sum', value)
 
     def configure_command(self, platform):
         return self.__platform_key('configure', platform, 'command')
