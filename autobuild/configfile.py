@@ -245,7 +245,7 @@ class ConfigFile(object):
         self.changed = False
 
         # try to find the config file in the current, or any parent, dir
-        if not os.path.isabs(config_filename):
+        if not os.path.isabs(self.filename):
             dir = os.getcwd()
             while not os.path.exists(os.path.join(dir, config_filename)) and len(dir) > 3:
                 dir = os.path.dirname(dir)
@@ -256,7 +256,10 @@ class ConfigFile(object):
 
         # load the file as a serialized LLSD
         print "Loading %s" % self.filename
-        keys = llsd.parse(file(self.filename, 'rb').read())
+        try:
+            keys = llsd.parse(file(self.filename, 'rb').read())
+        except llsd.LLSDParseError:
+            raise AutobuildError("Config file is corrupt: %s. Aborting..." % self.filename)
 
         if keys.has_key('installables'):
             # support the old 'installables' format for a short while...
@@ -286,6 +289,8 @@ class ConfigFile(object):
         # use the name of file we loaded from, if no filename given
         if config_filename:
             self.filename = config_filename
+        if not self.filename:
+            self.filename = BUILD_CONFIG_FILE
 
         # create an appropriate dict structure to write to the file
         state = {}
