@@ -443,7 +443,8 @@ class Bootstrap(object):
             
             # get the url and md5 for this package dependency
             md5sum = specs['md5sum']
-            url = os.path.join(get_s3_url(), specs['filename'])
+            # *NOTE - don't use os.path.join(): does the wrong thing on windows
+            url = "%s/%s" % (get_s3_url(), specs['filename'])
             pathcheck = self.deps[name].get('pathcheck', "")
 
             # download & extract the package, if not done already
@@ -458,9 +459,10 @@ class Bootstrap(object):
                     raise AutobuildError("Could not download: %s" % url)
 
             # check for package downloaded but install dir nuked
-            if not os.path.exists(os.path.join(install_dir, pathcheck)):
+            full_pathcheck = os.path.join(install_dir, *pathcheck.split('/'))
+            if not os.path.exists(full_pathcheck):
                 extract_package(url, install_dir)
-                if not os.path.exists(os.path.join(install_dir, pathcheck)):
+                if not os.path.exists(full_pathcheck):
                     raise AutobuildError("Invalid 'pathcheck' setting for '%s'" % name)
 
 #
