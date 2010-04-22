@@ -33,8 +33,8 @@ class Autobuild(object):
     def register_tool(self, tool):
         newtool = tool.autobuild_tool()
         details = newtool.get_details()
-        new_parser = self.subparsers.add_parser(details['name'], help=details['description']);
-        newtool.register(new_parser)
+        self.new_tool_subparser = self.subparsers.add_parser(details['name'], help=details['description']);
+        newtool.register(self.new_tool_subparser)
         return newtool
 
     def register_tools(self, tools_list):
@@ -72,11 +72,11 @@ class Autobuild(object):
         self.tools_list = []
         
         self.parser.parent = self
-        parser_find_tools_help = self.parser.add_argument('--help',
+        self.parser.add_argument('--help',
         help='Find all valid Autobuild Tools and show help', action=run_help,
         nargs='?', default=argparse.SUPPRESS)
 
-        parser_find_tools_help = self.parser.add_argument('--dry-run',
+        self.parser.add_argument('--dry-run',
         help='Run tool in dry run mode if available', action='store_true')
         
         tool_to_run = -1;
@@ -84,6 +84,8 @@ class Autobuild(object):
         for arg in args_in:
             if arg[0] != '-':
                 tool_to_run = self.try_to_import_tool(arg, self.tools_list)
+                self.new_tool_subparser.add_argument('--dry-run',
+                    help='Run tool in dry run mode if available', action='store_true')
                 break
 
         args = self.parser.parse_args(args_in)

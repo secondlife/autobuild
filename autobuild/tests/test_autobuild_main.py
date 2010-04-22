@@ -99,10 +99,19 @@ class TestOptions(unittest.TestCase):
             self.fail()
         pass
 
+    def test_main_dry_run(self):
+        """test_main_dry_run: ensure imported test tool gets the global --dry-run flag"""
+        try:
+            ret = self.autobuild_fixture.main(['--dry-run', 'test', '--Test','x','y','z','-o','--option', '3'])
+            self.assertNotEquals(-1, captured_stdout.find("Dry run mode in operation!"))
+        except EarlyExitException:
+            self.fail()
+        pass
+
     def test_tool_dry_run(self):
         """test_tool_dry_run: ensure imported test tool gets the global --dry-run flag"""
         try:
-            ret = self.autobuild_fixture.main(['--dry-run', 'test', '--Test','x','y','z','-o','--option', '3'])
+            ret = self.autobuild_fixture.main(['test', '--Test','x','y','z','-o','--option', '3', '--dry-run'])
             self.assertNotEquals(-1, captured_stdout.find("Dry run mode in operation!"))
         except EarlyExitException:
             self.fail()
