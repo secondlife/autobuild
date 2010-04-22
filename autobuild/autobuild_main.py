@@ -74,11 +74,10 @@ class Autobuild(object):
         self.parser.parent = self
         parser_find_tools_help = self.parser.add_argument('--help',
         help='Find all valid Autobuild Tools and show help', action=run_help,
-        nargs='?', default=argparse.SUPPRESS);
+        nargs='?', default=argparse.SUPPRESS)
 
         parser_find_tools_help = self.parser.add_argument('--dry-run',
-        help='Run tool in dry run mode if available', action='store_true',
-        default=argparse.SUPPRESS);
+        help='Run tool in dry run mode if available', action='store_true')
         
         tool_to_run = -1;
 

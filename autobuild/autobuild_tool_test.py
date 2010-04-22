@@ -50,7 +50,7 @@ class autobuild_tool(autobuild_base.autobuild_base):
             help='Test Tool test optional')
 
     def run(self, args):
-        if args:
+        if args.dry_run:
             print 'Dry run mode in operation!'
         
         global optional_value

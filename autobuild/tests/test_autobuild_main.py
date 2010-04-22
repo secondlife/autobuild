@@ -100,7 +100,7 @@ class TestOptions(unittest.TestCase):
         pass
 
     def test_tool_dry_run(self):
-        """test_tool_run: ensure imported test tool gets the global --dry-run flag"""
+        """test_tool_dry_run: ensure imported test tool gets the global --dry-run flag"""
         try:
             ret = self.autobuild_fixture.main(['--dry-run', 'test', '--Test','x','y','z','-o','--option', '3'])
             self.assertNotEquals(-1, captured_stdout.find("Dry run mode in operation!"))
