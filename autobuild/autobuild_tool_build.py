@@ -37,7 +37,7 @@ class autobuild_tool(autobuild_base.autobuild_base):
         package_definition = cf.package_definition
 
         # *TODO -use common.find_executable() to search the path and append the current working directory to the build command if necessary
-        build_command = package_definition.build_command(common.get_current_platform())
+        build_command = shlex.split(package_definition.build_command(common.get_current_platform()))
 
         for build_arg in shlex.split(args.build_extra_args):
             build_command.append(build_arg)
