@@ -12,6 +12,20 @@ import os
 import os.path as path
 import re
 
+
+def construct_manifest(packageInfo, patterns, platform):
+    """
+    Adds all files under the packages build directory into the package info's platform manifest 
+    which match at least one of the filename patterns in the provided list.
+    """
+    if packageInfo.builddir is None:
+        raise BuildDirectoryUnspecified("no build directory specified for this package")
+    root = path.expandvars(packageInfo.builddir);
+    data = {'root':root,'patterns':patterns,'files':[]}
+    path.walk(root, _collect_manifest_files, data)
+    packageInfo.set_manifest_files(platform, data['files'])    
+    
+    
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
@@ -27,8 +41,6 @@ class autobuild_tool(autobuild_base.autobuild_base):
             help="The package to which this manifest should be added")
         parser.add_argument('--platform', default=get_current_platform(),
             help="The platform associated with this manifest")
-        parser.add_argument('-r','--rootdir', default=os.getcwd(),
-            help="Root directory below which to search for manifest files")
         parser.add_argument('--verbose', action='store_true')
 
     def run(self, args):
@@ -42,14 +54,16 @@ class autobuild_tool(autobuild_base.autobuild_base):
             packageInfo = config.package_definition
         else:
             raise DefaultPackageUndefinedError("default package not defined")
-        root = args.rootdir;
-        data = {'root':root,'patterns':args.pattern,'files':[]}
-        path.walk(root, _collect_manifest_files, data)
-        if args.verbose:
-            for file in data['files']:
+        construct_manifest(packageInfo, args.pattern, args.platform)
+        if args.verbose or args.dry_run:
+            for file in packageInfo.manifest_files(args.platform):
                 print file
-        packageInfo.set_manifest_files(args.platform, data['files'])
-        config.save()
+        if args.dry_run is not None and not args.dry_run:
+            config.save()
+
+
+class BuildDirectoryUnspecified(AutobuildError):
+    pass
 
 
 class DefaultPackageUndefinedError(AutobuildError):
