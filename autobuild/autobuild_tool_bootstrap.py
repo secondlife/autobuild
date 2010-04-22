@@ -81,7 +81,9 @@ class _SelectingPlatform(object):
             self.machine.set_activity(_Ending(self.machine))
             return
         print "Choose a platform:"
-        self.machine.platform = _input_choice(common.PLATFORMS, common.get_current_platform())
+        platforms = list(common.PLATFORMS)
+        platforms.append("common")
+        self.machine.platform = _input_choice(platforms, common.get_current_platform())
         self.machine.set_activity(_SettingConfigurationCommand(self.machine))
         
     def exit(self):
@@ -178,9 +180,14 @@ class _Packaging(object):
     def _configure_package(self):
         print "Enter the directory into which the source should be extracted."
         self.machine.packageInfo.sourcedir = _input_text("dir")
+        self._set_version()
         self._choose_license()
         self._build_manifest()
         self.modified = True
+    
+    def _set_version(self):
+        print "Enter version."
+        self.machine.packageInfo.version = _input_text("version")
         
     def _choose_license(self):
         print "Choose license:"
