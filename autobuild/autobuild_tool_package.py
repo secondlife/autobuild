@@ -4,6 +4,28 @@
 
 """
 Create archives of build output, ready for upload to the server.
+
+The package sub-command works by locating all of the files in the
+build output directory that match the manifest specified in the
+autobuild.xml. The manifest can include platform-specific and
+platform-common files, and they can use glob-style wildcards.
+
+The command will generate an appropriate archive tarball name.
+It will contact S3 and install-packages.lindenlab.com to ensure
+that the name is unique on the server.
+
+The package command enforces that you have specified a license
+string and a valid licensefile for the package. The operation
+will be aborted in this is not the case.
+
+In summary, the package command requires that you have specified the
+following metadata in the autobuild.xml file:
+
+* builddir (unless --build-dir specified)
+* manifest
+* version
+* license
+* licensefile (assumes LICENSES/<package-name>.txt otherwise)
 """
 
 import sys
@@ -193,6 +215,10 @@ def create_archive(options):
     package = config_file.package_definition
     if not package:
         raise AutobuildError("Config file must contain a single package definition")
+
+    # make sure that the package version number is set
+    if not package.version:
+        raise AutobuildError("No version number specified for package %s" % package.name)
 
     # get the build output directory - check it exists
     build_dir = options.build_dir
