@@ -153,7 +153,7 @@ class S3Connection(Connection):
         # I find new_key() a somewhat misleading method name: it doesn't have
         # any effect on S3; it merely instantiates a new Key object tied to
         # the bucket on which you make the call.
-        return self.bucket.new_key('/'.join((self.partial_key, os.path.basename(filename))))
+        return self.bucket.new_key('/'.join((self.partial_key, os.path.basename(pathname))))
 
     def upload(self, filename, S3_dest_dir=None, dry_run=False):
         """Upload file specified by filename to S3.
