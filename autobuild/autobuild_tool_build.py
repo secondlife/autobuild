@@ -6,9 +6,10 @@
 Autobuild sub-command to build the source for a package.
 """
 
-import sys
 import os
+import shlex
 import subprocess
+import sys
 
 # autobuild modules:
 import common
@@ -27,7 +28,7 @@ class autobuild_tool(autobuild_base.autobuild_base):
         parser.add_argument('--build-extra-args',
             dest='build_extra_args',
             default='',
-            help="extra arguments to the build command, will be split on any whitespace boundaries (*TODO add escaping)")
+            help="extra arguments to the build command, will be split on any whitespace boundaries but obeys quotations")
 
     def run(self, args):
         cf = configfile.ConfigFile()
@@ -37,10 +38,11 @@ class autobuild_tool(autobuild_base.autobuild_base):
         # *TODO -use common.find_executable() to search the path and append the current working directory to the build command if necessary
         build_command = package_definition.build_command(common.get_current_platform())
 
-        # *TODO -find a better way to split this to avoid escaping problems
-        for build_arg in args.build_extra_args.split():
+        for build_arg in shlex.split(args.build_extra_args):
             build_command.append(build_arg)
 
         print "executing '%s' in '%s'" % (' '.join(build_command), os.getcwd())
-        subprocess.call(build_command)
+        # *TODO - be careful here, we probably want to sanitize the environment further.
+        build_env = dict(os.environ, autobuild=sys.argv[0])
+        subprocess.call(build_command, env=build_env)
 
