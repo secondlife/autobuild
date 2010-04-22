@@ -2,7 +2,7 @@
 
 import sys
 import os
-import autobuild.common
+import common
 import argparse
 
 class run_help(argparse.Action):
