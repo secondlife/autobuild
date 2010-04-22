@@ -16,7 +16,7 @@ class run_help(argparse.Action):
 class Autobuild(object):
     def __init__(self):
         self.parser = argparse.ArgumentParser(
-            description='Autobuild', prog='Autobuild', add_help=False)
+            description='Autobuild', prog='autobuild', add_help=False)
         
         self.parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
 
