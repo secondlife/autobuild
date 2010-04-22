@@ -195,4 +195,4 @@ class S3Connection(Connection):
     def getUrl(self, filename):
         """Return the url the pkg would be at if on the server."""
         key = self._get_key(filename)
-        return "%s%s/%s" % (self.amazonS3_server + self.bucket.name + self._get_key(filename).name)
+        return "%s%s/%s" % (self.amazonS3_server, self.bucket.name, self._get_key(filename).name)
