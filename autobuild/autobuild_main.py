@@ -84,8 +84,9 @@ class Autobuild(object):
         for arg in args_in:
             if arg[0] != '-':
                 tool_to_run = self.try_to_import_tool(arg, self.tools_list)
-                self.new_tool_subparser.add_argument('--dry-run',
-                    help='Run tool in dry run mode if available', action='store_true')
+                if tool_to_run != -1:
+                    self.new_tool_subparser.add_argument('--dry-run',
+                        help='Run tool in dry run mode if available', action='store_true')
                 break
 
         args = self.parser.parse_args(args_in)

@@ -54,6 +54,14 @@ class TestOptions(unittest.TestCase):
             self.assertNotEquals(-1, captured_stdout.find('usage:'))
         pass
 
+    def test_typo_subtool(self):
+        """test_typo_subtool: 'foobardribble' should print usage and exit"""
+        try:
+            ret = self.autobuild_fixture.main(['foobardribble'])
+        except EarlyExitException:
+            self.assertNotEquals(-1, captured_stdout.find('usage:'))
+        pass
+
     def test_version(self):
         """test_version: make sure -v does the same (as we're here...) """
         try:
