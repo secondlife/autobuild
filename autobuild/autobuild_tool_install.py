@@ -69,12 +69,6 @@ def add_arguments(parser):
         nargs='*',
         help='List of packages to consider for installation.')
     parser.add_argument(
-        '--dry-run', 
-        action='store_true',
-        default=False,
-        dest='dryrun',
-        help='Do not actually install files. Downloads will still happen.')
-    parser.add_argument(
         '--package-info',
         default=configfile.PACKAGES_CONFIG_FILE,
         dest='install_filename',
@@ -228,7 +222,7 @@ def post_install_license_check(packages, config_file, install_dir):
         if not os.path.exists(os.path.join(install_dir, licensefile)):
             raise AutobuildError("Invalid or undefined licensefile for %s. (you can use --skip-license-check)" % pname)
 
-def do_install(packages, config_file, installed_file, platform, install_dir, dryrun):
+def do_install(packages, config_file, installed_file, platform, install_dir, dry_run):
     """
     Install the specified list of packages. This will download the
     packages to the local cache, extract the contents of those
@@ -261,7 +255,7 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
                 raise AutobuildError("md5 mismatch for %s" % cachefile)
 
         # dry run mode = download but don't install packages
-        if dryrun:
+        if dry_run:
             print "Dry run mode: not installing %s" % pname
             continue
 
@@ -313,10 +307,10 @@ def install_packages(options, args):
 
     # do the actual install of the new/updated packages
     do_install(packages, config_file, installed_file, options.platform, install_dir,
-               options.dryrun)
+               options.dry_run)
 
     # check the licensefile properties for the newly installed packages
-    if options.check_license:
+    if options.check_license and not options.dry_run:
         post_install_license_check(packages, config_file, install_dir)
 
     # update the installed-packages.xml file, if it was changed

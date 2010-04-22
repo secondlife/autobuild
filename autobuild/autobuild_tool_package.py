@@ -42,12 +42,6 @@ AutobuildError = common.AutobuildError
 
 def add_arguments(parser):
     parser.add_argument(
-        '--dry-run', 
-        action='store_true',
-        default=False,
-        dest='dryrun',
-        help='Do not actually create an archive file.')
-    parser.add_argument(
         '--package-info',
         default=configfile.BUILD_CONFIG_FILE,
         dest='autobuild_filename',
@@ -246,7 +240,7 @@ def create_archive(options):
         tarfilename = os.path.join(tardir, tarname)
 
     # create the package archive (unless in dryrun mode)
-    if options.dryrun:
+    if options.dry_run:
         for file in files:
             print "Adding (dry-run)", file
         print "Dry-run: would have created %s" % tarfilename
