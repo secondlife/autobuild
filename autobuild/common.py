@@ -244,7 +244,7 @@ def split_tarname(pathname):
     # fileparts = ["boost", "1.39.0", "darwin", "20100222a.tar.bz2"]
     # Almost there -- we just have to lop off the extension. NOW split on '.'.
     # We know there's at least fileparts[-1] because splitting a string with
-    # no '.' -- even the empty string -- produces a list containing the
+    # no '-' -- even the empty string -- produces a list containing the
     # original string.
     extparts = fileparts[-1].split('.')
     # extparts = ["20100222a", "tar", "bz2"]
@@ -256,6 +256,12 @@ def split_tarname(pathname):
     # assume that split() returns a list.
     extparts[0] = ""
     ext = '.'.join(extparts)
+    # One more funky case. We've encountered "version numbers" like
+    # "2009-08-30", "1-0" or "1.2-alpha". This would produce too many
+    # fileparts, e.g. ["boost", "2009", "08", "30", "darwin", "20100222a"].
+    # Detect that and recombine.
+    if len(fileparts) > 4:
+        fileparts[1:-2] = ['-'.join(fileparts[1:-2])]
     return (dir, fileparts, ext)
 
 ######################################################################
