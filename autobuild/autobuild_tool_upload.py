@@ -9,17 +9,35 @@ Create archives of build output, ready for upload to the server.
 import sys
 import os
 import common
+from autobuild_base import autobuild_base
 from configfile import ConfigFile
 from connection import SCPConnection, S3Connection, S3ConnectionError, SCPConnectionError
 
-AutobuildError = common.AutobuildError
-
-# better way to do this?
-S3Conn = S3Connection()
-SCPConn = SCPConnection()
-
-class UploadError(AutobuildError):
+class UploadError(common.AutobuildError):
     pass
+
+class autobuild_tool(autobuild_base):
+    def get_details(self):
+        return dict(name=self.name_from_file(__file__),
+                    description="upload tool for autobuild")
+
+    def register(self, parser):
+        """
+        Define arguments specific to this subcommand (tool).
+        """
+        parser.add_argument('archive', nargs=1,
+                            help="Specify the archive to upload to install-packages.lindenlab.com "
+                                 "or to S3, as indicated by config file")
+
+    def run(self, args):
+        # upload() is written to expect a list of files, and in fact at some
+        # point we may decide to accept more than one on the autobuild command
+        # line. Here's the odd part. We call it 'archive' so it shows up as
+        # singular in help text -- but in fact, because of argparse
+        # processing, it arrives as a list.
+        upload(args.archive, args.dry_run)
+        if args.dry_run:
+            print "This was only a dry-run."
 
 def dissectTarfileName(tarfilename):
     """Try to get important parts from tarfile.
@@ -58,47 +76,6 @@ def checkTarfileForUpload(config, tarfilename):
     return info.uploadtos3
 
 
-
-def dissectPlatform(platform):
-    """Try to get important parts from platform.
-    @param platform can have the form: operating_system[/arch[/compiler[/compiler_version]]]
-    """
-    operating_system = ''
-    arch = ''
-    compiler = ''
-    compiler_version = ''
-    # extract the arch/compiler/compiler_version info, if any
-    # platform can have the form: os[/arch[/compiler[/compiler_version]]]
-    [dir, base] = os.path.split(platform)
-    if dir != '':
-        while dir != '':
-            if arch != '':
-                if compiler != '':
-                    compiler_version = compiler
-            compiler = arch
-            arch = base
-            new_dir = dir
-            [dir, base] = os.path.split(new_dir)
-        operating_system = base
-    else:
-        operating_system = platform
-    return [operating_system, arch, compiler, compiler_version]
-
-
-def getPlatformString(platform):
-    """Return the filename string tha corresponds to a platform path
-    @param platform can have the form: operating_system[/arch[/compiler[/compiler_version]]]
-    """
-    [operating_system, arch, compiler, compiler_version] = dissectPlatform(platform)
-    platform_string = operating_system
-    if arch != '':
-        platform_string += '-' + arch
-        if compiler != '':
-            platform_string += '-' + compiler
-            if compiler_version != '':
-                platform_string += '-' + compiler_version
-    return platform_string
-
 # This function is intended for use by another Python script. It takes a
 # specific argument list and indicates error by raising an exception.
 def upload(wildfiles, dry_run=False):
@@ -124,9 +101,15 @@ def upload(wildfiles, dry_run=False):
     s3ables = [tarfile for tarfile in tarfiles if checkTarfileForUpload(config, tarfile)]
 
     # Now upload to our internal install-packages server.
+    SCPConn = SCPConnection()
     SCPConn.upload(tarfiles, None, None, dry_run)
 
     # Finally, upload to S3 any tarfiles that should be uploaded to S3.
+    if not s3ables:
+        # If there aren't any, don't even bother instantiating the connection.
+        return
+    
+    S3Conn = S3Connection()
     for tarfilename in s3ables:
         # Normally, check that we've successfully uploaded the tarfile to our
         # scp repository before uploading to S3. (But why? We've just put it
@@ -138,15 +121,9 @@ def upload(wildfiles, dry_run=False):
         # dry_run is set, we won't have uploaded to our scp repository, so
         # don't even perform this test as it would definitely fail.
         if not (dry_run or SCPConn.SCPFileExists(tarfilename)):
-            raise SCPConnectionError("Error: File must exist on internal server before uploading to S3")
+            raise UploadError("Error: File must exist on internal server before uploading to S3")
         S3Conn.upload(tarfilename, None, dry_run)
 
-# This function is reached from autobuild_main, which always passes generic
-# optparse-style (options, args).
-def main(options, args):
-    upload(args, options.dry_run)
-    if options.dry_run:
-        print "This was only a dry-run."
-
-if __name__ == '__main__':
-    sys.exit("Please invoke this script using 'autobuild upload'")
+# provide this line to make the tool work standalone too (which all tools should)
+if __name__ == "__main__":
+    sys.exit( autobuild_tool().main( sys.argv[1:] ) )
