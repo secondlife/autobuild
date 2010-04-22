@@ -206,7 +206,7 @@ def pre_install_license_check(packages, config_file):
         package = config_file.package(pname)
         license = package.license
         if not license:
-            raise AutobuildError("No license specified for %s. Aborting..." % pname)
+            raise AutobuildError("No license specified for %s. Aborting... (you can use --skip-license-check)" % pname)
 
 def post_install_license_check(packages, config_file, install_dir):
     """
@@ -226,7 +226,7 @@ def post_install_license_check(packages, config_file, install_dir):
             continue
         # otherwise, assert that the license file is in the archive
         if not os.path.exists(os.path.join(install_dir, licensefile)):
-            raise AutobuildError("Invalid or undefined licensefile for %s" % pname)
+            raise AutobuildError("Invalid or undefined licensefile for %s. (you can use --skip-license-check)" % pname)
 
 def do_install(packages, config_file, installed_file, platform, install_dir, dryrun):
     """
