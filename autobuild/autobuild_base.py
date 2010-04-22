@@ -13,6 +13,18 @@ import unittest
 
 class autobuild_base:
 
+    def name_from_file(self, filename):
+        """
+        Since an autobuild tool's module filename must conform to a particular
+        naming convention, and that name must embed the tool's invocation
+        name, provide a method to extract the tool name from __file__.
+        """
+        basename = os.path.splitext(os.path.basename(filename))[0]
+        pfx = "autobuild_tool_"
+        if basename.startswith(pfx):
+            basename = basename[len(pfx):]
+        return basename
+
 # Override these three functions to hook into autobuild.py
 
 	def get_details(self):
@@ -42,5 +54,3 @@ class autobuild_base:
 
 #if __name__ == "__main__":
 #	sys.exit( autobuild_base_standalone().main( sys.argv[1:] ) )
-	
-	

@@ -12,11 +12,13 @@ import common
 from configfile import ConfigFile
 from connection import SCPConnection, S3Connection, S3ConnectionError, SCPConnectionError
 
+AutobuildError = common.AutobuildError
+
 # better way to do this?
 S3Conn = S3Connection()
 SCPConn = SCPConnection()
 
-class UploadError(Exception):
+class UploadError(AutobuildError):
     pass
 
 def dissectTarfileName(tarfilename):
@@ -140,14 +142,9 @@ def upload(wildfiles, dry_run=False):
         S3Conn.upload(tarfilename, None, dry_run)
 
 # This function is reached from autobuild_main, which always passes generic
-# optparse-style (options, args). On error, it prints a message and
-# terminates. It might also be chatty on sys.stdout.
+# optparse-style (options, args).
 def main(options, args):
-    try:
-        upload(args, options.dry_run)
-    except (UploadError, SCPConnectionError, S3ConnectionError), err:
-        sys.exit(os.linesep.join((str(err), "(Use -h for help)")))
-
+    upload(args, options.dry_run)
     if options.dry_run:
         print "This was only a dry-run."
 

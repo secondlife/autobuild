@@ -5,17 +5,16 @@
 
 
 import autobuild_base
-from common import get_current_platform
+from common import get_current_platform, AutobuildError
 import configfile
 import fnmatch
 import os
 import os.path as path
 import re
-	
 
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
-        return dict(name='manifest', 
+        return dict(name=self.name_from_file(__file__),
             description="Add manifest entries to the autobuild configuration file by recursively "
             "searching all directories under the root directory for files matching the provided "
             "patterns.")
@@ -53,11 +52,11 @@ class autobuild_tool(autobuild_base.autobuild_base):
         config.save()
 
 
-class DefaultPackageUndefinedError(Exception):
+class DefaultPackageUndefinedError(AutobuildError):
 	pass
 
 
-class UnkownPackageError(Exception):
+class UnkownPackageError(AutobuildError):
 	pass
 
 

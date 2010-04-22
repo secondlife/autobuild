@@ -18,8 +18,9 @@ import socket
 import sys
 import commands
 import subprocess
+from common import AutobuildError
 
-class CommandError(Exception):
+class CommandError(AutobuildError):
     pass
 
 
@@ -667,7 +668,7 @@ setup_platform = {
 
 def get_package_dir():
     if sys.platform not in setup_platform.keys():
-        raise RuntimeError("Cannot find package dir for platform %s" % platform)
+        raise AutobuildError("Cannot find package dir for platform %s" % platform)
     p = setup_platform[sys.platform]()
     return os.path.join(p.build_dirs()[0], 'packages')
     

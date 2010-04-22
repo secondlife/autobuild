@@ -31,6 +31,8 @@ import configfile
 import autobuild_base
 from llbase import llsd
 
+AutobuildError = common.AutobuildError
+
 __help = """\
 This autobuild command fetches and installs package archives.
 
@@ -181,11 +183,11 @@ def get_packages_to_install(packages, config_file, installed_config, platform):
 
         # raise error if named package doesn't exist in packages.xml
         if not toinstall:
-            raise RuntimeError('Unknown package: %s' % pname)
+            raise AutobuildError('Unknown package: %s' % pname)
 
         # check that we have a platform-specific or common url to use
         if not toinstall.archives_url(platform):
-           raise RuntimeError("No url specified for this platform for %s" % pname)
+           raise AutobuildError("No url specified for this platform for %s" % pname)
 
         # install this package if it is new or out of date
         if installed == None or \
@@ -204,7 +206,7 @@ def pre_install_license_check(packages, config_file):
         package = config_file.package(pname)
         license = package.license
         if not license:
-            raise RuntimeError("No license specified for %s. Aborting..." % pname)
+            raise AutobuildError("No license specified for %s. Aborting..." % pname)
 
 def post_install_license_check(packages, config_file, install_dir):
     """
@@ -224,7 +226,7 @@ def post_install_license_check(packages, config_file, install_dir):
             continue
         # otherwise, assert that the license file is in the archive
         if not os.path.exists(os.path.join(install_dir, licensefile)):
-            raise RuntimeError("Invalid or undefined licensefile for %s" % pname)
+            raise AutobuildError("Invalid or undefined licensefile for %s" % pname)
 
 def do_install(packages, config_file, installed_file, platform, install_dir, dryrun):
     """
@@ -251,12 +253,12 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
 
             # download the package to the cache
             if not common.download_package(url):
-                raise RuntimeError("Failed to download %s" % url)
+                raise AutobuildError("Failed to download %s" % url)
 
             # error out if MD5 doesn't matches
             if not common.does_package_match_md5(url, md5):
                 common.remove_package(url)
-                raise RuntimeError("md5 mismatch for %s" % cachefile)
+                raise AutobuildError("md5 mismatch for %s" % cachefile)
 
         # dry run mode = download but don't install packages
         if dryrun:
@@ -327,7 +329,8 @@ def install_packages(options, args):
 # define the entry point to this autobuild tool
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
-        return dict(name='install', description='Fetch and install package archives.')
+        return dict(name=self.name_from_file(__file__),
+                    description='Fetch and install package archives.')
 
     def register(self, parser):
         add_arguments(parser)
@@ -336,4 +339,5 @@ class autobuild_tool(autobuild_base.autobuild_base):
         install_packages(args, args.package)
 
 if __name__ == '__main__':
-    sys.exit("Please invoke this script using 'autobuild install'")
+    sys.exit("Please invoke this script using 'autobuild %s'" %
+             autobuild_tool().get_details()["name"])

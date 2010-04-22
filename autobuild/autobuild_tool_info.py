@@ -11,11 +11,12 @@ import sys
 
 import autobuild_base
 import configfile
-	
+
+AutobuildError = common.AutobuildError
 
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
-        return dict(name='info',
+        return dict(name=self.name_from_file(__file__),
             description="Output the contents of an autobuild configuration file in a human "
             "readable format.")
      
@@ -196,7 +197,7 @@ class autobuild_tool(autobuild_base.autobuild_base):
     }
 
 
-class ConfigurationFileNotFoundError(Exception):
+class ConfigurationFileNotFoundError(AutobuildError):
     pass
 
 
