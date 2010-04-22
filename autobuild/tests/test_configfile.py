@@ -30,15 +30,15 @@ class TestConfigFile(unittest.TestCase):
         baseline = os.path.join(sys.path[0], baseline)
         output_lines = [x.rstrip() for x in file(output, 'rb').readlines()]
         baseline_lines = [x.rstrip() for x in file(baseline, 'rb').readlines()]
-        udiff = difflib.unified_diff(output_lines, baseline_lines, fromfile=output,
-                                     tofile=baseline, lineterm="")
+        udiff = difflib.unified_diff(baseline_lines, output_lines, fromfile=baseline,
+                                     tofile=output, lineterm="")
         error = []
         for line in udiff:
             error.append(line)
         if error:
             self.failed = True
-            self.fail("Output does not match baseline.\nOutput: %s\nBaseline: %s\nDiff:\n%s" %
-                      (output, baseline, "\n".join(error)))
+            self.fail("Output does not match baseline.\nBaseline: %s\nOutput: %s\nDiff:\n%s" %
+                      (baseline, output, "\n".join(error)))
 
     def test_0(self):
         """
@@ -96,8 +96,8 @@ class TestConfigFile(unittest.TestCase):
         p.set_archives_url('linux', 'http://www.secondlife.com')
         p.set_archives_md5('linux', '22eac1bea219257a71907cbe1170c640')
 
-        p.set_depends_url('linux', 'http://www.secondlife.com')
-        p.set_depends_md5('linux', '22eac1bea219257a71907cbe1170c640')
+        p.set_dependencies_url('linux', 'http://www.secondlife.com')
+        p.set_dependencies_md5('linux', '22eac1bea219257a71907cbe1170c640')
 
         p.set_configure_command('common', 'configure --enabled-shared')
         p.set_build_command('common', 'build.sh')
@@ -152,8 +152,8 @@ class TestConfigFile(unittest.TestCase):
             lines.append("archives_url(linux): %s\n" % p.archives_url('linux'))
             lines.append("archives_md5(linux): %s\n" % p.archives_md5('linux'))
 
-            lines.append("depends_url(common): %s\n" % p.depends_url('linux'))
-            lines.append("depends_md5(common): %s\n" % p.depends_md5('linux'))
+            lines.append("dependencies_url(common): %s\n" % p.dependencies_url('linux'))
+            lines.append("dependencies_md5(common): %s\n" % p.dependencies_md5('linux'))
 
             lines.append("configure(common): %s\n" % p.configure_command('common'))
             lines.append("build(common): %s\n" % p.build_command('common'))

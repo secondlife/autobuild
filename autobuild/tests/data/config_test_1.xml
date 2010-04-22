@@ -33,7 +33,7 @@
       </map>
       <key>copyright</key>
       <string>Copyright (c) 2010, Linden Research, Inc.</string>
-      <key>depends</key>
+      <key>dependencies</key>
       <map>
         <key>linux</key>
         <map>
