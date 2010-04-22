@@ -13,7 +13,7 @@ class run_help(argparse.Action):
         parser.exit(0)
 
 
-class Autobuild():
+class Autobuild(object):
     def __init__(self):
         self.parser = argparse.ArgumentParser(
             description='Autobuild', prog='Autobuild', add_help=False)
@@ -49,7 +49,7 @@ class Autobuild():
                 file_name != '__init__.py' and
                 file_name.startswith('autobuild_tool_')):
                 module_name=file_name[:-3]
-                possible_tool_module = __import__(module_name, globals(), locals(), [], -1);
+                possible_tool_module = __import__(module_name, globals(), locals(), []);
                 if(getattr(possible_tool_module, 'autobuild_tool', None)):
                     tools_list.append(possible_tool_module)
 
@@ -59,7 +59,7 @@ class Autobuild():
         tool_file_name = tool_module_name + '.py'
         full_tool_path = os.path.join(autobuild_package_dir, tool_file_name)
         if os.path.exists(full_tool_path):
-            possible_tool_module = __import__(tool_module_name, globals(), locals(), [], -1);
+            possible_tool_module = __import__(tool_module_name, globals(), locals(), []);
             if(getattr(possible_tool_module, 'autobuild_tool', None)):
                 tools_list.append(possible_tool_module)
                 instance = self.register_tool(possible_tool_module)
