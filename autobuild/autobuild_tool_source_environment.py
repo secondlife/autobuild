@@ -84,14 +84,56 @@ environment_template = """
     DISTCC_HOSTS="%(DISTCC_HOSTS)s"
 """
 
+if common.get_current_platform() is "windows":
+    environment_template = "%s\n%s" % (environment_template,
+        """
+    USE_INCREDIBUILD=%(USE_INCREDIBUILD)s
+    function build_vcproj() {
+        local vcproj=$1
+        local config=$2
+
+        if ((%(USE_INCREDIBUILD)s)) ; then
+            BuildConsole "$vcproj" /CFG="$config"
+        else
+            devenv "$vcproj" /build "$config"
+        fi
+    }
+
+    function build_sln() {
+        local solution=$1
+        local config=$2
+        local proj=$3
+
+        if ((%(USE_INCREDIBUILD)s)) ; then
+            if [ -z "$proj" ] ; then
+                BuildConsole "$solution" /CFG="$config"
+            else
+                BuildConsole "$solution" /PRJ="$proj" /CFG="$config"
+            fi
+        else
+            if [ -z "$proj" ] ; then
+                devenv "$solution" /build "$config"
+            else
+                devenv "$solution" /build /project "$proj" /projectconfig "$config"
+            fi
+        fi
+    }
+""")
+
 def do_source_environment(args):
-    print environment_template % {
+    if common.get_current_platform() is "windows":
+        # reset stdout in binary mode so sh doesn't get confused by '\r'
+        import msvcrt
+        msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
+
+    sys.stdout.write(environment_template % {
             'AUTOBUILD_EXECUTABLE_PATH':sys.argv[0],
             'AUTOBUILD_VERSION_STRING':"0.0.1-mvp",
             'AUTOBUILD_PLATFORM':common.get_current_platform(),
             'MAKEFLAGS':"",
             'DISTCC_HOSTS':"",
-        }
+            'USE_INCREDIBUILD':1,
+        })
 
     if get_params:
         # *TODO - run get_params.generate_bash_script()
