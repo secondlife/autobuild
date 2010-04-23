@@ -65,9 +65,15 @@ def add_arguments(parser):
 def generate_archive_name(package, platform, suffix=''):
     """
     Create a tarball name for a given package and platform.
+    We ensure that the package name and platform definition
+    do not have hyphens in them as this will confuse the
+    related split_tarname() method.
     """
-    name = package.name + '-' + package.version + '-'
-    name += '-'.join(platform.split('/')) + '-'
+    package_name = package.name.replace('-', '_')
+    platform_name = platform.replace('/', '_').replace('-', '_')
+
+    name = package_name + '-' + package.version + '-'
+    name += platform_name + '-'
     name += time.strftime("%Y%m%d") + suffix
     name += '.tar.bz2'
     return name
