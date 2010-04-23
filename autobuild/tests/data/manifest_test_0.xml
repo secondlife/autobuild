@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<llsd>
+<map>
+    <key>test</key>
+    <map>
+      <key>manifest</key>
+      <map>
+        <key>darwin</key>
+        <map>
+          <key>files</key>
+          <array>
+            <string>*.dylib</string>
+          </array>
+        </map>
+      </map>
+    </map>
+  </map>
+</llsd>
