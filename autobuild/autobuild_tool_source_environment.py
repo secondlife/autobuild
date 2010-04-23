@@ -88,6 +88,14 @@ environment_template = """
         switch="${switch}vf"
         tar "$switch" "$1" || exit 1
     }
+    calc_md5 () {
+        local archive=$1
+        local md5_cmd=md5sum
+        if [ "$AUTOBUILD_PLATFORM" = "darwin" ] ; then
+            md5_cmd=md5 -r
+        fi
+        $md5_cmd "$archive" | cut -d ' ' -f 1
+    }
 
     MAKEFLAGS="%(MAKEFLAGS)s"
     DISTCC_HOSTS="%(DISTCC_HOSTS)s"
@@ -130,13 +138,19 @@ if common.get_current_platform() is "windows":
 """)
 
 def do_source_environment(args):
+    autobuild_executable = sys.argv[0]
+
     if common.get_current_platform() is "windows":
         # reset stdout in binary mode so sh doesn't get confused by '\r'
         import msvcrt
         msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
 
+        # *HACK - bash doesn't know how to pass real pathnames to native windows python
+        # so pass the name of the wrapper
+        autobuild_executable = "%s.cmd" % autobuild_executable
+
     sys.stdout.write(environment_template % {
-            'AUTOBUILD_EXECUTABLE_PATH':sys.argv[0],
+            'AUTOBUILD_EXECUTABLE_PATH':autobuild_executable,
             'AUTOBUILD_VERSION_STRING':"0.0.1-mvp",
             'AUTOBUILD_PLATFORM':common.get_current_platform(),
             'MAKEFLAGS':"",
