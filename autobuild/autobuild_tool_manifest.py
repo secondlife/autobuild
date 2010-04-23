@@ -4,37 +4,31 @@
 # $/LicenseInfo$
 
 
+import os
+
 import autobuild_base
 from common import get_current_platform, AutobuildError
 import configfile
-import fnmatch
-import os
-import os.path as path
-import re
 
 
 def construct_manifest(packageInfo, patterns, platform):
     """
-    Adds all files under the packages build directory into the package info's platform manifest 
-    which match at least one of the filename patterns in the provided list.
+    Creates the manifest in the package info structure for the given platform using the provided 
+    patterns.
     """
-    if packageInfo.builddir is None:
-        raise BuildDirectoryUnspecified("no build directory specified for this package")
-    root = path.expandvars(packageInfo.builddir);
-    data = {'root':root,'patterns':patterns,'files':[]}
-    path.walk(root, _collect_manifest_files, data)
-    packageInfo.set_manifest_files(platform, data['files'])    
+    packageInfo.set_manifest_files(platform, patterns)    
     
     
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
-            description="Add manifest entries to the autobuild configuration file by recursively "
-            "searching all directories under the root directory for files matching the provided "
-            "patterns.")
+            description="Add manifest entries to the autobuild configuration file using the"
+            " provided patterns.")
      
     def register(self, parser):
         parser.add_argument('-v', '--version', action='version', version='manifest tool 1.0')
+        parser.add_argument('-f','--file',
+            help="The configuration file to modify")
         parser.add_argument('pattern', nargs='+',
             help='File pattern to match when searching for files to add to the manifest')
         parser.add_argument('-p','--package',
@@ -45,7 +39,10 @@ class autobuild_tool(autobuild_base.autobuild_base):
 
     def run(self, args):
         config = configfile.ConfigFile()
-        config.load();
+        if args.file is not None:
+            config.load(args.file)
+        else:
+             config.load()
         if args.package:
             packageInfo = config.package(args.package)
             if packageInfo is None:
@@ -62,26 +59,12 @@ class autobuild_tool(autobuild_base.autobuild_base):
             config.save()
 
 
-class BuildDirectoryUnspecified(AutobuildError):
-    pass
-
-
 class DefaultPackageUndefinedError(AutobuildError):
 	pass
 
 
 class UnkownPackageError(AutobuildError):
 	pass
-
-
-def _collect_manifest_files(data, dirname, files):
-    directory = re.sub(data['root'], '', dirname)
-    for file in files:
-        filepath = path.normpath(path.join(directory, file))
-        for pattern in data['patterns']:
-            if fnmatch.fnmatch(filepath, pattern):
-                 data['files'].append(filepath)
-                 break
 
 
 if __name__ == "__main__":
