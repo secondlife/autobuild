@@ -55,7 +55,7 @@ environment_template = """
     }
     pass () {
         echo "BUILD SUCCEEDED"
-        succeeded=1
+        succeeded=true
     }
 
     # imported build-lindenlib functions
