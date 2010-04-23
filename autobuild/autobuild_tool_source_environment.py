@@ -63,8 +63,8 @@ environment_template = """
         if ! [ -r "$archive" ] ; then
             curl -L -o "$archive" "$url"                    || return 1
         fi
-        if [ "$AUTOBUILD_PLATFORM" == "darwin" ] ; then
-            test "$md5 $archive" == "$(md5 -r "$archive")"
+        if [ "$AUTOBUILD_PLATFORM" = "darwin" ] ; then
+            test "$md5 $archive" = "$(md5 -r "$archive")"
         else
             echo "$md5 *$archive" | md5sum -c
         fi
