@@ -6,45 +6,19 @@
 import unittest
 import os
 import sys
-import difflib
+from baseline_compare import AutobuildBaselineCompare
 from autobuild import configfile
 
-class TestConfigFile(unittest.TestCase):
+class TestConfigFile(unittest.TestCase, AutobuildBaselineCompare):
 
     def setUp(self):
-        self.failed = False
-        self.tmp_file = None
-
-    def set_temp_file(self, n):
-        """
-        Write to a different tmp file for each test, so we can remove
-        it if the test passes, or leave it around for debugging if it
-        fails.
-        """
-        self.tmp_file = os.path.join(sys.path[0], "configfile_%d.out" % n)
-
-    def diff(self,output, baseline):
-        """
-        Do a udiff between two fails and raise an exception if different
-        """
-        baseline = os.path.join(sys.path[0], baseline)
-        output_lines = [x.rstrip() for x in file(output, 'rb').readlines()]
-        baseline_lines = [x.rstrip() for x in file(baseline, 'rb').readlines()]
-        udiff = difflib.unified_diff(baseline_lines, output_lines, fromfile=baseline,
-                                     tofile=output, lineterm="")
-        error = []
-        for line in udiff:
-            error.append(line)
-        if error:
-            self.failed = True
-            self.fail("Output does not match baseline.\nBaseline: %s\nOutput: %s\nDiff:\n%s" %
-                      (baseline, output, "\n".join(error)))
+        pass
 
     def test_0(self):
         """
         Create a new config file from scratch
         """
-        self.set_temp_file(0)
+        tmp_file = self.get_tmp_file(0)
 
         c = configfile.ConfigFile()
 
@@ -66,14 +40,14 @@ class TestConfigFile(unittest.TestCase):
         p.set_archives_md5('windows', '28189f725a5c53684ce1c925ee5fecd7')
         c.set_package('test2', p)
 
-        c.save(self.tmp_file)
-        self.diff(self.tmp_file, "data/config_test_0.xml")
+        c.save(tmp_file)
+        self.diff_tmp_file_against_baseline("data/config_test_0.xml")
 
     def test_1(self):
         """
         Create a new config file with all supported fields
         """
-        self.set_temp_file(1)
+        tmp_file = self.get_tmp_file(1)
 
         c = configfile.ConfigFile()
 
@@ -108,25 +82,25 @@ class TestConfigFile(unittest.TestCase):
 
         c.set_package('test1', p)
 
-        c.save(self.tmp_file)
-        self.diff(self.tmp_file, "data/config_test_1.xml")
+        c.save(tmp_file)
+        self.diff_tmp_file_against_baseline("data/config_test_1.xml")
 
     def test_2(self):
         """
         Read and write an existing config file
         """
-        self.set_temp_file(2)
+        tmp_file = self.get_tmp_file(2)
 
         c = configfile.ConfigFile()
         c.load(os.path.join(sys.path[0], "data/config_test_2.xml"))
-        c.save(self.tmp_file)
-        self.diff(self.tmp_file, "data/config_test_2.xml")
+        c.save(tmp_file)
+        self.diff_tmp_file_against_baseline("data/config_test_2.xml")
 
     def test_3(self):
         """
         Read a config file and print some fields
         """
-        self.set_temp_file(3)
+        tmp_file = self.get_tmp_file(3)
 
         c = configfile.ConfigFile()
         c.load(os.path.join(sys.path[0], "data/config_test_3.xml"))
@@ -163,16 +137,13 @@ class TestConfigFile(unittest.TestCase):
             lines.append("manifest(windows): %s\n" % p.manifest_files('windows'))
             lines.append("-" * 40 + "\n")
 
-        open(self.tmp_file, "w").writelines(lines)
-        self.diff(self.tmp_file, "data/config_test_3.txt")
+        open(tmp_file, "w").writelines(lines)
+        self.diff_tmp_file_against_baseline("data/config_test_3.txt")
 
     def test_4(self):
         """
         Test property checking logic on PackageInfo
         """
-        self.set_temp_file(4)
-
-        c = configfile.ConfigFile()
         p = configfile.PackageInfo()
         try:
             p.foobar = "Shouldn't work"
@@ -182,12 +153,7 @@ class TestConfigFile(unittest.TestCase):
             self.fail("Should not be able to set p.foobar")
 
     def tearDown(self):
-        """
-        Remove our temp file, though if the test succeeded
-        """
-        if not self.failed and os.path.exists(self.tmp_file):
-            os.remove(self.tmp_file)
-
+        self.cleanup_tmp_file()
 
 if __name__ == '__main__':
     unittest.main()
