@@ -76,8 +76,21 @@ class Autobuild(object):
         help='Find all valid Autobuild Tools and show help', action=run_help,
         nargs='?', default=argparse.SUPPRESS)
 
-        self.parser.add_argument('--dry-run',
-        help='Run tool in dry run mode if available', action='store_true')
+        argdefs = (
+            (('--dry-run',),
+             dict(help='Run tool in dry run mode if available', action='store_true')),
+##          (('--config-file',),
+##           dict(help="Specify configuration file",
+##                default=configfile.PACKAGES_CONFIG_FILE,
+##                dest="config_file")),
+##          (('--package-info',),
+##           dict(help='The file used to describe what should be installed.',
+##                default=configfile.PACKAGES_CONFIG_FILE,
+##                dest='install_filename')),
+            )
+
+        for args, kwds in argdefs:
+            self.parser.add_argument(*args, **kwds)
         
         tool_to_run = -1;
 
@@ -85,8 +98,12 @@ class Autobuild(object):
             if arg[0] != '-':
                 tool_to_run = self.try_to_import_tool(arg, self.tools_list)
                 if tool_to_run != -1:
-                    self.new_tool_subparser.add_argument('--dry-run',
-                        help='Run tool in dry run mode if available', action='store_true')
+                    # Define all the global arguments as also being legal
+                    # for the subcommand, e.g. support both
+                    # autobuild --dry-run upload args... and
+                    # autobuild upload --dry-run args...
+                    for args, kwds in argdefs:
+                        self.new_tool_subparser.add_argument(*args, **kwds)
                 break
 
         args = self.parser.parse_args(args_in)
