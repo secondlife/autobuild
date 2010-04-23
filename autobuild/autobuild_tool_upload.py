@@ -10,7 +10,7 @@ import sys
 import os
 import common
 from autobuild_base import autobuild_base
-from configfile import ConfigFile
+from configfile import ConfigFile, BUILD_CONFIG_FILE
 from connection import SCPConnection, S3Connection, S3ConnectionError, SCPConnectionError
 
 class UploadError(common.AutobuildError):
@@ -28,6 +28,9 @@ class autobuild_tool(autobuild_base):
         parser.add_argument('archive', nargs=1,
                             help="Specify the archive to upload to install-packages.lindenlab.com "
                                  "or to S3, as indicated by config file")
+        parser.add_argument('--config-file', default=BUILD_CONFIG_FILE,
+                            dest='config_file',
+                            help='The file used to describe how to build the package.')
 
     def run(self, args):
         # upload() is written to expect a list of files, and in fact at some
@@ -35,7 +38,7 @@ class autobuild_tool(autobuild_base):
         # line. Here's the odd part. We call it 'archive' so it shows up as
         # singular in help text -- but in fact, because of argparse
         # processing, it arrives as a list.
-        upload(args.archive, args.dry_run)
+        upload(args.archive, args.config_file, args.dry_run)
         if args.dry_run:
             print "This was only a dry-run."
 
@@ -78,7 +81,7 @@ def checkTarfileForUpload(config, tarfilename):
 
 # This function is intended for use by another Python script. It takes a
 # specific argument list and indicates error by raising an exception.
-def upload(wildfiles, dry_run=False):
+def upload(wildfiles, config_file, dry_run=False):
     if not wildfiles:
         raise UploadError("Error: no tarfiles specified to upload.")
     wildfiles = wildfiles[:1]
@@ -97,7 +100,7 @@ def upload(wildfiles, dry_run=False):
     # retry the upload to SCP and S3. Collect any tarfiles that should be
     # uploaded to S3 in a separate list.
     config = ConfigFile()
-    config.load()
+    config.load(config_file)
     s3ables = [tarfile for tarfile in tarfiles if checkTarfileForUpload(config, tarfile)]
 
     # Now upload to our internal install-packages server.
