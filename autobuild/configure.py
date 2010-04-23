@@ -111,6 +111,26 @@ class PlatformSetup(object):
                 '-DWORD_SIZE:STRING=%(word_size)s '
                 '-G %(generator)r %(opts)s %(dir)r' % args)
 
+    def run(self, command, name=None):
+        '''Run a program.  If the program fails, raise an exception.'''
+        sys.stdout.flush()
+        ret = os.system(command)
+        if ret:
+            if name is None:
+                name = command.split(None, 1)[0]
+            if os.WIFEXITED(ret):
+                st = os.WEXITSTATUS(ret)
+                if st == 127:
+                    event = 'was not found'
+                else:
+                    event = 'exited with status %d' % st
+            elif os.WIFSIGNALED(ret):
+                event = 'was killed by signal %d' % os.WTERMSIG(ret)
+            else:
+                event = 'died unexpectedly (!?) with 16-bit status %d' % ret
+            raise CommandError('the command %r %s' %
+                               (name, event))
+
     def run_cmake(self, args=[]):
         '''Run cmake.'''
 
@@ -214,26 +234,6 @@ class UnixSetup(PlatformSetup):
         elif cpu == 'x86_64' and self.word_size == 32:
             cpu = 'i686'
         return cpu
-
-    def run(self, command, name=None):
-        '''Run a program.  If the program fails, raise an exception.'''
-        sys.stdout.flush()
-        ret = os.system(command)
-        if ret:
-            if name is None:
-                name = command.split(None, 1)[0]
-            if os.WIFEXITED(ret):
-                st = os.WEXITSTATUS(ret)
-                if st == 127:
-                    event = 'was not found'
-                else:
-                    event = 'exited with status %d' % st
-            elif os.WIFSIGNALED(ret):
-                event = 'was killed by signal %d' % os.WTERMSIG(ret)
-            else:
-                event = 'died unexpectedly (!?) with 16-bit status %d' % ret
-            raise CommandError('the command %r %s' %
-                               (name, event))
 
 
 class LinuxSetup(UnixSetup):
@@ -477,7 +477,7 @@ class WindowsSetup(PlatformSetup):
 
     def _get_generator(self):
         if self._generator is None:
-            for version in 'vc80 vc90 vc71'.split():
+            for version in 'vc90 vc80 vc71'.split():
                 if self.find_visual_studio(version):
                     self._generator = version
                     print 'Building with ', self.gens[version]['gen']
@@ -637,7 +637,13 @@ class WindowsSetup(PlatformSetup):
 class CygwinSetup(WindowsSetup):
     def __init__(self):
         super(CygwinSetup, self).__init__()
-        self.generator = 'vc80'
+        # unfortunately we cannot rely on find_visual_studio working under
+        # cygwin python so clobber it before we fail
+        self.generator = 'vc90'
+
+    def run(self, command, name=None):
+        # make cygwin run() behave like standard unix run()
+        PlatformSetup.run(self, command, name)
 
     def cmake_commandline(self, src_dir, build_dir, opts, simple):
         dos_dir = commands.getoutput("cygpath -w %s" % src_dir)
