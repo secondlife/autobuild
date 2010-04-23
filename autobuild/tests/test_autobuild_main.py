@@ -68,7 +68,7 @@ class TestOptions(unittest.TestCase):
             ret = self.autobuild_fixture.main(['-v'])
             self.fail()
         except EarlyExitException:
-            self.assertNotEquals(-1, captured_stdout.find('Autobuild'))
+            self.assertNotEquals(-1, captured_stdout.find('autobuild'))
         pass
 
     def test_tool_register(self):
