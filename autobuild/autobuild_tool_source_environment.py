@@ -30,17 +30,20 @@ environment_template = """
     export autobuild="%(AUTOBUILD_EXECUTABLE_PATH)s"
     export AUTOBUILD_VERSION_STRING="%(AUTOBUILD_VERSION_STRING)s"
     export AUTOBUILD_PLATFORM="%(AUTOBUILD_PLATFORM)s"
-    upload_item () {
-        # back-compat wrapper for parbuild buildscripts
-        local item_type="$1"
-        local item="$2"
-        local encoding="$3"
-        local asset_urls="${4:-"$build_log_dir"/asset_urls}"
-        local asset_name="$5"
+    if [ -z "$PARABUILD_BUILD_NAME" ] ; then
+        # only define this function if parabuild isn't present
+        upload_item () {
+            # back-compat wrapper for parbuild buildscripts
+            local item_type="$1"
+            local item="$2"
+            local encoding="$3"
+            local asset_urls="${4:-"$build_log_dir"/asset_urls}"
+            local asset_name="$5"
 
-        # *TODO - delegate this properly to 'autobuild upload'
-        "$autobuild" upload "$item"
-    }
+            # *TODO - delegate this properly to 'autobuild upload'
+            "$autobuild" upload "$item"
+        }
+    fi
     fail () {
         echo "BUILD FAILED"
         if [ -n "$PARABUILD_BUILD_NAME" ] ; then
