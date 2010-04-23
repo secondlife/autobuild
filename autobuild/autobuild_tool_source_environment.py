@@ -2,26 +2,29 @@
 
 import os
 import sys
+
 import common
+import autobuild_base
 
 # for the time being, we expect that we're checked out side-by-side with
 # parabuild buildscripts, so back up a level to find $helper.
+get_params = None
 helper = os.path.join(os.path.dirname(__file__),
                       os.pardir,
                       os.pardir,
                       'buildscripts/hg/bin')
-# Append helper to sys.path.
-_helper_idx = len(sys.path)
-sys.path.append(helper)
-assert sys.path[_helper_idx] == helper
+if os.path.exists(helper):
+    # Append helper to sys.path.
+    _helper_idx = len(sys.path)
+    sys.path.append(helper)
+    assert sys.path[_helper_idx] == helper
 
-get_params = None
-try:
-    import get_params
-    print >>sys.stderr, "found get_params: '%s'" % get_params.__file__
-except ImportError:
-    pass
-# *TODO - restor original sys.path value
+    try:
+        import get_params
+        print >>common.log(), "found get_params: '%s'" % get_params.__file__
+    except ImportError:
+        pass
+    # *TODO - restore original sys.path value
 
 environment_template = """
     export autobuild="%(AUTOBUILD_EXECUTABLE_PATH)s"
@@ -81,7 +84,18 @@ environment_template = """
     DISTCC_HOSTS="%(DISTCC_HOSTS)s"
 """
 
-import autobuild_base
+def do_source_environment(args):
+    print environment_template % {
+            'AUTOBUILD_EXECUTABLE_PATH':sys.argv[0],
+            'AUTOBUILD_VERSION_STRING':"0.0.1-mvp",
+            'AUTOBUILD_PLATFORM':common.get_current_platform(),
+            'MAKEFLAGS':"",
+            'DISTCC_HOSTS':"",
+        }
+
+    if get_params:
+        # *TODO - run get_params.generate_bash_script()
+        pass
 
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
@@ -94,15 +108,5 @@ class autobuild_tool(autobuild_base.autobuild_base):
         parser.add_argument('-v', '--version', action='version', version='source_environment tool module 1.0')
 
     def run(self, args):
-        print environment_template % {
-                'AUTOBUILD_EXECUTABLE_PATH':sys.argv[0],
-                'AUTOBUILD_VERSION_STRING':"0.0.1-mvp",
-                'AUTOBUILD_PLATFORM':common.get_current_platform(),
-                'MAKEFLAGS':"",
-                'DISTCC_HOSTS':"",
-            }
-
-        if get_params:
-            # *TODO - run get_params.generate_bash_script()
-            pass
+        do_source_environment(args)
 

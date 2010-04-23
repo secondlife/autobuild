@@ -42,6 +42,9 @@ PLATFORMS = [
              PLATFORM_SOLARIS,
             ]
 
+def log():
+    return sys.stderr
+
 def get_current_platform():
     """
     Return appropriate the autobuild name for the current platform.
@@ -176,12 +179,12 @@ def download_package(package):
     urllib2.install_opener(opener)
 
     # Attempt to download the remote file 
-    print "Downloading %s to %s" % (package, cachename)
+    print >>log(), "Downloading %s to %s" % (package, cachename)
     result = True
     try:
         file(cachename, 'wb').write(urllib2.urlopen(package).read())
     except Exception, e:
-        print "Unable to download file: %s" % e
+        print >>log(), "Unable to download file: %s" % e
         result = False
     
     # Clean up and return True if the download succeeded
@@ -198,11 +201,11 @@ def extract_package(package, install_dir):
     # Find the name of the package in the install cache
     cachename = get_package_in_cache(package)
     if not os.path.exists(cachename):
-        print "Cannot extract non-existing package: %s" % cachename
+        print >>log(), "Cannot extract non-existing package: %s" % cachename
         return False
 
     # Attempt to extract the package from the install cache
-    print "Extracting %s to %s" % (cachename, install_dir)
+    print >>log(), "Extracting %s to %s" % (cachename, install_dir)
     tar = tarfile.open(cachename, 'r')
     try:
         # try to call extractall in python 2.5. Phoenix 2008-01-28
@@ -449,7 +452,7 @@ class Bootstrap(object):
 
             # download & extract the package, if not done already
             if not is_package_in_cache(url):
-                print "Installing package '%s'..." % name
+                print >>log(), "Installing package '%s'..." % name
                 if download_package(url):
                     if not does_package_match_md5(url, md5sum):
                         raise AutobuildError("MD5 mismatch for: %s" % url)
