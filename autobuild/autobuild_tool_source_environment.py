@@ -43,10 +43,16 @@ environment_template = """
     }
     fail () {
         echo "BUILD FAILED"
-        exit 1
+        if [ -n "$PARABUILD_BUILD_NAME" ] ; then
+            # if we're running under parabuild then we have to clean up its stuff
+            finalize false "$@"
+        else
+            exit 1
+        fi
     }
     pass () {
         echo "BUILD SUCCEEDED"
+        succeeded=1
     }
 
     # imported build-lindenlib functions
