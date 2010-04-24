@@ -92,7 +92,7 @@ environment_template = """
         local archive=$1
         local md5_cmd=md5sum
         if [ "$AUTOBUILD_PLATFORM" = "darwin" ] ; then
-            md5_cmd=md5 -r
+            md5_cmd="md5 -r"
         fi
         $md5_cmd "$archive" | cut -d ' ' -f 1
     }
