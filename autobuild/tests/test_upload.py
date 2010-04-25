@@ -16,6 +16,7 @@ import time
 import errno
 import shutil
 import tarfile
+import urllib2
 import tempfile
 import subprocess
 from cStringIO import StringIO
@@ -138,7 +139,7 @@ class TestWithConfigFile(object):
             except OSError, err:
                 # Nonexistence is an acceptable reason for remove() failure.
                 if err.errno != errno.ENOENT:
-                    print >>sys.stderr, "Can't delete %r: %s" % (f, err)
+                    print >>sys.stderr, "\nCan't delete %r: %s" % (f, err)
                     # Because we want to clean up all the rest of the files,
                     # don't just propagate the exception: finish the loop
                     # first, and then (courtesy of the reraise flag) raise.
@@ -161,15 +162,35 @@ class TestWithConfigFile(object):
                 print ' '.join(command)
                 rc = subprocess.call(command)
                 if rc != 0:
-                    print >>sys.stderr, "*** scp cleanup failed (%s): %s" % (rc, ' '.join(command))
+                    print >>sys.stderr, "\n*** scp cleanup failed (%s): %s" % (rc, ' '.join(command))
                 for path in pathnames:
                     dirname, basename = os.path.split(path)
                     self.scpconn.setDestination(server, dirname)
                     if self.scpconn.SCPFileExists(basename):
-                        print >>sys.stderr, "*** failed to clean up:", ':'.join(server, path)
+                        print >>sys.stderr, "\n*** failed to clean up:", ':'.join(server, path)
         if self.S3cleanups:
             for item in self.S3cleanups:
-                pass
+                # Each 'item' should be an S3 URL. Decompose.
+                if not item.startswith(self.s3conn.amazonS3_server):
+                    print >>sys.stderr, "\n*** Unexpected S3 URL, can't clean up:", item
+                    continue
+                # Okay, this item does start as we expect, lop off prefix.
+                pathname = item[len(self.s3conn.amazonS3_server):]
+                # Break off just the filename part from the path part.
+                dirname, filename = os.path.split(pathname)
+                self.s3conn.setS3DestDir(dirname)
+                # Sanity-check that the file actually exists on the server.
+                if not self.s3conn.S3FileExists(filename):
+                    print >>sys.stderr, "\n*** S3 URL not found:", item
+                    continue
+                # Now get an S3 "key" object describing the file in question.
+                # This is internal, not an operation we expose to clients of
+                # S3Connection. Using this key, we can remove the server file.
+                self.s3conn._get_key(filename).delete()
+                # Sanity-check that the file no longer exists on the server.
+                if self.s3conn.S3FileExists(filename):
+                    print >>sys.stderr, "\n*** Hand-delete from S3:", item
+                
         if reraise is not None:
             raise reraise[0], reraise[1], reraise[2]
 
@@ -238,10 +259,33 @@ class TestWithConfigFile(object):
             uploaded = upload([self.upno_archive], self.config_file)
         finally:
             testout, sys.stdout = sys.stdout, oldout
-        assert not uploaded, "dup upload returned %s" % uploaded
+        assert not uploaded, "dup scp-only upload returned %s" % uploaded
         testmsg = testout.getvalue().lower()
         assert_in("already exists", testmsg)
         assert_in("not uploading", testmsg)
+
+    def testYes(self):
+        # Want to change the state of both servers.
+        assert not self.scpconn.SCPFileExists(self.upyes_archive)
+        assert not self.s3conn.S3FileExists(self.upyes_archive)
+        # Let dry_run default to False
+        uploaded = upload([self.upyes_archive], self.config_file)
+        # One file, two servers, should get two URLs back
+        assert_equals(len(uploaded), 2)
+        # Sort URLs so we're sure they're ["http:...", "scp:..."]
+        uploaded.sort()
+        self.scp_verify(self.upyes_archive, uploaded[1])
+        self.s3_verify(self.upyes_archive, uploaded[0])
+        # Try to upload same file again, should result in info messges with no
+        # new URLs.
+        oldout, sys.stdout = sys.stdout, StringIO()
+        try:
+            uploaded = upload([self.upyes_archive], self.config_file)
+        finally:
+            testout, sys.stdout = sys.stdout, oldout
+        assert not uploaded, "dup scp+s3 upload returned %s" % uploaded
+        testmsg = testout.getvalue().lower()
+        assert_in("already exists on s3", testmsg)
 
     def scp_verify(self, archive, uploaded):
         # Decompose the URL so we can fetch it back.
@@ -262,6 +306,14 @@ class TestWithConfigFile(object):
         # the file we uploaded.
         assert_equals(open(os.path.join(self.downloads, os.path.basename(archive)), "rb").read(),
                       open(archive, "rb").read())
+
+    def s3_verify(self, archive, uploaded):
+        # Clean it up during teardown().
+        self.S3cleanups.add(uploaded)
+        # The file should now be present on S3.
+        assert self.s3conn.S3FileExists(archive)
+        # Read the uploaded archive and compare to the original.
+        assert_equals(urllib2.urlopen(uploaded).read(), open(archive, "rb").read())
 
 def collect_uploads(uploaded):
     """
