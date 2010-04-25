@@ -82,6 +82,26 @@ def checkTarfileForUpload(config, tarfilename):
 # This function is intended for use by another Python script. It takes a
 # specific argument list and indicates error by raising an exception.
 def upload(wildfiles, config_file, dry_run=False):
+    """
+    wildfiles is an iterable of archive pathnames -- of which we only examine
+    the first. (Historical quirk.) Despite the parameter name, we do not
+    perform glob matching on that pathname. The basename of the archive
+    pathname must be in canonical autobuild archive form:
+    package-version-platform-datestamp.extension
+
+    config_file specifies the name of the configuration file to load to check
+    whether the 'package' implied by the first part of wildfiles[0] should or
+    should not be uploaded to S3. If we don't have information about that
+    package, or if the package definition in the specified config file fails
+    to specify uploadtos3, upload() raises an exception.
+
+    dry_run specifies that no actual uploads are to be performed.
+
+    Returns a sequence of destination "URLs" to which the specified archive
+    was uploaded (or would be, in the dry_run=True case). This could be empty
+    if the archive in question already exists on all targets. scp URLs have an
+    scp: scheme but are otherwise non-canonical.
+    """
     if not wildfiles:
         raise UploadError("Error: no tarfiles specified to upload.")
     wildfiles = wildfiles[:1]
@@ -105,12 +125,12 @@ def upload(wildfiles, config_file, dry_run=False):
 
     # Now upload to our internal install-packages server.
     SCPConn = SCPConnection()
-    SCPConn.upload(tarfiles, None, None, dry_run)
+    uploaded = SCPConn.upload(tarfiles, None, None, dry_run)
 
     # Finally, upload to S3 any tarfiles that should be uploaded to S3.
     if not s3ables:
         # If there aren't any, don't even bother instantiating the connection.
-        return
+        return uploaded
     
     S3Conn = S3Connection()
     for tarfilename in s3ables:
@@ -125,7 +145,10 @@ def upload(wildfiles, config_file, dry_run=False):
         # don't even perform this test as it would definitely fail.
         if not (dry_run or SCPConn.SCPFileExists(tarfilename)):
             raise UploadError("Error: File must exist on internal server before uploading to S3")
-        S3Conn.upload(tarfilename, None, dry_run)
+        if S3Conn.upload(tarfilename, None, dry_run):
+            uploaded.append(S3Conn.getUrl(tarfilename))
+
+    return uploaded
 
 # provide this line to make the tool work standalone too (which all tools should)
 if __name__ == "__main__":
