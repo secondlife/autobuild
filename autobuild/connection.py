@@ -67,18 +67,23 @@ class SCPConnection(Connection):
         @param filename Fully-qualified name of file to be uploaded
         """
         uploadables = []
+        uploaded = []
         for file in files:
             if self.SCPFileExists(file, server, dest_dir):
                 print ("Info: A file with name '%s' in dir '%s' already exists on %s. Not uploading." % (self.basename, self.dest_dir, self.server))
             else:
                 uploadables.append(file)
+                uploaded.append(self.SCPurl)
         if uploadables:
             print "Uploading to: %s" % self.scp_dest
             command = [common.get_default_scp_command()] + uploadables + [self.scp_dest]
             if dry_run:
                 print " ".join(command)
             else:
-                subprocess.call(command) # interactive -- possible password req'd
+                rc = subprocess.call(command) # interactive -- possible password req'd
+                if rc != 0:
+                    raise SCPConnectionError("Failed to upload (rc %s): %s" % (rc, uploadables))
+        return uploaded
 
     def SCPFileExists(self, filename, server=None, dest_dir=None):
         """Set member vars and check if file already exists on dest server.
@@ -89,7 +94,11 @@ class SCPConnection(Connection):
         """
         self.setDestination(server, dest_dir)
         self.loadFile(filename)
-        return self.fileExists(self.url)
+        try:
+            return self.fileExists(self.url)
+        except urllib2.HTTPError, err:
+            print >>sys.stderr, "\nChecking %s: %s: %s" % (self.url, err.__class__.__name__, err)
+            raise
 
     def setDestination(self, server, dest_dir):
         """Set destination to dest_dir on server."""
@@ -166,13 +175,19 @@ class S3Connection(Connection):
         # Get the S3 key object on which we can perform operations.
         key = self._get_key(filename)
         if key.exists():
-            raise S3ConnectionError("A file with name '%s/%s' already exists on S3. Not uploading."
-                                    % (self.bucket.name, key.name))
+            print ("A file with name '%s/%s' already exists on S3. Not uploading."
+                   % (self.bucket.name, key.name))
+            return False
 
         print "Uploading to: %s" % self.getUrl(filename)
         if not dry_run:
             key.set_contents_from_filename(filename)
             key.set_acl(self.S3_upload_params["acl"])
+        # The True return is intended to indicate whether we were GOING to
+        # upload the file: that is, whether it already existed. It's not
+        # affected by dry_run because the caller knows perfectly well whether
+        # s/he passed dry_run.
+        return True
 
     def S3FileExists(self, filename):
         """Check if file exists on S3.
