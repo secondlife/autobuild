@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<llsd>
+<map>
+    <key>argparse</key>
+    <map>
+      <key>archives</key>
+      <map>
+        <key>common</key>
+        <map>
+          <key>md5sum</key>
+          <string>d11e7fb3686f16b243821fa0f9d35f4c</string>
+          <key>url</key>
+          <uri>http://s3.amazonaws.com/viewer-source-downloads/install_pkgs/argparse-1.1-common-20100415.tar.bz2</uri>
+        </map>
+      </map>
+      <key>license</key>
+      <string>Apache</string>
+      <key>licensefile</key>
+      <string>http://www.apache.org/licenses/LICENSE-2.0</string>
+    </map>
+    <key>tut_test</key>
+    <map>
+      <key>archives</key>
+      <map>
+        <key>darwin</key>
+        <map>
+          <key>md5sum</key>
+          <string>80bd604cf194e9d9c21c4d7977cbd596</string>
+          <key>url</key>
+          <uri>http://s3.amazonaws.com/viewer-source-downloads/install_pkgs/tut_test-2009-08-30-common-20100324.tar.bz2</uri>
+        </map>
+      </map>
+      <key>copyright</key>
+      <string>Copyright 2002-2006 Vladimir Dyuzhev, Copyright 2007 Denis Kononenko, Copyright 2008 Michal Rzechonek</string>
+      <key>description</key>
+      <string>C++ Template Unit Test</string>
+      <key>license</key>
+      <string>tut</string>
+      <key>licensefile</key>
+      <string>LICENSES/tut.txt</string>
+    </map>
+  </map>
+</llsd>

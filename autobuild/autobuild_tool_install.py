@@ -165,7 +165,7 @@ def get_packages_to_install(packages, config_file, installed_config, platform):
     """
 
     # if no packages specified, consider all
-    if not len(packages):
+    if packages is None or len(packages) == 0:
         packages = config_file.packages
 
     # compile a subset of packages we actually need to install
