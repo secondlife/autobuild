@@ -46,10 +46,16 @@ class autobuild_base:
         details = self.get_details()
         self.parser = argparse.ArgumentParser(description=details['description'])
         self.register(self.parser)
-            
+        
+        #need some way to get the global options building up in autobuild_main - maybe split them into another .py
+        self.parser.add_argument('--dry-run', action='store_true', help='Dry run only')
+    
     def main(self, args_in):
-        args = self.parser.parse_args(args_in)
-        self.run(args)
+        if len(args_in) < 1:
+            self.parser.print_usage()
+        else:
+            args = self.parser.parse_args(args_in)
+            self.run(args)
         pass
 
 #if __name__ == "__main__":
