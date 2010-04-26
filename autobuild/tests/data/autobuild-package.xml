@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+<llsd>
+<map>
+    <key>test1</key>
+    <map>
+      <key>builddir</key>
+      <string>package-test</string>
+      <key>copyright</key>
+      <string>Copyright (c) 2010, Linden Research, Inc.</string>
+      <key>description</key>
+      <string>Test package created by test_configfile.py</string>
+      <key>license</key>
+      <string>GPL2</string>
+      <key>licensefile</key>
+      <string>LICENSES/test1.txt</string>
+      <key>manifest</key>
+      <map>
+        <key>common</key>
+        <map>
+          <key>files</key>
+          <array>
+            <string>include/file1</string>
+            <string>file2</string>
+            <string>LICENSES/*</string>
+          </array>
+        </map>
+        <key>linux</key>
+        <map>
+          <key>files</key>
+          <array>
+            <string>lib/file3</string>
+          </array>
+        </map>
+      </map>
+      <key>summary</key>
+      <string>Test package</string>
+      <key>version</key>
+      <string>1.0</string>
+    </map>
+  </map>
+</llsd>
