@@ -135,6 +135,12 @@ if common.get_current_platform() is "windows":
             fi
         fi
     }
+
+    # *HACK - bash can't handle windows paths that autobuild.cmd invokes so
+    # wrap with cygpath
+    # *HACK - bash doesn't know how to pass real pathnames to native windows
+    # python so pass the name of the wrapper
+	autobuild="$(cygpath -u $autobuild.cmd)"
 """)
 
 def do_source_environment(args):
@@ -144,10 +150,6 @@ def do_source_environment(args):
         # reset stdout in binary mode so sh doesn't get confused by '\r'
         import msvcrt
         msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
-
-        # *HACK - bash doesn't know how to pass real pathnames to native windows python
-        # so pass the name of the wrapper
-        autobuild_executable = "%s.cmd" % autobuild_executable
 
     sys.stdout.write(environment_template % {
             'AUTOBUILD_EXECUTABLE_PATH':autobuild_executable,
