@@ -144,7 +144,7 @@ def do_source_environment(args):
         msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
 
     sys.stdout.write(environment_template % {
-            'AUTOBUILD_EXECUTABLE_PATH':common.AUTOBUILD_EXECUTABLE_PATH,
+            'AUTOBUILD_EXECUTABLE_PATH':common.get_autobuild_executable_path(),
             'AUTOBUILD_VERSION_STRING':"0.0.1-mvp",
             'AUTOBUILD_PLATFORM':common.get_current_platform(),
             'MAKEFLAGS':"",

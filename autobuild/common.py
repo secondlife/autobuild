@@ -113,6 +113,12 @@ def get_temp_dir(basename):
         os.makedirs(tmpdir, mode=0755)
     return tmpdir
 
+def get_autobuild_executable_path():
+    if get_current_platform() == PLATFORM_WINDOWS:
+        return "%s.cmd" % sys.argv[0]
+    else:
+        return sys.argv[0]
+
 def find_executable(executables):
     """
     Given an executable name, or a list of executable names, return the

@@ -44,6 +44,6 @@ class autobuild_tool(autobuild_base.autobuild_base):
 
         print "executing '%s' in '%s'" % (' '.join(build_command), os.getcwd())
         # *TODO - be careful here, we probably want to sanitize the environment further.
-        build_env = dict(os.environ, autobuild=sys.argv[0])
+        build_env = dict(os.environ, AUTOBUILD=common.get_autobuild_executable_path())
         subprocess.call(build_command, env=build_env)
 
