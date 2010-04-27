@@ -27,7 +27,7 @@ if os.path.exists(helper):
     # *TODO - restore original sys.path value
 
 environment_template = """
-    export autobuild="%(AUTOBUILD_EXECUTABLE_PATH)s"
+    export AUTOBUILD="%(AUTOBUILD_EXECUTABLE_PATH)s"
     export AUTOBUILD_VERSION_STRING="%(AUTOBUILD_VERSION_STRING)s"
     export AUTOBUILD_PLATFORM="%(AUTOBUILD_PLATFORM)s"
     if [ -z "$PARABUILD_BUILD_NAME" ] ; then
@@ -41,7 +41,7 @@ environment_template = """
             local asset_name="$5"
 
             # *TODO - delegate this properly to 'autobuild upload'
-            "$autobuild" upload "$item"
+            "$AUTOBUILD" upload "$item"
         }
     fi
     fail () {
@@ -59,7 +59,7 @@ environment_template = """
     }
 
     # imported build-lindenlib functions
-    fetch_archive() {
+    fetch_archive () {
         local url=$1
         local archive=$2
         local md5=$3
@@ -105,7 +105,7 @@ if common.get_current_platform() is "windows":
     environment_template = "%s\n%s" % (environment_template,
         """
     USE_INCREDIBUILD=%(USE_INCREDIBUILD)s
-    function build_vcproj() {
+    build_vcproj() {
         local vcproj=$1
         local config=$2
 
@@ -116,7 +116,7 @@ if common.get_current_platform() is "windows":
         fi
     }
 
-    function build_sln() {
+    build_sln() {
         local solution=$1
         local config=$2
         local proj=$3
@@ -135,24 +135,16 @@ if common.get_current_platform() is "windows":
             fi
         fi
     }
-
-    # *HACK - bash can't handle windows paths that autobuild.cmd invokes so
-    # wrap with cygpath
-    # *HACK - bash doesn't know how to pass real pathnames to native windows
-    # python so pass the name of the wrapper
-	autobuild="$(cygpath -u $autobuild.cmd)"
 """)
 
 def do_source_environment(args):
-    autobuild_executable = sys.argv[0]
-
     if common.get_current_platform() is "windows":
         # reset stdout in binary mode so sh doesn't get confused by '\r'
         import msvcrt
         msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
 
     sys.stdout.write(environment_template % {
-            'AUTOBUILD_EXECUTABLE_PATH':autobuild_executable,
+            'AUTOBUILD_EXECUTABLE_PATH':common.AUTOBUILD_EXECUTABLE_PATH,
             'AUTOBUILD_VERSION_STRING':"0.0.1-mvp",
             'AUTOBUILD_PLATFORM':common.get_current_platform(),
             'MAKEFLAGS':"",
@@ -169,8 +161,8 @@ class autobuild_tool(autobuild_base.autobuild_base):
         return dict(name=self.name_from_file(__file__),
                     description='Prints out the shell environment Autobuild-based buildscripts to use (by calling \'eval\').')
     
-    # called by autobuild to add help and options to the autobuild parser, and by
-    # standalone code to set up argparse
+    # called by autobuild to add help and options to the autobuild parser, and
+    # by standalone code to set up argparse
     def register(self, parser):
         parser.add_argument('-v', '--version', action='version', version='source_environment tool module 1.0')
 
