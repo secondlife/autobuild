@@ -27,6 +27,10 @@ from autobuild.autobuild_tool_upload import upload, UploadError, \
 
 from autobuild.configfile import ConfigFile, PackageInfo
 
+scp = common.get_default_scp_command()
+ssh = common.find_executable(['ssh', 'ssh.exe', 'plink.exe'])
+USER = os.environ.get("USER", common.get_current_user())
+
 def assert_in(sought, data):
     assert sought in data, "%r not in %r" % (sought, data)
 
@@ -35,6 +39,32 @@ def assert_not_in(sought, data):
 
 def assert_startswith(data, pfx):
     assert data.startswith(pfx), "%r doesn't startwith(%r)" % (data, pfx)
+
+def setup():
+    """
+    This setup() function is run once for this whole module, as opposed to
+    TestWithConfigFile.setup(), which is run once per test method.
+    """
+    if not ssh:
+        raise common.AutobuildError("Cannot find ssh command to clean up scp server")
+    # TestWithConfigFile.teardown() has the benefit of working with a list of
+    # specific server:pathname items, so it can be very specific about
+    # cleaning them up. We have to guess based on SCPConnection's default
+    # server and directory.
+    scpconn = SCPConnection()
+    # We now require that every "archive" file uploaded by this test script
+    # have its platform set to "$USER.bogus". That is, they should all match
+    # the following glob pattern:
+    bogus = "*-*-%s.bogus-*.txt" % USER
+    command = [ssh, scpconn.server, "rm", '-vf', '/'.join((scpconn.dest_dir, bogus))]
+    print ' '.join(command)
+    subprocess.call(command)
+    # We don't check the rc because we fully expect that most of the time, rm
+    # will complain about not being able to find a file called
+    # "*-*-$USER.bogus-*.txt". rc will only be 0 when there are garbage files
+    # to clean up. The only error case that should raise an alarm is when
+    # there ARE such files, but we can't remove them -- but I don't think
+    # that's distinguishable by rc value.
 
 class TestLocally(object):
     @raises(UploadError)
@@ -59,10 +89,6 @@ class TestWithConfigFile(object):
         self.cleanups = set()
         self.scpcleanups = set()
         self.S3cleanups = set()
-        self.scp = common.get_default_scp_command()
-        self.ssh = common.find_executable(['ssh', 'ssh.exe', 'plink.exe'])
-        if not self.ssh:
-            raise common.AutobuildError("Cannot find ssh command to clean up scp server")
 
         c = ConfigFile()
 
@@ -85,7 +111,11 @@ class TestWithConfigFile(object):
         self.upno_archive = self.make_archive("upno")
         self.upyes_archive = self.make_archive("upyes")
 
-    def make_archive(self, name, version="1.0", platform="linux"):
+    def make_archive(self, name, version="1.0"):
+        # N.B. We used to accept an optional platform= argument, but nowadays
+        # we force the platform to '$USER.bogus' so test setup can clean out any
+        # such files left in place from previous failed test runs.
+        platform = "%s.bogus" % USER
         pathname = os.path.join(self.origdir,
                                 "%s-%s-%s-%s.txt" %
                                 (name, version, platform, time.strftime("%Y%m%d")))
@@ -96,7 +126,7 @@ class TestWithConfigFile(object):
         f.close()
         return pathname
 
-    def make_PackageInfo(self, name, version="1.0", platform="linux"):
+    def make_PackageInfo(self, name, version="1.0", platform="%s.bogus" % USER):
         p = PackageInfo()
         # Swipe dummy package info from test_configfile.py
         # Intentionally omit the uploadtos3 property: some of our tests want
@@ -158,7 +188,7 @@ class TestWithConfigFile(object):
             # Now, for each server in the dict, use 'ssh rm' to remove all the
             # pathnames we uploaded to that server.
             for server, pathnames in paths.iteritems():
-                command = [self.ssh, server, 'rm'] + pathnames
+                command = [ssh, server, 'rm'] + pathnames
                 print ' '.join(command)
                 rc = subprocess.call(command)
                 if rc != 0:
@@ -298,7 +328,7 @@ class TestWithConfigFile(object):
         assert self.scpconn.SCPFileExists(archive)
         # Fetch the temp file by running:
         # scp server:pathname tempdir/downloads/
-        command = [self.scp, url, self.downloads + '/']
+        command = [scp, url, self.downloads + '/']
         print ' '.join(command)
         # That better run successfully
         assert_equals(0, subprocess.call(command))
