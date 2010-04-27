@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import unittest
 import autobuild.autobuild_tool_manage_dependencies
 
 captured_stdout = ''
-
-TESTFILENAME = './tests/data/dependencies_test_packages.xml'
 
 class EarlyExitException(Exception):
     pass
@@ -19,6 +18,8 @@ class CatchStdOut:
 
 class TestOptions(unittest.TestCase):
     def setUp(self):
+        this_dir = os.path.dirname(__file__)
+        self.TESTFILENAME = os.path.join(this_dir, "data/dependencies_test_packages.xml")
         global captured_stdout
         captured_stdout = ''
         self.old_stdout = sys.stdout
@@ -64,7 +65,7 @@ class TestOptions(unittest.TestCase):
     def test_tool_load(self):
         """test_tool_load: see if we can load a file and exit"""
         try:
-            ret = self.fixture.main(['--package-name', TESTFILENAME])
+            ret = self.fixture.main(['--package-name', self.TESTFILENAME])
             self.assertNotEquals(-1, captured_stdout.find("Package loaded"))
             self.assertNotEquals(-1, captured_stdout.find("Nothing to do..."))
         except EarlyExitException:
@@ -83,7 +84,7 @@ class TestOptions(unittest.TestCase):
     def test_tool_add_a_package(self):
         """test_tool_add_a_package: see if we can add a package"""
         try:
-            ret = self.fixture.main(['--package-name', TESTFILENAME,'--add','testpackage,,,,,,,','--dry-run'])
+            ret = self.fixture.main(['--package-name', self.TESTFILENAME,'--add','testpackage,,,,,,,','--dry-run'])
             self.assertNotEquals(-1, captured_stdout.find("Package loaded"))
             self.assertNotEquals(-1, captured_stdout.find("Adding testpackage"))
             # check file
@@ -94,7 +95,7 @@ class TestOptions(unittest.TestCase):
     def test_tool_update_a_package(self):
         """test_tool_update_a_package: see if we can update a package"""
         try:
-            ret = self.fixture.main(['--package-name', TESTFILENAME,'--add','llcommon,,,,,,,','--dry-run'])
+            ret = self.fixture.main(['--package-name', self.TESTFILENAME,'--add','llcommon,,,,,,,','--dry-run'])
             self.assertNotEquals(-1, captured_stdout.find("Package loaded"))
             self.assertNotEquals(-1, captured_stdout.find("Updating llcommon"))
             # check file
@@ -102,18 +103,16 @@ class TestOptions(unittest.TestCase):
             self.fail()
         pass
 
-    def ztest_tool_remove_a_package(self):
-        """test_tool_remove_a_package: see if we can remove a package"""
-        try:
-            ret = self.fixture.main(['--package-name', TESTFILENAME,'--remove','llcommon,,,,,,,','--dry-run'])
-            self.assertNotEquals(-1, captured_stdout.find("Package loaded"))
-            self.assertNotEquals(-1, captured_stdout.find("Removing llcommon"))
-            # check file
-        except EarlyExitException:
-            self.fail()
-        pass
-
-#archive_url() and archive_md5()
+#    def test_tool_remove_a_package(self):
+#        """test_tool_remove_a_package: see if we can remove a package"""
+#        try:
+#            ret = self.fixture.main(['--package-name', self.TESTFILENAME,'--remove','llcommon,,,,,,,','--dry-run'])
+#            self.assertNotEquals(-1, captured_stdout.find("Package loaded"))
+#            self.assertNotEquals(-1, captured_stdout.find("Removing llcommon"))
+#            # check file
+#        except EarlyExitException:
+#            self.fail()
+#        pass
 
 if __name__ == '__main__':
     unittest.main()

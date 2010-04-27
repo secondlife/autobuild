@@ -27,7 +27,6 @@ class autobuild_tool(autobuild_base.autobuild_base):
         parser.add_argument('--list', action='store_true', help='Print Package list')
 
         parser.add_argument('--verbose', action='store_true', help='Print out lots of lovely information')
-#        parser.add_argument('--dry-run', action='store_true', help='Dry run only')
         pass
 
     def run(self, args):
