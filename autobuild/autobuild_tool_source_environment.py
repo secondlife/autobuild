@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
 
 import common
 import autobuild_base
+
+from llbase import llsd
 
 # for the time being, we expect that we're checked out side-by-side with
 # parabuild buildscripts, so back up a level to find $helper.
@@ -25,6 +30,42 @@ if os.path.exists(helper):
     except ImportError:
         pass
     # *TODO - restore original sys.path value
+
+def load_vsvars(vsver):
+    vsvars_path = os.path.join(os.environ["VS%sCOMNTOOLS" % vsver], "vsvars32.bat")
+    temp_script_name = tempfile.mktemp(suffix=".cmd")
+
+    shutil.copy(vsvars_path, temp_script_name)
+    # append our little llsd+notation bit to the end
+    temp_script_file = open(temp_script_name, "a")
+    temp_script_file.write("""
+        echo {
+        echo "VSPATH":"%PATH%",
+        echo "VSINCLUDE":"%INCLUDE%",
+        echo "VSLIB":"%LIB%",
+        echo "VSLIBPATH":"%LIBPATH%",
+        echo }
+    """)
+    temp_script_file.close()
+
+    cmd = subprocess.Popen(['cmd', '/Q', '/C', temp_script_name], stdout=subprocess.PIPE)
+    (cmdout, cmderr) = cmd.communicate()
+
+    os.remove(temp_script_name)
+
+    # *HACK
+    # slice off the 1st line ("Setting environment for using..." preamble)
+    cmdout = '\n'.join(cmdout.split('\n')[1:])
+    # escape backslashes
+    cmdout = '\\\\'.join(cmdout.split('\\'))
+
+    vsvars = llsd.parse(cmdout)
+
+    # translate paths from windows to cygwin format
+    vsvars['VSPATH'] = ":".join(
+        ['"$(cygpath -u \'%s\')"' % p for p in vsvars['VSPATH'].split(';') ]
+    )
+    return vsvars
 
 environment_template = """
     export AUTOBUILD="%(AUTOBUILD_EXECUTABLE_PATH)s"
@@ -102,8 +143,7 @@ environment_template = """
 """
 
 if common.get_current_platform() is "windows":
-    environment_template = "%s\n%s" % (environment_template,
-        """
+    windows_template = """
     USE_INCREDIBUILD=%(USE_INCREDIBUILD)s
     build_vcproj() {
         local vcproj=$1
@@ -135,22 +175,37 @@ if common.get_current_platform() is "windows":
             fi
         fi
     }
-""")
+
+    # function for loading visual studio related env vars
+    load_vsvars() {
+        export PATH=%(VSPATH)s:"$PATH"
+        export INCLUDE="%(VSINCLUDE)s"
+        export LIB="%(VSLIB)s"
+        export LIBPATH="%(VSLIBPATH)s"
+    }
+    """
+    environment_template = "%s\n%s" % (environment_template, windows_template)
 
 def do_source_environment(args):
-    if common.get_current_platform() is "windows":
-        # reset stdout in binary mode so sh doesn't get confused by '\r'
-        import msvcrt
-        msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
-
-    sys.stdout.write(environment_template % {
+    var_mapping = {
             'AUTOBUILD_EXECUTABLE_PATH':common.get_autobuild_executable_path(),
             'AUTOBUILD_VERSION_STRING':"0.0.1-mvp",
             'AUTOBUILD_PLATFORM':common.get_current_platform(),
             'MAKEFLAGS':"",
             'DISTCC_HOSTS':"",
             'USE_INCREDIBUILD':1,
-        })
+        }
+
+    if common.get_current_platform() is "windows":
+        # reset stdout in binary mode so sh doesn't get confused by '\r'
+        import msvcrt
+        msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
+
+        # load vsvars32.bat variables
+        # *TODO - find a way to configure this instead of hardcoding to vc80
+        var_mapping.update(load_vsvars("80"))
+
+    sys.stdout.write(environment_template % var_mapping)
 
     if get_params:
         # *TODO - run get_params.generate_bash_script()
