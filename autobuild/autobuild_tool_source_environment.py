@@ -204,6 +204,7 @@ def do_source_environment(args):
         # load vsvars32.bat variables
         # *TODO - find a way to configure this instead of hardcoding to vc80
         var_mapping.update(load_vsvars("80"))
+        var_mapping.update(AUTOBUILD_EXECUTABLE_PATH=("$(cygpath -u '%s')" % common.get_autobuild_executable_path()))
 
     sys.stdout.write(environment_template % var_mapping)
 
