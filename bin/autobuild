@@ -23,11 +23,7 @@ from autobuild.common import AutobuildError
 
 if __name__ == "__main__":
     try:
-    	if sys.platform == "win32":
-    	    pathjoinstr = "%s;%s"
-    	else:
-    	    pathjoinstr = "%s:%s"
-        os.environ['PATH'] = pathjoinstr % (os.environ.get('PATH'), script_path)
+        os.environ['PATH'] = os.environ.get('PATH') + os.pathsep + script_path
         sys.exit( Autobuild().main(sys.argv[1:]) )
     except KeyboardInterrupt, e:
         sys.exit("Aborted...")
