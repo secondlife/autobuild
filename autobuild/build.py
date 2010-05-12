@@ -47,19 +47,19 @@ class PlatformBuild(object):
 class WindowsBuild(PlatformBuild):
 
     vs_search = [
-        "C:/Program Files/Microsoft Visual Studio 9.0/",
-        "C:/Program Files/Microsoft Visual Studio 8.0/",
+        "C:\\Program Files\\Microsoft Visual Studio 9.0",
+        "C:\\Program Files\\Microsoft Visual Studio 8.0",
         ]
 
     def build(self, build_dir, build_type, target, project):
         if not target: target = 'INSTALL'
         if not project: project = self.find_file_by_ext(build_dir, '.sln')
-        vs_dir = self.find_existing_directory("Visual Studio", vs_search)
+        vs_dir = self.find_existing_directory("Visual Studio", self.vs_search)
 
-        cmd = os.path.join(vs_dir, "Common7", "IDE", "devenv.com")
-        cmd += ' ' + os.path.join(build_dir, project)
+        cmd = '"' + os.path.join(vs_dir, "Common7", "IDE", "devenv.com") + '"'
+        cmd += ' "' + os.path.join(build_dir, project) + '"'
         cmd += ' /build "' + build_type + '"'
-        cmd += ' /project "' + project + '"'
+        cmd += ' /project "' + target + '"'
         sys.exit(self.run(cmd))
 
 class LinuxBuild(PlatformBuild):
