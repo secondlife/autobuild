@@ -15,6 +15,7 @@ import sys
 import common
 import autobuild_base
 import configfile
+from common import AutobuildError
 
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
@@ -37,7 +38,11 @@ class autobuild_tool(autobuild_base.autobuild_base):
         package_definition = cf.package_definition
 
         # *TODO -use common.find_executable() to search the path and append the current working directory to the build command if necessary
-        build_command = shlex.split(package_definition.build_command(common.get_current_platform()))
+        build_command = package_definition.build_command(common.get_current_platform())
+        if not build_command:
+            raise AutobuildError("No build command specified in config file.")
+
+        build_command = shlex.split(build_command)
 
         for build_arg in shlex.split(args.build_extra_args):
             build_command.append(build_arg)

@@ -5,20 +5,20 @@
 # $/LicenseInfo$
 
 """
-Command to configure packages.
+Command to build packages.
 """
 
 import sys
 import os
 
 try:
-    from configure import main
+    from build import main
 except ImportError, excp:
     # we're in a dev sandbox (not installed), so append dirname(argv[0])/.. to
     # the module path
     script_path = os.path.dirname(os.path.abspath(__file__))
     sys.path.append(os.path.dirname(script_path))
-from autobuild.configure import main
+from autobuild.build import main
 from autobuild.common import AutobuildError
 
 if __name__ == "__main__":

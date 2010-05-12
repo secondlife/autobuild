@@ -672,11 +672,14 @@ setup_platform = {
     'cygwin' : CygwinSetup
     }
 
-def get_package_dir():
+def get_install_dir():
     if sys.platform not in setup_platform.keys():
-        raise AutobuildError("Cannot find package dir for platform %s" % platform)
+        raise AutobuildError("Cannot find package dir for platform %s" % sys.platform)
     p = setup_platform[sys.platform]()
-    return os.path.join(p.build_dirs()[0], 'packages')
+    return p.build_dirs()[0]
+
+def get_package_dir():
+    return os.path.join(get_install_dir(), 'packages')
     
 
 usage_msg = '''
