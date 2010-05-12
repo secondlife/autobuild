@@ -27,13 +27,13 @@ class PlatformBuild(object):
         found = None
         ext = ext.lower()
         for file in os.listdir(dir):
-            file_ext = os.path.splitext(file).lower()
+            file_ext = os.path.splitext(file)[1].lower()
             if file_ext == ext:
                 if found:
-                    raise AutobuildError("Multiple files with %s ext in %s. Use --project to specify." % ext, dir)
+                    raise AutobuildError("Multiple files with %s ext in %s. Use --project to specify." % (ext, dir))
                 found = file
         if not found:
-            raise AutobuildError("Cannot find file with %s ext in %s. Use --project to specify." % ext, dir)
+            raise AutobuildError("Cannot find file with %s ext in %s. Use --project to specify." % (ext, dir))
         return found
 
     def run(self, cmd):
@@ -75,7 +75,10 @@ class LinuxBuild(PlatformBuild):
 
 class DarwinBuild(PlatformBuild):
     def build(self, build_dir, build_type, target, project):
+        
+        if not project: project = self.find_file_by_ext(build_dir, '.xcodeproj')
         if not target: target = 'install'
+
         cmd = 'xcodebuild -project ' + os.path.join(build_dir, project)
         cmd += ' -target "' + target + '"'
         cmd += ' -configuration "' + build_type + '"'
