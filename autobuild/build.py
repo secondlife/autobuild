@@ -80,16 +80,20 @@ class DarwinBuild(PlatformBuild):
         if not project: project = self.find_file_by_ext(build_dir, '.xcodeproj')
         if not target: target = 'install'
 
-        cmd = ['xcodebuild', '-project', os.path.join(build_dir, project),
+        # Instead of specifying '-project build_dir/project', simply specify
+        # '-project project' but execute xcodebuild in build_dir.
+        cmd = ['xcodebuild', '-project', project,
                '-target', target,
                '-configuration', build_type,
                '-sdk', 'macosx10.5',
                ]
         # We're not going to call self.run() because we want to filter out the
         # all-too-voluminous setenv lines. Use subprocess directly.
+        print "cd", build_dir
         print ' '.join(repr(a) for a in cmd)
         sys.stdout.flush()
-        xcode = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        xcode = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                 cwd=build_dir)
         # Read using readline() instead of iterating over lines in the stream.
         # The latter fills a big buffer, so it can take a fairly long time for
         # the user to see each new group of lines. readline() returns as soon
