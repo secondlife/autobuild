@@ -19,6 +19,7 @@ Date   : 2010-04-13
 import os
 import sys
 import glob
+import itertools
 import shutil
 import subprocess
 import tarfile
@@ -79,7 +80,7 @@ def get_default_scp_command():
     """
     Return the full path to the scp command
     """
-    scp = find_executable(['pscp', 'pscp.exe', 'scp', 'scp.exe'])
+    scp = find_executable(['pscp', 'scp'], ['.exe'])
     if not scp:
         raise AutobuildError("Cannot find an appropriate scp or pscp command.")
     return scp
@@ -119,19 +120,33 @@ def get_autobuild_executable_path():
     else:
         return sys.argv[0]
 
-def find_executable(executables):
+def find_executable(executables, exts=[]):
     """
     Given an executable name, or a list of executable names, return the
     name of the executable that can be found in the path. The names can
     have wildcards in them.
+
+    exts can accept a list of extensions to search (e.g. [".exe", ".com"]).
+    The empty extension (exact match for one of the names in executables) is
+    always implied, but it's checked last. This supports the useful behavior
+    in which you specify the name of a no-extension script, but Windows won't
+    run it, so you supply (e.g.) a .cmd file as well to explicitly invoke the
+    appropriate interpreter.
     """
     if isinstance(executables, basestring):
         executables = [executables]
-    for p in os.environ.get('PATH', "").split(os.pathsep):
-        for e in executables:
-            path = glob.glob(os.path.join(p, e))
-            if path:
-                return path[0]
+    # The original implementation iterated over directories in PATH, checking
+    # for each name in 'executables' in a given directory. This makes
+    # intuitive sense -- but it's wrong. When 'executables' is (e.g.) ['pscp',
+    # 'scp'] it means that if pscp exists on this platform, we need to
+    # prioritize that over plain 'scp' -- even if the directory containing
+    # plain 'scp' comes first. So the outer loop should be over 'executables'.
+    for e in executables:
+        for p in os.environ.get('PATH', "").split(os.pathsep):
+            for ext in itertools.chain(exts, [""]):
+                path = glob.glob(os.path.join(p, e + ext))
+                if path:
+                    return path[0]
     return None
 
 def get_package_in_cache(package):
