@@ -120,7 +120,7 @@ def get_autobuild_executable_path():
     else:
         return sys.argv[0]
 
-def find_executable(executables, exts=[]):
+def find_executable(executables, exts=None):
     """
     Given an executable name, or a list of executable names, return the
     name of the executable that can be found in the path. The names can
@@ -128,13 +128,22 @@ def find_executable(executables, exts=[]):
 
     exts can accept a list of extensions to search (e.g. [".exe", ".com"]).
     The empty extension (exact match for one of the names in executables) is
-    always implied, but it's checked last. This supports the useful behavior
-    in which you specify the name of a no-extension script, but Windows won't
-    run it, so you supply (e.g.) a .cmd file as well to explicitly invoke the
-    appropriate interpreter.
+    always implied, but it's checked last.
+
+    You can force find_executable() to consider only an exact match for one of
+    the specified executables by passing exts=[].
+
+    However, if exts is omitted (or, equivalently, None), the default is
+    platform-sensitive. On Windows, find_executable() will look for some of
+    the usual suspects (a subset of a typical PATHEXT value). On non-Windows
+    platforms, the default is []. This allows us to place an extensionless
+    script file 'foo' for most platforms, plus a 'foo.cmd' beside it for use
+    on Windows.
     """
     if isinstance(executables, basestring):
         executables = [executables]
+    if exts is None:
+        exts = [".com", ".exe", ".bat", ".cmd"] if sys.platform.startswith("win") else []
     # The original implementation iterated over directories in PATH, checking
     # for each name in 'executables' in a given directory. This makes
     # intuitive sense -- but it's wrong. When 'executables' is (e.g.) ['pscp',
