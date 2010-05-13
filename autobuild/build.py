@@ -11,6 +11,7 @@ import sys
 import getopt
 import common
 import configure
+import subprocess
 from common import AutobuildError
 
 class PlatformBuild(object):
@@ -37,8 +38,9 @@ class PlatformBuild(object):
         return found
 
     def run(self, cmd):
-        print cmd
-        return os.system(cmd) >> 8
+        print ' '.join(repr(a) for a in cmd)
+        sys.stdout.flush()
+        return subprocess.call(cmd)
 
     def build(self, build_dir, build_type, target, project):
         raise AutobuildError("You cannot call PlatformBuild directly")
@@ -56,10 +58,11 @@ class WindowsBuild(PlatformBuild):
         if not project: project = self.find_file_by_ext(build_dir, '.sln')
         vs_dir = self.find_existing_directory("Visual Studio", self.vs_search)
 
-        cmd = '"' + os.path.join(vs_dir, "Common7", "IDE", "devenv.com") + '"'
-        cmd += ' "' + os.path.join(build_dir, project) + '"'
-        cmd += ' /build "' + build_type + '"'
-        cmd += ' /project "' + target + '"'
+        cmd = [os.path.join(vs_dir, "Common7", "IDE", "devenv.com"),
+               os.path.join(build_dir, project),
+               "/build", build_type,
+               "/project", target,
+               ]
         sys.exit(self.run(cmd))
 
 class LinuxBuild(PlatformBuild):
@@ -69,8 +72,9 @@ class LinuxBuild(PlatformBuild):
         if build_dir.endswith('relwithdebinfo') and build_type != 'RelWithDebInfo':
             build_dir = build_dir.replace('relwithdebinfo', build_type.lower())
 
-        cmd = 'make -C "' + build_dir + '"'
-        cmd += ' "' + target + '"'
+        cmd = ['make', "-C", build_dir,
+               target,
+               ]
         sys.exit(self.run(cmd))
 
 class DarwinBuild(PlatformBuild):
@@ -79,12 +83,27 @@ class DarwinBuild(PlatformBuild):
         if not project: project = self.find_file_by_ext(build_dir, '.xcodeproj')
         if not target: target = 'install'
 
-        cmd = 'xcodebuild -project ' + os.path.join(build_dir, project)
-        cmd += ' -target "' + target + '"'
-        cmd += ' -configuration "' + build_type + '"'
-        cmd += ' -sdk macosx10.5'
-        cmd += " | grep -v '^    setenv '"
-        sys.exit(self.run(cmd))
+        cmd = ['xcodebuild', '-project', os.path.join(build_dir, project),
+               '-target', target,
+               '-configuration', build_type,
+               '-sdk', 'macosx10.5',
+               ]
+        # We're not going to call self.run() because we want to filter out the
+        # all-too-voluminous setenv lines. Use subprocess directly.
+        print ' '.join(repr(a) for a in cmd)
+        sys.stdout.flush()
+        xcode = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        # Read using readline() instead of iterating over lines in the stream.
+        # The latter fills a big buffer, so it can take a fairly long time for
+        # the user to see each new group of lines. readline() returns as soon
+        # as the next line is available, permitting us to display them in near
+        # real time.
+        line = xcode.stdout.readline()
+        while line:
+            if not line.startswith("    setenv "):
+                print line
+            line = xcode.stdout.readline()
+        sys.exit(xcode.wait())
 
 usage_msg = '''
 Usage:   llbuild [options] [target]
