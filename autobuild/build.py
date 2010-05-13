@@ -50,7 +50,7 @@ class WindowsBuild(PlatformBuild):
 
     vs_search = [
         "C:\\Program Files\\Microsoft Visual Studio 9.0",
-        "C:\\Program Files\\Microsoft Visual Studio 8.0",
+        "C:\\Program Files\\Microsoft Visual Studio 8",
         ]
 
     def build(self, build_dir, build_type, target, project):
