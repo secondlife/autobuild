@@ -101,7 +101,10 @@ class DarwinBuild(PlatformBuild):
         line = xcode.stdout.readline()
         while line:
             if not line.startswith("    setenv "):
-                print line
+                # Use sys.stdout.write() because line already ends with '\n'.
+                # We could alternatively strip off the '\n' and then print,
+                # which appends a newline... but that's just silly.
+                sys.stdout.write(line)
             line = xcode.stdout.readline()
         sys.exit(xcode.wait())
 
