@@ -1,5 +1,5 @@
 @echo off
 rem simple wrapper for executing autobuild on windows.
 
-set dirname=%~p0
+set dirname=%~dp0
 python "%dirname%autobuild" %*
