@@ -1,5 +1,4 @@
 @echo off
-rem simple wrapper for executing autobuild on windows.
+rem simple wrapper for executing extensionless python script on windows.
 
-set dirname=%~dp0
-python "%dirname%autobuild" %*
+python "%~dpn0" %*
