@@ -47,18 +47,15 @@ class PlatformBuild(object):
         
 
 class WindowsBuild(PlatformBuild):
-
-    vs_search = [
-        "C:\\Program Files\\Microsoft Visual Studio 9.0",
-        "C:\\Program Files\\Microsoft Visual Studio 8",
-        ]
-
     def build(self, build_dir, build_type, target, project):
+        import configure
         if not target: target = 'INSTALL'
         if not project: project = self.find_file_by_ext(build_dir, '.sln')
-        vs_dir = self.find_existing_directory("Visual Studio", self.vs_search)
+        setup = configure.WindowsSetup()
+        setup.generator                 # invoke this property to initialize
+        vs_dir = setup.find_visual_studio()
 
-        cmd = [os.path.join(vs_dir, "Common7", "IDE", "devenv.com"),
+        cmd = [os.path.join(vs_dir, "devenv.com"),
                os.path.join(build_dir, project),
                "/build", build_type,
                "/project", target,
