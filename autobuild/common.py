@@ -143,7 +143,7 @@ def find_executable(executables, exts=None):
     if isinstance(executables, basestring):
         executables = [executables]
     if exts is None:
-        exts = [".com", ".exe", ".bat", ".cmd"] if sys.platform.startswith("win") else []
+        exts = sys.platform.startswith("win") and [".com", ".exe", ".bat", ".cmd"] or []
     # The original implementation iterated over directories in PATH, checking
     # for each name in 'executables' in a given directory. This makes
     # intuitive sense -- but it's wrong. When 'executables' is (e.g.) ['pscp',
