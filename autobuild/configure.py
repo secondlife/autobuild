@@ -19,6 +19,7 @@ import sys
 import commands
 import subprocess
 from common import AutobuildError
+import configfile
 
 class CommandError(AutobuildError):
     pass
@@ -88,7 +89,19 @@ class PlatformSetup(object):
 
         This can return more than one directory, e.g. if doing a
         32-bit viewer and server build on Linux.'''
+        # This wrapper method finds the build directories in the real
+        # filesystem, given the relative directory names returned by the
+        # subclass _build_dirs() override.
+        # Loading ConfigFile() isn't necessarily the best way to locate the
+        # base of the repository; it simply happens to be where our climb-
+        # to-repository-base code happens to reside ATM. Refactor?
+        conf = configfile.ConfigFile()
+        conf.load()                     # locates the config file
+        base = os.path.dirname(conf.filename)
+        return [os.path.join(base, dir) for dir in self._build_dirs()]
 
+    def _build_dirs(self):
+        """Override this method in subclasses as needed"""
         return ['build-' + self.platform()]
 
     def cmake_commandline(self, src_dir, build_dir, opts, simple):
@@ -247,7 +260,7 @@ class LinuxSetup(UnixSetup):
     def os(self):
         return 'linux'
 
-    def build_dirs(self):
+    def _build_dirs(self):
         # Only build the server code if we have it.
         platform_build = '%s-%s' % (self.platform(), self.build_type.lower())
 
@@ -495,7 +508,7 @@ class WindowsSetup(PlatformSetup):
     def os(self):
         return 'win32'
 
-    def build_dirs(self):
+    def _build_dirs(self):
         return ['build-' + self.generator]
 
     def cmake_commandline(self, src_dir, build_dir, opts, simple):
@@ -672,11 +685,14 @@ setup_platform = {
     'cygwin' : CygwinSetup
     }
 
-def get_package_dir():
+def get_install_dir():
     if sys.platform not in setup_platform.keys():
-        raise AutobuildError("Cannot find package dir for platform %s" % platform)
+        raise AutobuildError("Cannot find package dir for platform %s" % sys.platform)
     p = setup_platform[sys.platform]()
-    return os.path.join(p.build_dirs()[0], 'packages')
+    return p.build_dirs()[0]
+
+def get_package_dir():
+    return os.path.join(get_install_dir(), 'packages')
     
 
 usage_msg = '''
