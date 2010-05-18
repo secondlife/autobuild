@@ -11,6 +11,7 @@ import sys
 import getopt
 import common
 import configure
+import subprocess
 from common import AutobuildError
 
 class PlatformBuild(object):
@@ -37,29 +38,28 @@ class PlatformBuild(object):
         return found
 
     def run(self, cmd):
-        print cmd
-        return os.system(cmd) >> 8
+        print ' '.join(repr(a) for a in cmd)
+        sys.stdout.flush()
+        return subprocess.call(cmd)
 
     def build(self, build_dir, build_type, target, project):
         raise AutobuildError("You cannot call PlatformBuild directly")
         
 
 class WindowsBuild(PlatformBuild):
-
-    vs_search = [
-        "C:\\Program Files\\Microsoft Visual Studio 9.0",
-        "C:\\Program Files\\Microsoft Visual Studio 8.0",
-        ]
-
     def build(self, build_dir, build_type, target, project):
+        import configure
         if not target: target = 'INSTALL'
         if not project: project = self.find_file_by_ext(build_dir, '.sln')
-        vs_dir = self.find_existing_directory("Visual Studio", self.vs_search)
+        setup = configure.WindowsSetup()
+        setup.generator                 # invoke this property to initialize
+        vs_dir = setup.find_visual_studio()
 
-        cmd = '"' + os.path.join(vs_dir, "Common7", "IDE", "devenv.com") + '"'
-        cmd += ' "' + os.path.join(build_dir, project) + '"'
-        cmd += ' /build "' + build_type + '"'
-        cmd += ' /project "' + target + '"'
+        cmd = [os.path.join(vs_dir, "devenv.com"),
+               os.path.join(build_dir, project),
+               "/build", build_type,
+               "/project", target,
+               ]
         sys.exit(self.run(cmd))
 
 class LinuxBuild(PlatformBuild):
@@ -69,8 +69,9 @@ class LinuxBuild(PlatformBuild):
         if build_dir.endswith('relwithdebinfo') and build_type != 'RelWithDebInfo':
             build_dir = build_dir.replace('relwithdebinfo', build_type.lower())
 
-        cmd = 'make -C "' + build_dir + '"'
-        cmd += ' "' + target + '"'
+        cmd = ['make', "-C", build_dir,
+               target,
+               ]
         sys.exit(self.run(cmd))
 
 class DarwinBuild(PlatformBuild):
@@ -79,12 +80,34 @@ class DarwinBuild(PlatformBuild):
         if not project: project = self.find_file_by_ext(build_dir, '.xcodeproj')
         if not target: target = 'install'
 
-        cmd = 'xcodebuild -project ' + os.path.join(build_dir, project)
-        cmd += ' -target "' + target + '"'
-        cmd += ' -configuration "' + build_type + '"'
-        cmd += ' -sdk macosx10.5'
-        cmd += " | grep -v '^    setenv '"
-        sys.exit(self.run(cmd))
+        # Instead of specifying '-project build_dir/project', simply specify
+        # '-project project' but execute xcodebuild in build_dir.
+        cmd = ['xcodebuild', '-project', project,
+               '-target', target,
+               '-configuration', build_type,
+               '-sdk', 'macosx10.5',
+               ]
+        # We're not going to call self.run() because we want to filter out the
+        # all-too-voluminous setenv lines. Use subprocess directly.
+        print "cd", build_dir
+        print ' '.join(repr(a) for a in cmd)
+        sys.stdout.flush()
+        xcode = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                 cwd=build_dir)
+        # Read using readline() instead of iterating over lines in the stream.
+        # The latter fills a big buffer, so it can take a fairly long time for
+        # the user to see each new group of lines. readline() returns as soon
+        # as the next line is available, permitting us to display them in near
+        # real time.
+        line = xcode.stdout.readline()
+        while line:
+            if not line.startswith("    setenv "):
+                # Use sys.stdout.write() because line already ends with '\n'.
+                # We could alternatively strip off the '\n' and then print,
+                # which appends a newline... but that's just silly.
+                sys.stdout.write(line)
+            line = xcode.stdout.readline()
+        sys.exit(xcode.wait())
 
 usage_msg = '''
 Usage:   llbuild [options] [target]

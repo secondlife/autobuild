@@ -169,9 +169,9 @@ if common.get_current_platform() is "windows":
             fi
         else
             if [ -z "$proj" ] ; then
-                devenv "$solution" /build "$config"
+                devenv.com "$(cygpath -m "$solution")" /build "$config"
             else
-                devenv "$solution" /build /project "$proj" /projectconfig "$config"
+                devenv.com "$(cygpath -m "$solution")" /build "$config" /project "$proj"
             fi
         fi
     }
@@ -183,6 +183,10 @@ if common.get_current_platform() is "windows":
         export LIB="%(VSLIB)s"
         export LIBPATH="%(VSLIBPATH)s"
     }
+    
+    if ! ((%(USE_INCREDIBUILD)s)) ; then
+        load_vsvars
+    fi
     """
     environment_template = "%s\n%s" % (environment_template, windows_template)
 

@@ -28,7 +28,7 @@ from autobuild.autobuild_tool_upload import upload, UploadError, \
 from autobuild.configfile import ConfigFile, PackageInfo
 
 scp = common.get_default_scp_command()
-ssh = common.find_executable(['ssh', 'ssh.exe', 'plink.exe'])
+ssh = common.find_executable(['ssh', 'plink'], ['.exe'])
 USER = os.environ.get("USER", common.get_current_user())
 
 def assert_in(sought, data):

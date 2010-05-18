@@ -1,5 +1,4 @@
 @echo off
-rem simple wrapper for executing configure on windows.
+rem simple wrapper for executing extensionless python script on windows.
 
-set dirname=%~p0
-python "%dirname%llconfigure" %*
+python "%~dpn0" %*
