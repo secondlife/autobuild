@@ -179,11 +179,17 @@ class _Packaging(object):
             self.machine.ask_to_save()
 
     def _configure_package(self):
-        print "Enter the directory into which the source should be extracted."
-        self.machine.packageInfo.sourcedir = _input_text("dir")
-        self._set_version()
-        self._choose_license()
         self._build_manifest()
+        print ("This completes the configuration for the %s platform; add packaging information "
+            "common to all platforms?" % self.machine.platform )
+        if _input_yes_or_no():
+            print "Enter the directory into which the source should be extracted."
+            self.machine.packageInfo.sourcedir = _input_text("dir")
+            self._set_version()
+            self._choose_license()
+            self._uploadtos3()
+        else:
+            pass
         self.modified = True
     
     def _set_version(self):
@@ -199,6 +205,10 @@ class _Packaging(object):
         print "Enter license file."
         self.machine.packageInfo.licensefile = _input_text("file")
         self.machine.packageInfo.license = license
+        
+    def _uploadtos3(self):
+        print "Upload this package to S3?"
+        self.machine.packageInfo.uploadtos3 = _input_yes_or_no()
 
     def _build_manifest(self):
         patterns = []
@@ -220,7 +230,7 @@ class _Packaging(object):
                 pass
         construct_manifest(self.machine.packageInfo, patterns, self.machine.platform)
     
-    _licenses = ('gpl','mit', 'cluck like a chicken', 'other...')
+    _licenses = ('gpl','mit', 'bsd', 'cluck like a chicken', 'other...')
 
 
 class _Publishing(object):
