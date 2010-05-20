@@ -284,6 +284,8 @@ class ConfigFile(object):
             for name in keys.keys():
                 self.packages[name] = PackageInfo(keys[name], name)
 
+        return True
+
     def save(self, config_filename=None):
         """
         Save the current configuration file state to disk. If no
