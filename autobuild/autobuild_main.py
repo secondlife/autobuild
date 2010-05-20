@@ -83,10 +83,6 @@ class Autobuild(object):
 ##           dict(help="Specify configuration file",
 ##                default=configfile.PACKAGES_CONFIG_FILE,
 ##                dest="config_file")),
-##          (('--package-info',),
-##           dict(help='The file used to describe what should be installed.',
-##                default=configfile.PACKAGES_CONFIG_FILE,
-##                dest='install_filename')),
             )
 
         for args, kwds in argdefs:

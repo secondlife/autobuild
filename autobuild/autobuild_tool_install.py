@@ -69,7 +69,7 @@ def add_arguments(parser):
         nargs='*',
         help='List of packages to consider for installation.')
     parser.add_argument(
-        '--package-info',
+        '--config-file',
         default=configfile.PACKAGES_CONFIG_FILE,
         dest='install_filename',
         help='The file used to describe what should be installed.')
