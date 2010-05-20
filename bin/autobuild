@@ -11,7 +11,7 @@ Command to manage the creation and installation of package archives.
 import sys
 import os
 
-script_path = os.path.dirname(os.path.abspath(__file__))
+script_path = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
 try:
     from autobuild.autobuild_main import Autobuild
 except ImportError, excp:
