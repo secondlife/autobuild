@@ -68,6 +68,10 @@ def load_vsvars(vsver):
     return vsvars
 
 environment_template = """
+    # disable verbose debugging output (maybe someday we'll want to make this configurable with -v ?)
+    restore_xtrace="$(set +o | grep xtrace)"
+    set +o xtrace
+
     export AUTOBUILD="%(AUTOBUILD_EXECUTABLE_PATH)s"
     export AUTOBUILD_VERSION_STRING="%(AUTOBUILD_VERSION_STRING)s"
     export AUTOBUILD_PLATFORM="%(AUTOBUILD_PLATFORM)s"
@@ -139,11 +143,16 @@ environment_template = """
     }
 
     MAKEFLAGS="%(MAKEFLAGS)s"
-    DISTCC_HOSTS="%(DISTCC_HOSTS)s"
+    #DISTCC_HOSTS="%(DISTCC_HOSTS)s"
+
+    $restore_xtrace
 """
 
 if common.get_current_platform() is "windows":
     windows_template = """
+    # disable verbose debugging output
+    set +o xtrace
+
     USE_INCREDIBUILD=%(USE_INCREDIBUILD)s
     build_vcproj() {
         local vcproj=$1
@@ -187,6 +196,8 @@ if common.get_current_platform() is "windows":
     if ! ((%(USE_INCREDIBUILD)s)) ; then
         load_vsvars
     fi
+
+    $restore_xtrace
     """
     environment_template = "%s\n%s" % (environment_template, windows_template)
 
