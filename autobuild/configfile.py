@@ -259,6 +259,8 @@ class ConfigFile(object):
             self.filename = os.path.join(dir, config_filename)
 
         if not os.path.exists(self.filename):
+            # reset to passed in argument to allow --create options to work
+            self.filename = config_filename
             return False
 
         # load the file as a serialized LLSD

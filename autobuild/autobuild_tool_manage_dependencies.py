@@ -20,7 +20,8 @@ class autobuild_tool(autobuild_base.autobuild_base):
     def register(self, parser):
         parser.add_argument('-v', '--version', action='version', version='dependencies tool module 1.0')
 
-        parser.add_argument('--package-name', help='Path of the package you wish to edit')
+        parser.add_argument('--config-file', help='Path of the package config file you wish to edit', default='packages.xml')
+        parser.add_argument('--create', action='store_true', help='Create package config file if necessary')
         
         parser.add_argument('--add', nargs='+', help='Packages to add in the form:\n name,platform,url,md5,description,copywrite,license,licencefile\n leave blank to ignore, this will update existing entries leaving blanks unchanged.')
         parser.add_argument('--remove', nargs='+', help='Packages to remove')
@@ -32,17 +33,17 @@ class autobuild_tool(autobuild_base.autobuild_base):
     def run(self, args):
 
         c = configfile.ConfigFile()
-        if getattr(args, 'package_name', None) == None:
-            print "No Package Specified"
+        if getattr(args, 'config_file', None) == None:
+            print "No package config file Specified"
             return
             
-        ret = c.load(args.package_name)
-        if ret != False:
+        ret = c.load(args.config_file)
+        if ret != False or args.create:
             print "Package loaded"
             print
             
             if args.list:
-                print "Listing Packages in %s" % args.package_name
+                print "Listing Packages in %s" % args.config_file
                 print "No. of packages =", c.package_count
                 for name in c.package_names:
                     package = c.package(name)
@@ -99,7 +100,7 @@ class autobuild_tool(autobuild_base.autobuild_base):
                 for removal in remove:
                     packageInfo = c.package(removal)
                     if packageInfo == None:
-                        print "Package %s not found in %s" % (removal, args.package_name)
+                        print "Package %s not found in %s" % (removal, args.config_file)
                     else:
                         print 'Removing', removal
                         del c.packages[removal]
