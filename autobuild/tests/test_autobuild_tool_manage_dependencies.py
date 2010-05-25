@@ -65,7 +65,7 @@ class TestOptions(unittest.TestCase):
     def test_tool_load(self):
         """test_tool_load: see if we can load a file and exit"""
         try:
-            ret = self.fixture.main(['--package-name', self.TESTFILENAME])
+            ret = self.fixture.main(['--config-file', self.TESTFILENAME])
             self.assertNotEquals(-1, captured_stdout.find("Package loaded"))
             self.assertNotEquals(-1, captured_stdout.find("Nothing to do..."))
         except EarlyExitException:
@@ -75,7 +75,7 @@ class TestOptions(unittest.TestCase):
     def test_tool_load_fails(self):
         """test_tool_load_fails: try a nonexistant file"""
         try:
-            ret = self.fixture.main(['--package-name', 'packagefoobarfibblypoop.xml'])
+            ret = self.fixture.main(['--config-file', 'packagefoobarfibblypoop.xml'])
             self.assertNotEquals(-1, captured_stdout.find("Package file not found"))
         except EarlyExitException:
             self.fail()
@@ -84,7 +84,7 @@ class TestOptions(unittest.TestCase):
     def test_tool_add_a_package(self):
         """test_tool_add_a_package: see if we can add a package"""
         try:
-            ret = self.fixture.main(['--package-name', self.TESTFILENAME,'--add','testpackage,,,,,,,','--dry-run'])
+            ret = self.fixture.main(['--config-file', self.TESTFILENAME,'--add','testpackage,,,,,,,','--dry-run'])
             self.assertNotEquals(-1, captured_stdout.find("Package loaded"))
             self.assertNotEquals(-1, captured_stdout.find("Adding testpackage"))
             # check file
@@ -95,7 +95,7 @@ class TestOptions(unittest.TestCase):
     def test_tool_update_a_package(self):
         """test_tool_update_a_package: see if we can update a package"""
         try:
-            ret = self.fixture.main(['--package-name', self.TESTFILENAME,'--add','llcommon,,,,,,,','--dry-run'])
+            ret = self.fixture.main(['--config-file', self.TESTFILENAME,'--add','llcommon,,,,,,,','--dry-run'])
             self.assertNotEquals(-1, captured_stdout.find("Package loaded"))
             self.assertNotEquals(-1, captured_stdout.find("Updating llcommon"))
             # check file
@@ -106,7 +106,7 @@ class TestOptions(unittest.TestCase):
 #    def test_tool_remove_a_package(self):
 #        """test_tool_remove_a_package: see if we can remove a package"""
 #        try:
-#            ret = self.fixture.main(['--package-name', self.TESTFILENAME,'--remove','llcommon,,,,,,,','--dry-run'])
+#            ret = self.fixture.main(['--config-file', self.TESTFILENAME,'--remove','llcommon,,,,,,,','--dry-run'])
 #            self.assertNotEquals(-1, captured_stdout.find("Package loaded"))
 #            self.assertNotEquals(-1, captured_stdout.find("Removing llcommon"))
 #            # check file
