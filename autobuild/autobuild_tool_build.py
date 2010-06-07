@@ -57,11 +57,14 @@ class autobuild_tool(autobuild_base.autobuild_base):
             # autobuild/bin is available in our PATH.
             bin = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir, "bin"))
             pathdirs = os.environ.get("PATH", "").split(os.pathsep)
-            if bin not in pathdirs:
-                os.environ["PATH"] = os.pathsep.join(pathdirs + [bin])                
+            os.environ["PATH"] = os.pathsep.join(pathdirs + [bin, '.'])
+
             # Search (augmented) PATH for the command. Replace it into the
             # whole command line.
-            build_command[0] = common.find_executable(prog)
+            foundprog = common.find_executable(prog, os.path.splitext(prog)[1])
+            if not foundprog:
+                raise AutobuildError("Cannot find command %s in the path." % prog)
+            build_command[0] = foundprog
 
         print "in %r:\nexecuting: %s" % (os.getcwd(), ' '.join(repr(a) for a in build_command))
         # *TODO - be careful here, we probably want to sanitize the environment further.
