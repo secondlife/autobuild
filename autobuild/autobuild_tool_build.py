@@ -35,38 +35,45 @@ class autobuild_tool(autobuild_base.autobuild_base):
     def run(self, args):
         cf = configfile.ConfigFile()
         cf.load(args.config_file)
-        package_definition = cf.package_definition
+        build_command = read_build_command(cf)
+        do_build(build_command, args.build_extra_args)
 
-        build_command = package_definition.build_command(common.get_current_platform())
-        if not build_command:
-            raise AutobuildError("No build command specified in config file.")
+def read_build_command(cf):
+    package_definition = cf.package_definition
+    build_command = package_definition.build_command(common.get_current_platform())
+    if not build_command:
+        raise AutobuildError("No build command specified in config file.")
+    return build_command
 
-        build_command = shlex.split(build_command) + shlex.split(args.build_extra_args)
+def do_build(build_command, build_extra_args):
+    build_command = shlex.split(build_command) + shlex.split(build_extra_args)
 
-        # Tease out command itself.
-        prog = build_command[0]
-        # Is it a simple filename, or does it have a path attached? If it's
-        # got a path, assume user knows what s/he's doing and just use it. But
-        # if it's a simple filename, perform a path search. This isn't quite
-        # the same as the search that would be performed by subprocess.call():
-        # for a command 'foo', our search will find 'foo.cmd', which empirically
-        # does NOT happen with subprocess.call().
-        if os.path.basename(prog) == prog:
-            # Because autobuild itself now provides certain convenience
-            # scripts for use as config-file build commands, ensure that
-            # autobuild/bin is available in our PATH.
-            bin = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir, "bin"))
-            pathdirs = os.environ.get("PATH", "").split(os.pathsep)
-            os.environ["PATH"] = os.pathsep.join(pathdirs + [bin, '.'])
+    # Tease out command itself.
+    prog = build_command[0]
+    # Is it a simple filename, or does it have a path attached? If it's
+    # got a path, assume user knows what s/he's doing and just use it. But
+    # if it's a simple filename, perform a path search. This isn't quite
+    # the same as the search that would be performed by subprocess.call():
+    # for a command 'foo', our search will find 'foo.cmd', which empirically
+    # does NOT happen with subprocess.call().
+    if os.path.basename(prog) == prog:
+        # Because autobuild itself now provides certain convenience
+        # scripts for use as config-file build commands, ensure that
+        # autobuild/bin is available in our PATH.
+        bin = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir, "bin"))
+        pathdirs = os.environ.get("PATH", "").split(os.pathsep)
+        os.environ["PATH"] = os.pathsep.join(pathdirs + [bin, '.'])
 
-            # Search (augmented) PATH for the command. Replace it into the
-            # whole command line.
-            foundprog = common.find_executable(prog, os.path.splitext(prog)[1])
-            if not foundprog:
-                raise AutobuildError("Cannot find command %s in the path." % prog)
+        # Search (augmented) PATH for the command. Replace it into the
+        # whole command line.
+        foundprog = common.find_executable(prog, os.path.splitext(prog)[1])
+        if foundprog:
             build_command[0] = foundprog
+        else:
+            print >>sys.stderr, "WARNING: Cannot find command %s in the path, we're probably about to fail..." % prog
 
-        print "in %r:\nexecuting: %s" % (os.getcwd(), ' '.join(repr(a) for a in build_command))
-        # *TODO - be careful here, we probably want to sanitize the environment further.
-        build_env = dict(os.environ, AUTOBUILD=common.get_autobuild_executable_path())
-        subprocess.call(build_command, env=build_env)
+    print "in %r:\nexecuting: %s" % (os.getcwd(), ' '.join(repr(a) for a in build_command))
+    # *TODO - be careful here, we probably want to sanitize the environment further.
+    build_env = dict(os.environ, AUTOBUILD=common.get_autobuild_executable_path())
+    subprocess.call(build_command, env=build_env)
+

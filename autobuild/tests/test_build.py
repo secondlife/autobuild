@@ -2,24 +2,22 @@
 
 import unittest
 import subprocess
-#from autobuild import build
+from autobuild import autobuild_tool_build
 
 class TestBuild(unittest.TestCase):
     def setUp(self):
         self.orig_call = subprocess.call
         subprocess.call = self.mock_call
-        pass
+        class FakeOptions(object):
+            build_command = 'build.sh'
+        self.options = FakeOptions()
 
     def test_0(self):
-        class Options(object):
-            build_command = 'build.sh'
-        #build.main(Options(), [])
-        pass
+        autobuild_tool_build.do_build("sh", "./build.sh")
 
-    def mock_call(self, *args):
+    def mock_call(self, *args, **kwargs):
         "monkey patched version of subprocess.call for unit testing"
-        print "MONKEY %r" % args
-        pass
+        print "MONKEY %r" % ((args, kwargs),)
 
     def tearDown(self):
         subprocess.call = self.orig_call
