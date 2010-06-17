@@ -177,8 +177,13 @@ def check_license(package, build_dir, filelist):
         return
 
     # check that the license file exists
-    if licensefile not in filelist:
-        raise AutobuildError("License file %s not found in manifest" % licensefile)
+    for file in filelist:
+        # use os.path.normpath for windows os.pathsep compatibility
+        if os.path.normpath(licensefile) == os.path.normpath(file):
+            return
+
+    # if none of the files in filelist matched the licensfile
+    raise AutobuildError("License file %s not found in manifest" % licensefile)
 
 def create_tarfile(tarfilename, build_dir, filelist):
     """
