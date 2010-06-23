@@ -65,6 +65,11 @@ def load_vsvars(vsver):
     vsvars['VSPATH'] = ":".join(
         ['"$(cygpath -u \'%s\')"' % p for p in vsvars['VSPATH'].split(';') ]
     )
+
+    # fix for broken builds on windows (don't let anything escape the closing quote)
+    for (k,v) in vsvars.iteritems():
+        vsvars[k] = v.rstrip('\\')
+
     return vsvars
 
 environment_template = """
