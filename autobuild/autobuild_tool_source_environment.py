@@ -146,6 +146,19 @@ environment_template = """
         fi
         $md5_cmd "$archive" | cut -d ' ' -f 1
     }
+    fix_dylib_id() {
+        local dylib=$1
+        local dylink="$dylib"
+        if [ -f "$dylib" ]; then
+            if [ -L "$dylib" ]; then
+                dylib="$(readlink "$dylib")"
+            fi
+            install_name_tool -id "@executable_path/../Resources/$dylib" "$dylib"
+            if [ "$dylib" != "$dylink" ]; then
+                ln -svf "$dylib" "$dylink"
+            fi
+        fi
+    }
 
     MAKEFLAGS="%(MAKEFLAGS)s"
     #DISTCC_HOSTS="%(DISTCC_HOSTS)s"
