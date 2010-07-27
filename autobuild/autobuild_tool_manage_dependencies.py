@@ -11,6 +11,58 @@ import configfile
 
 import autobuild_base
 
+
+def add_dependency(addition, config_file="packages.xml"):
+    """
+    Adds a package dependency to the the given configuration file.  The formation for an addition
+    is 'name,platform,url,md5,description,copywrite,license,licencefile'.  If a configuration file
+    doesn't exist, one will be created.
+    """
+    c = configfile.ConfigFile()
+    c.load(args.config_file)
+    _add_internal(c, addition)
+    c.save()
+
+
+def _add_internal(c, addition):
+    splitup = addition.split(',')
+    if len(splitup) != 8:
+        print "I couldn't work out %s check help, it should be 'name,platform,url,md5,description,copywrite,license,licencefile'" % addition
+    else:
+        name = splitup[0]
+        packageInfo = c.package(name)
+        if packageInfo != None:
+            platform = splitup[1]
+            if splitup[2] != '':
+                packageInfo.set_archives_url(platform,splitup[2])
+            if splitup[3] != '':
+                packageInfo.set_archives_md5(platform,splitup[3])
+            if splitup[4] != '':
+                packageInfo.description = splitup[4]
+            if splitup[5] != '':
+                packageInfo.copyright = splitup[5]
+            if splitup[6] != '':
+                packageInfo.license = splitup[6]
+            if splitup[7] != '':
+                packageInfo.licensefile = splitup[7]
+            print 'Updating', name
+        else:
+            packageInfo = configfile.PackageInfo()
+            platform = splitup[1]
+            packageInfo.name = splitup[0]
+            packageInfo.set_archives_url(platform,splitup[2])
+            packageInfo.set_archives_md5(platform,splitup[3])
+            packageInfo.description = splitup[4]
+            packageInfo.copyright = splitup[5]
+            packageInfo.license = splitup[6]
+            packageInfo.licensefile = splitup[7]
+            if packageInfo.licensefile == '':
+                packageInfo.licensefile = 'LICENSES/%s.txt' % name
+            print 'Adding', name
+            
+        c.set_package(name, packageInfo)
+
+
 class autobuild_tool(autobuild_base.autobuild_base):
 
     def get_details(self):
@@ -29,6 +81,7 @@ class autobuild_tool(autobuild_base.autobuild_base):
 
         parser.add_argument('--verbose', action='store_true', help='Print out lots of lovely information')
         pass
+    
 
     def run(self, args):
 
@@ -59,43 +112,7 @@ class autobuild_tool(autobuild_base.autobuild_base):
             
             if add != None:
                 for addition in add:
-                    splitup = addition.split(',')
-                    if len(splitup) != 8:
-                        print "I couldn't work out %s check help, it should be 'name,platform,url,md5,description,copywrite,license,licencefile'" % addition
-                    else:
-                        name = splitup[0]
-                        packageInfo = c.package(name)
-                        if packageInfo != None:
-                            platform = splitup[1]
-                            if splitup[2] != '':
-                                packageInfo.set_archives_url(platform,splitup[2])
-                            if splitup[3] != '':
-                                packageInfo.set_archives_md5(platform,splitup[3])
-                            if splitup[4] != '':
-                                packageInfo.description = splitup[4]
-                            if splitup[5] != '':
-                                packageInfo.copyright = splitup[5]
-                            if splitup[6] != '':
-                                packageInfo.license = splitup[6]
-                            if splitup[7] != '':
-                                packageInfo.licensefile = splitup[7]
-                            print 'Updating', name
-                        else:
-                            packageInfo = configfile.PackageInfo()
-                            platform = splitup[1]
-                            packageInfo.name = splitup[0]
-                            packageInfo.set_archives_url(platform,splitup[2])
-                            packageInfo.set_archives_md5(platform,splitup[3])
-                            packageInfo.description = splitup[4]
-                            packageInfo.copyright = splitup[5]
-                            packageInfo.license = splitup[6]
-                            packageInfo.licensefile = splitup[7]
-                            if packageInfo.licensefile == '':
-                                packageInfo.licensefile = 'LICENSES/%s.txt' % name
-                            print 'Adding', name
-                            
-                        c.set_package(name, packageInfo)
-            
+                    _add_internal(c, addition)
             if remove != None:
                 for removal in remove:
                     packageInfo = c.package(removal)
