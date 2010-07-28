@@ -124,31 +124,46 @@ def upload(wildfiles, config_file, dry_run=False):
     s3ables = [tarfile for tarfile in tarfiles if checkTarfileForUpload(config, tarfile)]
 
     # Now upload to our internal install-packages server.
-    SCPConn = SCPConnection()
-    uploaded = SCPConn.upload(tarfiles, None, None, dry_run)
+    uploaded = _upload_to_internal(tarfiles, dry_run)
 
     # Finally, upload to S3 any tarfiles that should be uploaded to S3.
     if not s3ables:
-        # If there aren't any, don't even bother instantiating the connection.
         return uploaded
     
+    s3uploaded = _upload_to_s3(s3ables, dry_run)
+    uploaded.extend(s3uploaded)
+    
+    return uploaded
+
+
+def upload_package(package, toS3=False):
+    """
+    Upload a package (optionally to S3 when flag is set).
+    """
+    if not os.path.exists(package):
+        raise UploadError("Package %s does not exist." % package)
+    files = [package]
+    uploaded = _upload_to_internal(files)
+    if toS3:
+        s3uploaded = _upload_to_s3(files)
+        uploaded.extend(s3uploaded)
+    return uploaded
+    
+
+def _upload_to_internal(tarfiles, dry_run=False):
+    SCPConn = SCPConnection()
+    uploaded = SCPConn.upload(tarfiles, None, None, dry_run)
+    return uploaded
+
+
+def _upload_to_s3(tarfiles, dry_run=False):
     S3Conn = S3Connection()
-    for tarfilename in s3ables:
-        # Normally, check that we've successfully uploaded the tarfile to our
-        # scp repository before uploading to S3. (But why? We've just put it
-        # there in the preceding lines? If we're concerned about upload
-        # failure, shouldn't we notice that as part of SCPConn.upload()
-        # instead of waiting until now? And the message below seems to suggest
-        # more of a user operation sequence error -- which I think is now
-        # logically impossible -- than a network failure.) In any case: if
-        # dry_run is set, we won't have uploaded to our scp repository, so
-        # don't even perform this test as it would definitely fail.
-        if not (dry_run or SCPConn.SCPFileExists(tarfilename)):
-            raise UploadError("Error: File must exist on internal server before uploading to S3")
+    uploaded = []
+    for tarfilename in tarfiles:
         if S3Conn.upload(tarfilename, None, dry_run):
             uploaded.append(S3Conn.getUrl(tarfilename))
-
     return uploaded
+    
 
 # provide this line to make the tool work standalone too (which all tools should)
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ def add_dependency(addition, config_file="packages.xml"):
     doesn't exist, one will be created.
     """
     c = configfile.ConfigFile()
-    c.load(args.config_file)
+    c.load(config_file)
     _add_internal(c, addition)
     c.save()
 
