@@ -1,6 +1,7 @@
 #!/usr/bin/env python
         
-# manage a packages.xml's dependencies, add them, remove them, find and print them
+# manage an autobuild.xml's package dependencies: add them, remove
+# them, find and print them
 
 import sys
 import os
@@ -12,7 +13,7 @@ import configfile
 import autobuild_base
 
 
-def add_dependency(addition, config_file="packages.xml"):
+def add_dependency(addition, config_file=configfile.AUTOBUILD_CONFIG_FILE):
     """
     Adds a package dependency to the the given configuration file.  The formation for an addition
     is 'name,platform,url,md5,description,copywrite,license,licencefile'.  If a configuration file
@@ -67,12 +68,12 @@ class autobuild_tool(autobuild_base.autobuild_base):
 
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
-                    description='Manage dependencies in a Package.xml')
+                    description='Manage dependencies in an autobuild.xml file')
     
     def register(self, parser):
         parser.add_argument('-v', '--version', action='version', version='dependencies tool module 1.0')
 
-        parser.add_argument('--config-file', help='Path of the package config file you wish to edit', default='packages.xml')
+        parser.add_argument('--config-file', help='Path of the package config file you wish to edit', default=configfile.AUTOBUILD_CONFIG_FILE)
         parser.add_argument('--create', action='store_true', help='Create package config file if necessary')
         
         parser.add_argument('--add', nargs='+', help='Packages to add in the form:\n name,platform,url,md5,description,copywrite,license,licencefile\n leave blank to ignore, this will update existing entries leaving blanks unchanged.')

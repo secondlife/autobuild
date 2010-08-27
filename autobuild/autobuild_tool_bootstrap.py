@@ -20,7 +20,7 @@ class autobuild_tool(autobuild_base.autobuild_base):
             description="Run an interactive session to build an Autobuild configuration file")
      
     def register(self, parser):
-        parser.add_argument('file', default=configfile.BUILD_CONFIG_FILE, nargs='?',
+        parser.add_argument('file', default=configfile.AUTOBUILD_CONFIG_FILE, nargs='?',
             help='A configuration file to bootstrap')
 
     def run(self, args):

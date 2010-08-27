@@ -96,11 +96,10 @@ class PlatformSetup(object):
         # base of the repository; it simply happens to be where our climb-
         # to-repository-base code happens to reside ATM. Refactor?
 
-        # find the location of the nearest autobuild.xml or packages.xml file
+        # find the location of the nearest autobuild.xml file
         conf = configfile.ConfigFile()
-        if not conf.load(configfile.BUILD_CONFIG_FILE):
-            if not conf.load(configfile.PACKAGES_CONFIG_FILE):
-                raise AutobuildError("Cannot find config file: %s" % configfile.BUILD_CONFIG_FILE)
+        if not conf.load():
+            raise AutobuildError("Cannot find config file: %s" % configfile.AUTOBUILD_CONFIG_FILE)
             
         base = os.path.dirname(conf.filename)
         return [os.path.join(base, dir) for dir in self._build_dirs()]

@@ -5,9 +5,9 @@
 """
 Install files into a repository.
 
-This autobuild sub-command will read a packages.xml file and install any
+This autobuild sub-command will read an autobuild.xml file and install any
 new or updated packages defined in that file to the install directory.
-An install-packages.xml file is also maintained in the install directory
+An installed-packages.xml file is also maintained in the install directory
 to specify all the files that have been installed.
 
 Author : Martin Reddy
@@ -37,17 +37,17 @@ AutobuildError = common.AutobuildError
 __help = """\
 This autobuild command fetches and installs package archives.
 
-The command will read a packages.xml file and install any new or
+The command will read an autobuild.xml file and install any new or
 updated packages defined in that file to the install directory. An
-install-packages.xml manifest file is also maintained in the install
+installed-packages.xml manifest file is also maintained in the install
 directory to specify all the files that have been installed.
 
 Downloaded package archives are cached on the local machine so that
 they can be shared across multiple repositories and to avoid unnecessary
-downloads. A new package will be downloaded if the packages.xml files is
+downloads. A new package will be downloaded if the autobuild.xml files is
 updated with a new package URL or MD5 sum.
 
-If an MD5 checksum is provided for a package in the packages.xml file,
+If an MD5 checksum is provided for a package in the autobuild.xml file,
 this will be used to validate the downloaded package. The package will
 not be installed if the MD5 sum does not match.
 
@@ -71,7 +71,7 @@ def add_arguments(parser):
         help='List of packages to consider for installation.')
     parser.add_argument(
         '--config-file',
-        default=configfile.PACKAGES_CONFIG_FILE,
+        default=configfile.AUTOBUILD_CONFIG_FILE,
         dest='install_filename',
         help='The file used to describe what should be installed.')
     parser.add_argument(
@@ -181,7 +181,7 @@ def get_packages_to_install(packages, config_file, installed_config, platform, a
         toinstall = config_file.package(pname)
         installed = installed_config.package(pname)
 
-        # raise error if named package doesn't exist in packages.xml
+        # raise error if named package doesn't exist in autobuild.xml
         if not toinstall:
             raise AutobuildError('Unknown package: %s' % pname)
 

@@ -1,50 +1,55 @@
 <?xml version="1.0" ?>
 <llsd>
 <map>
-    <key>test1</key>
+    <key>installables</key>
     <map>
-      <key>archives</key>
+      <key>test1</key>
       <map>
-        <key>linux</key>
+        <key>archives</key>
         <map>
-          <key>md5sum</key>
-          <string>22eac1bea219257a71907cbe1170c640</string>
-          <key>url</key>
-          <string>http://www.secondlife.com</string>
+          <key>linux</key>
+          <map>
+            <key>md5sum</key>
+            <string>22eac1bea219257a71907cbe1170c640</string>
+            <key>url</key>
+            <string>http://www.secondlife.com</string>
+          </map>
         </map>
+        <key>copyright</key>
+        <string>Copyright (c) 2010, Linden Research, Inc.</string>
+        <key>description</key>
+        <string>Test package created by test_configfile.py</string>
+        <key>summary</key>
+        <string>Test package</string>
       </map>
-      <key>copyright</key>
-      <string>Copyright (c) 2010, Linden Research, Inc.</string>
-      <key>description</key>
-      <string>Test package created by test_configfile.py</string>
-      <key>summary</key>
-      <string>Test package</string>
-    </map>
-    <key>test2</key>
-    <map>
-      <key>archives</key>
+      <key>test2</key>
       <map>
-        <key>common</key>
+        <key>archives</key>
         <map>
-          <key>md5sum</key>
-          <string>22eac1bea219257a71907cbe1170c640</string>
-          <key>url</key>
-          <string>http://www.secondlife.com/package-common</string>
+          <key>common</key>
+          <map>
+            <key>md5sum</key>
+            <string>22eac1bea219257a71907cbe1170c640</string>
+            <key>url</key>
+            <string>http://www.secondlife.com/package-common</string>
+          </map>
+          <key>windows</key>
+          <map>
+            <key>md5sum</key>
+            <string>28189f725a5c53684ce1c925ee5fecd7</string>
+            <key>url</key>
+            <string>http://www.secondlife.com/package-windows</string>
+          </map>
         </map>
-        <key>windows</key>
-        <map>
-          <key>md5sum</key>
-          <string>28189f725a5c53684ce1c925ee5fecd7</string>
-          <key>url</key>
-          <string>http://www.secondlife.com/package-windows</string>
-        </map>
+        <key>copyright</key>
+        <string>Copyright (c) 2010, Linden Research, Inc.</string>
+        <key>description</key>
+        <string>A second test package created by test_configfile.py</string>
+        <key>summary</key>
+        <string>Another package</string>
       </map>
-      <key>copyright</key>
-      <string>Copyright (c) 2010, Linden Research, Inc.</string>
-      <key>description</key>
-      <string>A second test package created by test_configfile.py</string>
-      <key>summary</key>
-      <string>Another package</string>
     </map>
+    <key>version</key>
+    <string>1.1</string>
   </map>
 </llsd>

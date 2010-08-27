@@ -81,7 +81,7 @@ class Autobuild(object):
              dict(help='Run tool in dry run mode if available', action='store_true')),
 ##          (('--config-file',),
 ##           dict(help="Specify configuration file",
-##                default=configfile.PACKAGES_CONFIG_FILE,
+##                default=configfile.AUTOBUILD_CONFIG_FILE,
 ##                dest="config_file")),
             )
 

@@ -22,7 +22,7 @@ class autobuild_tool(autobuild_base.autobuild_base):
      
     def register(self, parser):
         parser.add_argument('-v', '--version', action='version', version='info tool 1.0')
-        parser.add_argument('file', default=configfile.BUILD_CONFIG_FILE, nargs='?',
+        parser.add_argument('file', default=configfile.AUTOBUILD_CONFIG_FILE, nargs='?',
             help='A configuration file to display')
         parser.add_argument('--format', default='all',
             help='Comma separated list of package elements to display')

@@ -10,7 +10,7 @@ import sys
 import os
 import common
 from autobuild_base import autobuild_base
-from configfile import ConfigFile, BUILD_CONFIG_FILE
+from configfile import ConfigFile, AUTOBUILD_CONFIG_FILE
 from connection import SCPConnection, S3Connection, S3ConnectionError, SCPConnectionError
 
 class UploadError(common.AutobuildError):
@@ -28,7 +28,7 @@ class autobuild_tool(autobuild_base):
         parser.add_argument('archive', nargs=1,
                             help="Specify the archive to upload to install-packages.lindenlab.com "
                                  "or to S3, as indicated by config file")
-        parser.add_argument('--config-file', default=BUILD_CONFIG_FILE,
+        parser.add_argument('--config-file', default=AUTOBUILD_CONFIG_FILE,
                             dest='config_file',
                             help='The file used to describe how to build the package.')
 
