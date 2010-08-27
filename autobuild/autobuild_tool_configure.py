@@ -12,6 +12,7 @@ import autobuild_base
 import common
 from common import AutobuildError
 import configfile
+import re
 
 
 class autobuild_tool(autobuild_base.autobuild_base):
@@ -22,10 +23,21 @@ class autobuild_tool(autobuild_base.autobuild_base):
     def register(self, parser):
         parser.add_argument('file', default=configfile.BUILD_CONFIG_FILE, nargs='?',
             help='The configuration file to use')
+        parser.add_argument('additional_options', nargs="*", metavar='OPT',
+            help="an option to pass to the configuration command" )
+        parser.usage = "%(prog)s [-h] [--dry-run] [file] [-- OPT [OPT ...]]"
 
     def run(self, args):
         config = configfile.ConfigFile()
-        if config.load(args.file) is False:
+        if args.file[0] == '-':
+            cfile = configfile.BUILD_CONFIG_FILE
+            if args.additional_options:
+                args.additional_options.insert(args.file, 0)
+            else:
+                args.additional_options = [args.file]
+        else:
+            cfile = args.file
+        if config.load(cfile) is False:
             raise ConfigurationFileNotFoundError("configuration file '%s' not found" % args.file)
         packageInfo = config.package_definition
         if packageInfo is None:
@@ -33,7 +45,8 @@ class autobuild_tool(autobuild_base.autobuild_base):
         configureCommand = packageInfo.configure_command(common.get_current_platform())
         if configureCommand is None:
             raise NoConfigurationCommandError("no configure command specified")
-        os.system(configureCommand)
+        command = configureCommand + ' ' + ' '.join(args.additional_options)
+        os.system(command)
 
 
 class NoConfigurationCommandError(AutobuildError):
