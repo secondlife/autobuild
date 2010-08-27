@@ -53,18 +53,14 @@ class _LoadingConfig(object):
             config.load(self.machine.args.file)
         except AutobuildError:
             pass
-        print "Enter package name."
-        name = _input_text("name")
-        if config.package(name) is not None:
-            print "The package '%s' is already defined; ok to modify?" % name
-            if _input_yes_or_no():
-                packageInfo = config.package(name)
-            else:
-                self.machine.set_activity(_Ending(self.machine))
-                return
+        if config.definition:
+            packageInfo = config.definition
+            print "Updating '%s' configuration." % packageInfo.name
         else:
-            packageInfo = configfile.PackageInfo() 
-        config.set_package(name, packageInfo)
+            print "Enter configuration name."
+            name = _input_text("name")
+            packageInfo = configfile.PackageInfo(name=name) 
+            config.definition = packageInfo
         self.machine.packageInfo = packageInfo
         self.machine.set_activity(_SelectingPlatform(self.machine))
         
