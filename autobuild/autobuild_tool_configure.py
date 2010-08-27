@@ -30,7 +30,7 @@ class autobuild_tool(autobuild_base.autobuild_base):
     def run(self, args):
         config = configfile.ConfigFile()
         if args.file[0] == '-':
-            cfile = configfile.BUILD_CONFIG_FILE
+            cfile = configfile.AUTOBUILD_CONFIG_FILE
             if args.additional_options:
                 args.additional_options.insert(args.file, 0)
             else:
@@ -46,6 +46,8 @@ class autobuild_tool(autobuild_base.autobuild_base):
         if configureCommand is None:
             raise NoConfigurationCommandError("no configure command specified")
         command = configureCommand + ' ' + ' '.join(args.additional_options)
+        os.environ['AUTOBUILD_CONFIG_DIR'] = os.path.dirname(config.filename)
+        os.environ['AUTOBUILD_CONFIG_FILE'] = os.path.basename(config.filename)
         os.system(command)
 
 
