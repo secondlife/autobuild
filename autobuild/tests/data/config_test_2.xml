@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <llsd>
 <map>
-    <key>test1</key>
+    <key>package_definition</key>
     <map>
       <key>build</key>
       <map>
@@ -57,6 +57,8 @@
           </array>
         </map>
       </map>
+      <key>name</key>
+      <string>test1</string>
       <key>obsoletes</key>
       <string>baz bar foo</string>
       <key>packages</key>
@@ -92,5 +94,7 @@
       <key>version</key>
       <string>1.0</string>
     </map>
+    <key>version</key>
+    <string>1.1</string>
   </map>
 </llsd>

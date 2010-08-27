@@ -12,6 +12,7 @@ sub-command.
 import sys
 import os
 import optparse
+from configfile import AUTOBUILD_CONFIG_FILE
 
 class OptionParser(optparse.OptionParser):
     def __init__(self):
@@ -25,7 +26,7 @@ class OptionParser(optparse.OptionParser):
         #package description="""Create tar archives from library files, and upload as appropriate.  Tarfiles will be formed from paths as specified in the manifest in autobuild.xml, or alternately 'configdir', if supplied as a command-line argument.""")
 
         optparse.OptionParser.__init__(self, usage="\n\t%prog [options] command [commandopts]\n\twhere command is one of 'install' 'configure' 'build' 'package' or 'upload'")
-        self.add_option('--config-file', default='autobuild.xml',
+        self.add_option('--config-file', default=configfile.AUTOBUILD_CONFIG_FILE,
             help="file containing package info database (for now this is llsd+xml, but it will probably become sqlite)")
         self.add_option('--verbose', '-v', action='store_true', default=False)
         self.add_option('--install-dir', default='build-linux-i686-relwithdebinfo/packages',

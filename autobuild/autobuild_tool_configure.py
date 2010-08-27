@@ -20,7 +20,7 @@ class autobuild_tool(autobuild_base.autobuild_base):
             description="Run the configuration script.")
      
     def register(self, parser):
-        parser.add_argument('file', default=configfile.BUILD_CONFIG_FILE, nargs='?',
+        parser.add_argument('file', default=configfile.AUTOBUILD_CONFIG_FILE, nargs='?',
             help='The configuration file to use')
 
     def run(self, args):

@@ -43,7 +43,7 @@ AutobuildError = common.AutobuildError
 def add_arguments(parser):
     parser.add_argument(
         '--config-file',
-        default=configfile.BUILD_CONFIG_FILE,
+        default=configfile.AUTOBUILD_CONFIG_FILE,
         dest='autobuild_filename',
         help='The file used to describe how to build the package.')
     parser.add_argument(

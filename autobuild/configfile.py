@@ -20,9 +20,12 @@ from llbase import llsd
 
 AutobuildError = common.AutobuildError
 
-BUILD_CONFIG_FILE="autobuild.xml"
-PACKAGES_CONFIG_FILE="packages.xml"
+AUTOBUILD_CONFIG_FILE="autobuild.xml"
 INSTALLED_CONFIG_FILE="installed-packages.xml"
+
+AUTOBUILD_CONFIG_VERSION="1.1"
+
+PACKAGES_CONFIG_FILE="packages.xml"  # legacy file - do not use!
 
 class PackageInfo(dict):
     """
@@ -64,6 +67,11 @@ class PackageInfo(dict):
         print platform
         print pi.manifest_files(platform)
 
+    Design note: a ConfigFile contains 2 sections: a list of
+    installable packages and a single description to build a package.
+    Currently, we use PackageInfo() to describe both types of
+    information. In the future, we may decide to introduce a separate
+    PackageDesc() class so that each is modelled separately.
     """
 
     # basic read-write properties that describe the package
@@ -204,10 +212,11 @@ class ConfigFile(object):
     for a build or an install. Using the ConfigFile class, you
     can read, manipulate, and save autobuild configuration files.
 
-    Conceptually, a ConfigFile contains a set of named PackageInfo 
-    objects that describe each package. This generic format is used
-    by several autobuild files, such as packages.xml, autobuild.xml,
-    and installed-packages.xml.
+    Conceptually, a ConfigFile contains two optional sections: a set
+    of named PackageInfo objects that describe each installable
+    package, and a description of how to build the current
+    package. This generic format is used by two autobuild file types:
+    autobuild.xml and installed-packages.xml.
 
     Here's an example of reading a configuration file and printing
     some interesting information from it:
@@ -233,22 +242,36 @@ class ConfigFile(object):
         c.set_package(name, package)
     c.save()
 
+    You can access the package description for the current package via
+    the package_description property. This lets you access all of the
+    information on how to configure, build, package, and upload the
+    current package. For example,
+
+    c = ConfigFile()
+    c.load()
+    pd = c.package_description
+    print "Name =", pd.name
+
     """
     def __init__(self):
         self.filename = None
         self.packages = {}
+        self.definition = {}
         self.changed = False
 
-    def load(self, config_filename=BUILD_CONFIG_FILE):
+    def load(self, config_filename=AUTOBUILD_CONFIG_FILE):
         """
-        Load an autobuild configuration file. If no filename is
-        specified, then the default of "autobuild.xml" will be used.
-        Returns False if the file could not be loaded successfully.
+        Loads an autobuild configuration file from the named file.
+        If no filename is specified then "autobuild.xml" will be
+        assumed.
+
+        Returns False if no file could not be loaded successfully.
         """
 
         # initialize the object state
         self.filename = config_filename
         self.packages = {}
+        self.definition = {}
         self.changed = False
 
         # try to find the config file in the current, or any parent, dir
@@ -257,6 +280,14 @@ class ConfigFile(object):
             while not os.path.exists(os.path.join(dir, config_filename)) and len(dir) > 3:
                 dir = os.path.dirname(dir)
             self.filename = os.path.join(dir, config_filename)
+
+        # if this failed, then fallback to "packages.xml" for legacy support
+        # *TODO: remove this legacy support eventually (Aug 2010)
+        if not os.path.isabs(self.filename) and config_filename == AUTOBUILD_CONFIG_FILE:
+            dir = os.getcwd()
+            while not os.path.exists(os.path.join(dir, PACKAGES_CONFIG_FILE)) and len(dir) > 3:
+                dir = os.path.dirname(dir)
+            self.filename = os.path.join(dir, PACKAGES_CONFIG_FILE)
 
         if not os.path.exists(self.filename):
             # reset to passed in argument to allow --create options to work
@@ -270,21 +301,56 @@ class ConfigFile(object):
         except llsd.LLSDParseError:
             raise AutobuildError("Config file is corrupt: %s. Aborting..." % self.filename)
 
+        # parse the contents of the file
+        parsed_file = False
+        if keys.has_key('package_definition'):
+            # support new-style format that merges autobuild.xml and packages.xml
+            self.definition = PackageInfo(keys['package_definition'], keys['package_definition'].get('name', None))
+            parsed_file = True
+
         if keys.has_key('installables'):
-            # support the old 'installables' format for a short while...
-            # *TODO: remove this legacy support
+            # support new-style format for binary packages to install
             for name in keys['installables']:
                 self.packages[name] = PackageInfo(keys['installables'][name], name)
+            parsed_file = True
 
-        elif keys.has_key('package_name'):
+        # if we loaded new-style format data, then we're done
+        if parsed_file:
+            return True
+
+        # handle legacy file formats, such as the separate
+        # autobuild.xml and packages.xml files
+        # *TODO: remove all of this legacy support eventually (Aug 2010)
+        if keys.has_key('package_name'):
             # support the old 'package_name' format for a short while...
-            # *TODO: remove this legacy support
             self.packages[keys['package_name']] = PackageInfo(keys, keys['package_name'])
 
         else:
-            # pull out the packages dicts from the LLSD
-            for name in keys.keys():
-                self.packages[name] = PackageInfo(keys[name], name)
+            # support the old autobuild.xml and packages.xml formats
+
+            # work out if we have loaded an autobuild.xml file, or one
+            # that looks like an autobuild.xml file (may be named different)
+            if (len(keys) == 1 or AUTOBUILD_CONFIG_FILE in self.filename) and PACKAGES_CONFIG_FILE not in self.filename:
+                name = keys.keys()[0]
+                self.definition = PackageInfo(keys[name], name)
+
+                # also merge in the contents of "packages.xml", if present
+                package_file = os.path.join(os.path.dirname(self.filename), PACKAGES_CONFIG_FILE)
+                if os.path.exists(package_file):
+                    print "Merging %s" % package_file
+                    try:
+                        package_keys = llsd.parse(file(package_file, 'rb').read())
+                    except llsd.LLSDParseError:
+                        raise AutobuildError("Config file is corrupt: %s. Aborting..." % package_file)
+
+                    # add the list of installables from the packages.xml file
+                    for name in package_keys.keys():
+                        self.packages[name] = PackageInfo(package_keys[name], name)
+                    
+            else:
+                # otherwise, assume that we have loaded packages.xml only
+                for name in keys.keys():
+                    self.packages[name] = PackageInfo(keys[name], name)
 
         return True
 
@@ -300,16 +366,26 @@ class ConfigFile(object):
         # use the name of file we loaded from, if no filename given
         if config_filename:
             self.filename = config_filename
+            # if we loaded from a legacy packages.xml, save to autobuild.xml
+            # *TODO: remove this line when legacy support no longer required
+            self.filename = self.filename.replace(PACKAGES_CONFIG_FILE, AUTOBUILD_CONFIG_FILE)
         if not self.filename:
-            self.filename = BUILD_CONFIG_FILE
+            self.filename = AUTOBUILD_CONFIG_FILE
 
         # create an appropriate dict structure to write to the file
-        state = {}
-        for name in self.packages:
-            state[name] = dict(self.packages[name])
-            # don't write out the package name - its the key name
-            if state[name].has_key('name'):
-                del state[name]['name']
+        state = { 'version': AUTOBUILD_CONFIG_VERSION }
+
+        if self.definition:
+            state['package_definition'] = dict(self.definition)
+
+        if self.packages:
+            state['installables'] = {}
+            for name in self.packages:
+                value = dict(self.packages[name])
+                # don't write out the package name - its the key name
+                if value.has_key('name'):
+                    del value['name']
+                state['installables'][name] = value
 
         # try to write out to the file
         try:
@@ -324,12 +400,11 @@ class ConfigFile(object):
     package_count = property(lambda x: len(x.packages))
     package_names = property(lambda x: x.packages.keys())
 
-    # test whether the file is empty, i.e., contains no packages
-    empty = property(lambda x: len(x.packages) == 0)
+    # test whether the file is empty, i.e., contains no packages or package definition
+    empty = property(lambda x: len(x.packages) == 0 and len(x.definition) == 0)
 
     # check that a file contains only 1 package, and return it (or None)
-    package_definition = property(lambda x: len(x.packages) == 1 and \
-                                  x.packages[x.packages.keys()[0]] or None)
+    package_definition = property(lambda x: len(x.definition) > 0 and x.definition or None)
 
     def package(self, name):
         """

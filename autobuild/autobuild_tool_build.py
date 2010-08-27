@@ -25,7 +25,7 @@ class autobuild_tool(autobuild_base.autobuild_base):
     def register(self, parser):
         parser.add_argument('--config-file',
             dest='config_file',
-            default=configfile.BUILD_CONFIG_FILE,
+            default=configfile.AUTOBUILD_CONFIG_FILE,
             help="")
         parser.add_argument('--build-extra-args',
             dest='build_extra_args',
