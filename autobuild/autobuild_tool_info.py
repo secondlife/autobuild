@@ -137,9 +137,10 @@ class autobuild_tool(autobuild_base.autobuild_base):
             print platform
             print "\turl:", info.archives_url(platform)
             print "\tmd5:", info.archives_md5(platform)
-            print "\tfiles:"
-            for file in info.archives_files(platform):
-                print "\t\t", file
+            if info.archives_files(platform):
+                print "\tfiles:"
+                for filename in info.archives_files(platform):
+                    print "\t\t", filename
 
     def _pretty_print_platform_depends(self, info):
         print "Dependencies:"
