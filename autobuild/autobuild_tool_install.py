@@ -261,16 +261,16 @@ def _install_source(pname, repotype, url, installed_config, config_file, dry_run
     if dry_run:
         print "Dry run mode: not installing source for %s" % pname
         return
-    installed_package = installed_config.package(pname)
-    if installed_package:
-        if installed_package.source != url:
+    package_to_install = config_file.package(pname)
+    if package_to_install:
+        if package_to_install.source != url:
             raise AutobuildError("Source repository %s does not match installed %s" %
-                (url, installed_package.source))
-        if installed_package.sourcetype != repotype:
+                (url, package_to_install.source))
+        if package_to_install.sourcetype != repotype:
             raise AutobuildError("Source repository type %s does not match installed type %s" %
-                (repotype, installed_package.sourcetype))
+                (repotype, package_to_install.sourcetype))
     else:
-        installed_package = configfile.PackageInfo()
+        package_to_install = configfile.PackageInfo()
     
     # By convention source is downloaded into the parent directory containing this project.
     sourcepath = os.path.normpath(
@@ -299,9 +299,9 @@ def _install_source(pname, repotype, url, installed_config, config_file, dry_run
     else:
         raise AutobuildError("Unsupported repository type %s" % repotype)
     
-    installed_package.source = url
-    installed_package.sourcetype = repotype
-    installed_config.set_package(pname, installed_package)
+    package_to_install.source = url
+    package_to_install.sourcetype = repotype
+    installed_config.set_package(pname, package_to_install)
     
 def _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
     # find the url/md5 for the platform, or fallback to 'common'
