@@ -12,7 +12,6 @@ import autobuild_base
 import common
 from common import AutobuildError
 import configfile
-import re
 
 
 class autobuild_tool(autobuild_base.autobuild_base):
