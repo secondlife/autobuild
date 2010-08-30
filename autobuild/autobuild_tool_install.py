@@ -303,7 +303,7 @@ def _install_source(pname, repotype, url, installed_config, config_file, dry_run
     installed_package.sourcetype = repotype
     installed_config.set_package(pname, installed_package)
     
-def _install_binary(package, platform, configfile, install_dir, installed_file, dry_run):
+def _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
     # find the url/md5 for the platform, or fallback to 'common'
     url = package.archives_url(platform)
     md5 = package.archives_md5(platform)
