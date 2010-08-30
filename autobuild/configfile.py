@@ -274,9 +274,14 @@ class ConfigFile(object):
         self.definition = {}
         self.changed = False
 
-        # try to find the config file in the current, or any parent, dir
+        # try to find the config file in the autobuild directory, or any parent, dir
+        if os.environ.get('AUTOBUILD_ROOT_DIR'):
+            search_dir = os.path.abspath(os.environ.get('AUTOBUILD_ROOT_DIR'))
+        else:
+            search_dir = os.getcwd()
+        
         if not os.path.isabs(self.filename):
-            dir = os.getcwd()
+            dir = search_dir
             while not os.path.exists(os.path.join(dir, config_filename)) and len(dir) > 3:
                 dir = os.path.dirname(dir)
             self.filename = os.path.join(dir, config_filename)
@@ -284,7 +289,7 @@ class ConfigFile(object):
         # if this failed, then fallback to "packages.xml" for legacy support
         # *TODO: remove this legacy support eventually (Aug 2010)
         if not os.path.isabs(self.filename) and config_filename == AUTOBUILD_CONFIG_FILE:
-            dir = os.getcwd()
+            dir = search_dir
             while not os.path.exists(os.path.join(dir, PACKAGES_CONFIG_FILE)) and len(dir) > 3:
                 dir = os.path.dirname(dir)
             self.filename = os.path.join(dir, PACKAGES_CONFIG_FILE)
