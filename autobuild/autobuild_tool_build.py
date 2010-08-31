@@ -49,7 +49,7 @@ def do_build(build_command, build_extra_args):
     build_command = shlex.split(build_command) + shlex.split(build_extra_args)
 
     # Tease out command itself.
-    prog = os.path.expandvars(build_command[0])
+    prog = build_command[0]
     # Is it a simple filename, or does it have a path attached? If it's
     # got a path, assume user knows what s/he's doing and just use it. But
     # if it's a simple filename, perform a path search. This isn't quite
@@ -71,8 +71,6 @@ def do_build(build_command, build_extra_args):
             build_command[0] = foundprog
         else:
             print >>sys.stderr, "WARNING: Cannot find command %s in the path, we're probably about to fail..." % prog
-    else:
-        build_command[0] = prog
 
     print "in %r:\nexecuting: %s" % (os.getcwd(), ' '.join(repr(a) for a in build_command))
     # *TODO - be careful here, we probably want to sanitize the environment further.

@@ -68,7 +68,6 @@ class Autobuild(object):
 
 
     def main(self, args_in):
-    	os.environ['AUTOBUILD_PROCESS_DIR'] = os.getcwd()
     
         self.tools_list = []
         
@@ -80,9 +79,10 @@ class Autobuild(object):
         argdefs = (
             (('--dry-run',),
              dict(help='Run tool in dry run mode if available', action='store_true')),
-             (('-C','--directory'),dict(
-             	dest='autobuild_root_dir', nargs='?', default=os.environ.get('AUTOBUILD_ROOT_DIR'),
-             	help='Sets the autobuild root directory.'))
+##          (('--config-file',),
+##           dict(help="Specify configuration file",
+##                default=configfile.AUTOBUILD_CONFIG_FILE,
+##                dest="config_file")),
             )
 
         for args, kwds in argdefs:
@@ -103,10 +103,6 @@ class Autobuild(object):
                 break
 
         args = self.parser.parse_args(args_in)
-        
-        if not args.autobuild_root_dir:
-            args.autobuild_root_dir = os.getcwd()
-       	os.environ['AUTOBUILD_ROOT_DIR'] = args.autobuild_root_dir
  
         if tool_to_run != -1:
             tool_to_run.run(args)
