@@ -65,13 +65,16 @@ def checkTarfileForUpload(config, tarfilename):
     """Get status on S3ability of a tarfile.  Returns boolean."""
     pkgname, platform = dissectTarfileName(tarfilename)
 
-    info = config.package(pkgname)      # from tarfile name
+    info = config.package_definition
     if info is None:
         # We don't know how to proceed. A safe guess would be to skip
         # uploading to S3 -- but that presents the likelihood of nasty
         # surprises later (e.g. broken open-source build). Inform the user.
         raise UploadError("Unknown package %s (tarfile %s) -- can't decide whether to upload to S3"
                           % (pkgname, tarfilename))
+    if info.name != pkgname:
+        raise UploadError("Package configuration %s does not tarfile package %s."
+            % (info.name, pkgname))
     # Here info is definitely not None.
     if info.uploadtos3 is None:
         raise UploadError("Package %s (tarfile %s) does not specify whether to upload to S3" %

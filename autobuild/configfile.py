@@ -243,13 +243,13 @@ class ConfigFile(object):
     c.save()
 
     You can access the package description for the current package via
-    the package_description property. This lets you access all of the
+    the package_definition property. This lets you access all of the
     information on how to configure, build, package, and upload the
     current package. For example,
 
     c = ConfigFile()
     c.load()
-    pd = c.package_description
+    pd = c.package_definition
     print "Name =", pd.name
 
     """
