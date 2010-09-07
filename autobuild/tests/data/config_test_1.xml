@@ -21,10 +21,10 @@
           <map>
             <key>command</key>
             <string>build.sh</string>
+            <key>directory</key>
+            <string>bin</string>
           </map>
         </map>
-        <key>builddir</key>
-        <string>package-build</string>
         <key>configure</key>
         <map>
           <key>common</key>
@@ -96,6 +96,11 @@
         <key>version</key>
         <string>1.0</string>
       </map>
+    </map>
+    <key>package_definition</key>
+    <map>
+      <key>name</key>
+      <string>anonymous</string>
     </map>
     <key>version</key>
     <string>1.1</string>

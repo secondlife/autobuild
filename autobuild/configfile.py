@@ -258,10 +258,10 @@ class ConfigFile(object):
     print "Name =", pd.name
 
     """
-    def __init__(self):
+    def __init__(self, package_name='anonymous'):
         self.filename = None
         self.packages = {}
-        self.definition = {}
+        self.definition = PackageInfo(name=package_name)
         self.changed = False
 
     def load(self, config_filename=AUTOBUILD_CONFIG_FILE):

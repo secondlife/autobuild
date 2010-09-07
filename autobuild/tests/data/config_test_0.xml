@@ -49,6 +49,11 @@
         <string>Another package</string>
       </map>
     </map>
+    <key>package_definition</key>
+    <map>
+      <key>name</key>
+      <string>anonymous</string>
+    </map>
     <key>version</key>
     <string>1.1</string>
   </map>

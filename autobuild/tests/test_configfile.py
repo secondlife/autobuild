@@ -62,7 +62,6 @@ class TestConfigFile(unittest.TestCase, AutobuildBaselineCompare):
         p.source = "http://www.secondlife.com/package-source"
         p.sourcetype = "archive"
         p.sourcedir = "package-source"
-        p.builddir = "package-build"
         p.version = "1.0"
         p.patches = "foo bar"
         p.obsoletes = "baz bar foo"
@@ -75,6 +74,7 @@ class TestConfigFile(unittest.TestCase, AutobuildBaselineCompare):
 
         p.set_configure_command('common', 'configure --enabled-shared')
         p.set_build_command('common', 'build.sh')
+        p.set_build_directory('common', 'bin')
         p.set_post_build_command('common', 'postbuild.sh')
 
         p.set_manifest_files('common', ['file1','file2'])
@@ -117,7 +117,7 @@ class TestConfigFile(unittest.TestCase, AutobuildBaselineCompare):
         lines.append("source: %s\n" % p.source)
         lines.append("sourcetype: %s\n" % p.sourcetype)
         lines.append("sourcedir: %s\n" % p.sourcedir)
-        lines.append("builddir: %s\n" % p.builddir)
+        lines.append("builddir: %s\n" % p.build_directory('common'))
         lines.append("version: %s\n" % p.version)
         lines.append("patches: %s\n" % p.patches)
         lines.append("obsoletes: %s\n" % p.obsoletes)

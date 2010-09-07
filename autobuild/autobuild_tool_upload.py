@@ -73,7 +73,7 @@ def checkTarfileForUpload(config, tarfilename):
         raise UploadError("Unknown package %s (tarfile %s) -- can't decide whether to upload to S3"
                           % (pkgname, tarfilename))
     if info.name != pkgname:
-        raise UploadError("Package configuration %s does not tarfile package %s."
+        raise UploadError("Package configuration %s does not match tarfile package %s."
             % (info.name, pkgname))
     # Here info is definitely not None.
     if info.uploadtos3 is None:

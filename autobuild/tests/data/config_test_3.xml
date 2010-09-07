@@ -9,10 +9,10 @@
         <map>
           <key>command</key>
           <string>build.sh</string>
+          <key>directory</key>
+          <string>package-build</string>
         </map>
       </map>
-      <key>builddir</key>
-      <string>package-build</string>
       <key>configure</key>
       <map>
         <key>common</key>

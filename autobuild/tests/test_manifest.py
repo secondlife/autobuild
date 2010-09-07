@@ -20,8 +20,6 @@ class TestManifest(unittest.TestCase, AutobuildBaselineCompare):
     def test_0(self):
         tmp_file = self.get_tmp_file(0)
         config = configfile.ConfigFile()
-        package = configfile.PackageInfo()
-        config.set_package('test', package)
         config.save(tmp_file)
         argstr = "manifest --file=%s --platform=darwin *.dylib" % tmp_file
         Autobuild().main(argstr.split())

@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <llsd>
 <map>
-    <key>test</key>
+    <key>package_definition</key>
     <map>
       <key>manifest</key>
       <map>
@@ -13,6 +13,10 @@
           </array>
         </map>
       </map>
+      <key>name</key>
+      <string>anonymous</string>
     </map>
+    <key>version</key>
+    <string>1.1</string>
   </map>
 </llsd>
