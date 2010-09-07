@@ -231,6 +231,10 @@ def create_archive(options):
         build_dir = package.build_directory(options.platform)
         if not build_dir:
             raise AutobuildError("Build output directory not specified in config file")
+   
+    if not os.path.isabs(build_dir):
+        # Relative paths are rooted on the configuration file directory.
+        build_dir = os.path.join(os.path.abspath(os.path.dirname(config_file.filename)), build_dir)
 
     if not os.path.exists(build_dir):
         raise AutobuildError("Directory does not exist: %s" % build_dir)
