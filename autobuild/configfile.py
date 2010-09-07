@@ -87,7 +87,6 @@ class PackageInfo(dict):
         'source':       'URL where source for package lives',
         'sourcetype':   'The form of the source, e.g., archive, svn, hg, pypi',
         'sourcedir':    'The directory where sources extract/checkout to',
-        'builddir':     'The directory where the build command installs into',
         'version':      'The current version of the source package',
         'patches':      'A list of patch(1) files to apply to the sources',
         'obsoletes':    'List of packages to uninstalled when this one is installed',
@@ -99,6 +98,7 @@ class PackageInfo(dict):
         'dependencies': 'List of packages that this package depends upon to build',
         'configure':    'List of platform-specific commands to configure the build',
         'build':        'List of platform-specific commands to build the software',
+        'builddir':     'The directory into which the build products are written',
         'postbuild':    'Post build commands to relocate files in the builddir',
         'manifest':     'List of platform-specific commands to build the software',
         }
@@ -162,6 +162,11 @@ class PackageInfo(dict):
         return self.__platform_key('build', platform, 'command')
     def set_build_command(self, platform, value):
         return self.__set_platform_key('build', platform, 'command', value)
+   
+    def build_directory(self, platform):
+        return self.__platform_key('build', platform, 'directory')
+    def set_build_directory(self, platform, value):
+        return self.__set_platform_key('build', platform, 'directory', value)
 
     def post_build_command(self, platform):
         return self.__platform_key('postbuild', platform, 'command')

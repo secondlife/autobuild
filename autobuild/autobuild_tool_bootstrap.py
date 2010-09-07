@@ -147,8 +147,8 @@ class _SettingBuildCommand(object):
                 self.machine.platform)
             if _input_choice(("accept", "start over"), "accept") == "accept":
                 break
-        print "Enter build directory."
-        self.machine.packageInfo.builddir = _input_text("build dir")
+        print "Enter platform build directory."
+        self.machine.packageInfo.set_build_directory(self.machine.platform, _input_text("build dir"))
         self.modified = True
         
     def _manual_build(self):

@@ -228,7 +228,7 @@ def create_archive(options):
     # get the build output directory - check it exists
     build_dir = options.build_dir
     if not build_dir:
-        build_dir = package.builddir
+        build_dir = package.build_directory(options.platform)
         if not build_dir:
             raise AutobuildError("Build output directory not specified in config file")
 
