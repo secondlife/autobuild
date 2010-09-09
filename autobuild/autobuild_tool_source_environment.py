@@ -158,12 +158,12 @@ if common.get_current_platform() is "windows":
     # disable verbose debugging output
     set +o xtrace
 
-    USE_INCREDIBUILD=%(USE_INCREDIBUILD)s
+    USE_INCREDIBUILD=%(USE_INCREDIBUILD)d
     build_vcproj() {
         local vcproj=$1
         local config=$2
 
-        if ((%(USE_INCREDIBUILD)s)) ; then
+        if ((%(USE_INCREDIBUILD)d)) ; then
             BuildConsole "$vcproj" /CFG="$config"
         else
             devenv "$vcproj" /build "$config"
@@ -175,7 +175,7 @@ if common.get_current_platform() is "windows":
         local config=$2
         local proj=$3
 
-        if ((%(USE_INCREDIBUILD)s)) ; then
+        if ((%(USE_INCREDIBUILD)d)) ; then
             if [ -z "$proj" ] ; then
                 BuildConsole "$solution" /CFG="$config"
             else
@@ -198,7 +198,7 @@ if common.get_current_platform() is "windows":
         export LIBPATH="%(VSLIBPATH)s"
     }
     
-    if ! ((%(USE_INCREDIBUILD)s)) ; then
+    if ! ((%(USE_INCREDIBUILD)d)) ; then
         load_vsvars
     fi
 
@@ -213,7 +213,6 @@ def do_source_environment(args):
             'AUTOBUILD_PLATFORM':common.get_current_platform(),
             'MAKEFLAGS':"",
             'DISTCC_HOSTS':"",
-            'USE_INCREDIBUILD':1,
         }
 
     if common.get_current_platform() is "windows":
@@ -225,6 +224,7 @@ def do_source_environment(args):
         # *TODO - find a way to configure this instead of hardcoding to vc80
         var_mapping.update(load_vsvars("80"))
         var_mapping.update(AUTOBUILD_EXECUTABLE_PATH=("$(cygpath -u '%s')" % common.get_autobuild_executable_path()))
+        var_mapping.update(USE_INCREDIBUILD=bool(common.find_executable("BuildConsole")))
 
     sys.stdout.write(environment_template % var_mapping)
 
