@@ -130,8 +130,8 @@ class S3Connection(Connection):
     # keep S3 url http instead of https
     amazonS3_server = "http://s3.amazonaws.com/"
     S3_upload_params = dict(
-                            id="1E4G7QTW0VT7Z3KJSJ02",
-                            key="GuchuxQF1ADPCz3568ADS/Vc5bds807e7pj1ybU+",
+                            id="DELETED_BY_BRAD",
+                            key="DELETED_BY_BRAD",
                             acl="public-read",
                        )
 
