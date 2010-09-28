@@ -87,6 +87,10 @@ def generate_unique_archive_name(package, platform):
     gap between packaging and uploading. We should really do this
     check as part of the upload process.
     """
+    
+    #FIXME: Restore server checks once S3 issues are worked out.
+    return generate_archive_name(package, platform, '')
+    
     S3Conn = S3Connection()
     SCPConn = SCPConnection()
 
