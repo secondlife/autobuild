@@ -26,6 +26,7 @@ from autobuild.autobuild_tool_upload import upload, UploadError, \
      SCPConnection, S3Connection, S3ConnectionError, SCPConnectionError
 
 from autobuild.configfile import ConfigFile, PackageInfo
+from autobuild import connection
 
 scp = common.get_default_scp_command()
 ssh = common.find_executable(['ssh', 'plink'], ['.exe'])
@@ -357,3 +358,14 @@ def collect_uploads(uploaded):
     for url in uploaded:
         result.setdefault(url.split(':', 1)[0], []).append(url)
     return result
+
+def test_load_s3_credentials():
+    s3curl_creds = StringIO("""
+	lindenlab => {
+		id => 'TESTID',
+		key => 'TEST/KEY+',
+	},
+    """)
+
+    creds = connection._load_s3curl_credentials(credentials_file=s3curl_creds)
+
