@@ -10,11 +10,13 @@ Copyright (c) 2010, Linden Research, Inc.
 $/LicenseInfo$
 """
 
-import os
-import sys
 import glob
-import urllib2
+import os
+import re
 import subprocess
+import sys
+import urllib2
+
 import common
 import boto.s3.connection
 
@@ -129,19 +131,16 @@ class S3Connection(Connection):
     """
     # keep S3 url http instead of https
     amazonS3_server = "http://s3.amazonaws.com/"
-    S3_upload_params = dict(
-                            id="DELETED_BY_BRAD",
-                            key="DELETED_BY_BRAD",
-                            acl="public-read",
-                       )
 
     def __init__(self, S3_dest_dir="viewer-source-downloads/install_pkgs"):
         """Set server dir for all transactions.
         Alternately, use member methods directly, supplying S3_dest_dir.
         """
+
+        S3_creds = _load_s3curl_credentials()
+
         # here by design -- server dir should be specified explicitly
-        self.connection = boto.s3.connection.S3Connection(self.S3_upload_params["id"],
-                                                          self.S3_upload_params["key"])
+        self.connection = boto.s3.connection.S3Connection(S3_creds['id'], S3_creds['key'])
         # in case S3_dest_dir is explicitly passed as None
         self.bucket = None
         self.partial_key = ""
@@ -164,7 +163,7 @@ class S3Connection(Connection):
         # the bucket on which you make the call.
         return self.bucket.new_key('/'.join((self.partial_key, os.path.basename(pathname))))
 
-    def upload(self, filename, S3_dest_dir=None, dry_run=False):
+    def upload(self, filename, S3_dest_dir=None, dry_run=False, S3_acl='public-read'):
         """Upload file specified by filename to S3.
         If file already exists at specified destination, raises exception.
         NOTE:  Knowest whither thou uploadest! Ill fortune will befall
@@ -182,7 +181,7 @@ class S3Connection(Connection):
         print "Uploading to: %s" % self.getUrl(filename)
         if not dry_run:
             key.set_contents_from_filename(filename)
-            key.set_acl(self.S3_upload_params["acl"])
+            key.set_acl(S3_acl)
         # The True return is intended to indicate whether we were GOING to
         # upload the file: that is, whether it already existed. It's not
         # affected by dry_run because the caller knows perfectly well whether
@@ -211,3 +210,22 @@ class S3Connection(Connection):
         """Return the url the pkg would be at if on the server."""
         key = self._get_key(filename)
         return "%s%s/%s" % (self.amazonS3_server, self.bucket.name, self._get_key(filename).name)
+
+def _load_s3curl_credentials():
+    """Helper function for loading 'lindenlab' s3 credentials from ~/.s3curl"""
+    credentials_file = os.path.expandvars("$HOME/.s3curl")
+    account_name = 'lindenlab'
+
+    # *HACK - half-assed regex for parsing the perl hash that s3curl.pl stores its credentials in
+    credentials_pattern = '%s\s*=>\s*{\s*id\s*=>\s*\'(\w*)\'\s*,\s*key\s*=>\s*\'(\w*)\',\s*}' % account_name
+
+    try:
+        s3curl_text = open(credentials_file).read()
+
+        m = re.search(credentials_pattern, s3curl_text)
+        creds = dict(id=m.group(1), key=m.group(2))
+        return creds
+    except (IOError, AttributeError), err:
+        # IOError happens when ~/.s3curl is missing
+        # AttributeError happens when regex doesn't find a match
+        raise S3ConnectionError("failed to load s3 credentials from '%s' -- see the README file in the s3curl distribution (http://developer.amazonwebservices.com/connect/entry.jspa?externalID=128)'" % credentials_file)
