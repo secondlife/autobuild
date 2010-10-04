@@ -16,6 +16,7 @@ Date   : 2010-04-13
 
 import os
 import common
+from executable import Executable
 from llbase import llsd
 
 AutobuildError = common.AutobuildError
@@ -429,3 +430,158 @@ class ConfigFile(object):
         """
         self.packages[name] = value
         self.changed = True
+
+
+
+#------------------------------------------------------------------------------
+    
+
+
+class Configuration(common.Serialized):
+    """
+    An autoubuild configuration.
+    """
+    
+    path = None
+    modfied = False
+    
+    def __init__(self, path):
+        self.version = "1.2"
+        self.type = "autobuild"
+        self.__load(path)
+
+    def __setattr__(self, name, value):
+        if self.__class__.__dict__.has_key(name):
+            self.__dict__[name] = value
+        else:
+            self.__dict__['modified'] = True
+            self[name] = value
+            
+    def save(self):
+        if self.modified:
+            file(self.path, 'wb').write(llsd.format_pretty_xml(_flatten_to_dict(self)))
+        
+    def __load(self, path):
+        if os.path.isabs(path):
+            self.path = path
+        else:
+            abs_path = os.path.abspath(path)
+            found_path = common.search_up_for_file(abs_path)
+            if found_path is not None:
+                self.path = found_path
+            else:
+                self.path = abs_path
+        if os.path.isfile(self.path):
+            try:
+                saved_data = llsd.parse(file(self.path, 'rb').read())
+            except llsd.LLSDParseError:
+                raise AutobuildError("Config file is corrupt: %s. Aborting..." % self.filename)
+            if (not saved_data.has_key('type')) or (saved_data['type'] != 'autobuild'):
+                raise AutobuildError('not an autoubuild configuration file')
+            if (not saved_data.has_key('version')) or (saved_data['version'] != self.version):
+                raise AutobuildError('incompatible configuration file')
+            package_definition = saved_data.pop('package_definition', None)
+            if package_definition is not None:
+                self.package_definition = PackageDescription(package_definition)
+            installables = saved_data.pop('installables', [])
+            self.installables = []
+            for package in installables:
+                self.installables.append(PackageDescription(package))
+            self.update(saved_data)
+        else:
+            self.modified = True
+
+
+class PackageDescription(common.Serialized):
+    """
+    Contains the metadata for a single package.
+    
+    Attributes:
+        name
+        copyright
+        description
+        license
+        license_file
+        homepage
+        source
+        source_type
+        source_directory
+        version
+        patches
+        platforms
+    """
+    
+    def __init__(self, arg):
+        self.platforms={}
+        if isinstance(arg, dict):
+            self.__init_from_dict(arg.copy())
+        else:
+            self.name = arg
+            
+    def __init_from_dict(self, dictionary):
+        platforms = dictionary.pop('platforms',{})
+        for (key, value) in platforms.iteritems():
+            self.platforms[key] = PlatformDescription(value)
+        self.update(dictionary)
+
+
+class PlatformDescription(common.Serialized):
+    """
+    Contains the platform specific metadata for a package.
+    
+    Attributes:
+        archives
+        dependencies
+        build_directory
+        manifest
+        targets
+    """
+    
+    def __init__(self, dictionary = None):
+        self.targets = {}
+        if dictionary is not None:
+            self.__init_from_dict(dictionary.copy())
+   
+    def __init_from_dict(self, dictionary):
+        targets = dictionary.pop('targets',{})
+        for (key, value) in targets.iteritems():
+            self.targets[key] = TargetDescription(value)
+        self.update(dictionary)
+        
+
+class TargetDescription(common.Serialized):
+    """
+    Contains the target specific metadata and executables for a platform.
+    
+    Attributes:
+        manifest
+        default
+        configure
+        build
+        postbuild
+    """
+    
+    def __init__(self, dictionary = None):
+        if dictionary is not None:
+            self.__init_from_dict(dictionary.copy())
+   
+    def __init_from_dict(self, dictionary):
+        [self.__extract_command(name, dictionary) for name in ['configure', 'build', 'postbuild']]
+        self.update(dictionary)
+
+    def __extract_command(self, name, dictionary):
+        command = dictionary.pop(name, None)
+        if command is not None:
+            self[name] = Executable(
+                command=command.get('command'), options=command.get('options', []), 
+                arguments=command.get('arguments'))
+
+
+def _flatten_to_dict(obj):
+    if isinstance(obj,dict):
+        result = {}
+        for (key,value) in obj.items():
+            result[key] = _flatten_to_dict(value)
+        return result
+    else:
+        return obj

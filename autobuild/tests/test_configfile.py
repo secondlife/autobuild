@@ -8,6 +8,7 @@ import os
 import sys
 from baseline_compare import AutobuildBaselineCompare
 from autobuild import configfile
+from autobuild.executable import Executable
 
 class TestConfigFile(unittest.TestCase, AutobuildBaselineCompare):
 
@@ -150,7 +151,24 @@ class TestConfigFile(unittest.TestCase, AutobuildBaselineCompare):
             pass
         else:
             self.fail("Should not be able to set p.foobar")
-
+     
+    def test_configuration_1(self):
+        tmp_file = self.get_tmp_file(4)
+        config = configfile.Configuration(tmp_file)
+        package = configfile.PackageDescription('test')
+        config.package_definition = package
+        platform = configfile.PlatformDescription()
+        platform.build_directory = '.'
+        build_cmd = Executable(command="gcc", options=['-wall'])
+        target = configfile.TargetDescription()
+        target.build = build_cmd
+        platform.targets['common'] = target
+        config.package_definition.platforms['common'] = platform
+        config.save()
+        
+        reloaded = configfile.Configuration(tmp_file)
+        assert reloaded.package_definition.platforms['common'].build_directory == '.'
+        assert reloaded.package_definition.platforms['common'].targets['common'].build.get_command() == 'gcc'
     def tearDown(self):
         self.cleanup_tmp_file()
 

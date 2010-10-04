@@ -297,6 +297,41 @@ def split_tarname(pathname):
         fileparts[1:-2] = ['-'.join(fileparts[1:-2])]
     return (dir, fileparts, ext)
 
+def search_up_for_file(path):
+    """
+    Search up the file tree for a file matching the base name of the path provided.
+    
+    Returns either the path to the file found or None if search fails.
+    """
+    path = os.path.abspath(path)
+    filename = os.path.basename(path)
+    dir = os.path.dirname(path)
+    while not os.path.exists(os.path.join(dir, filename)):
+        newdir = os.path.dirname(dir)
+        if newdir == dir:
+            return None 
+        dir = newdir
+    return os.path.abspath(os.path.join(dir, filename))
+
+
+class Serialized(dict, object):
+    """
+    A base class for serialized objects.  Regular attributes are stored in the inherited dictionary
+    and will be serialized. Class variables will be handled normally and are not serialized.
+    """
+    
+    def __getattr__(self, name):
+        if self.has_key(name):
+            return self[name]
+        else:
+            raise AttributeError("object has no attribute '%s'" % name)
+   
+    def __setattr__(self, name, value):
+        if self.__class__.__dict__.has_key(name):
+            self.__dict__[name] = value
+        else:
+            self[name] = value
+
 ######################################################################
 #
 #   Private module classes and functions below here.
@@ -502,3 +537,4 @@ class Bootstrap(object):
 # call the bootstrap code whenever this module is imported
 #
 Bootstrap()
+
