@@ -10,6 +10,7 @@ Date   : 2010-09-29
 """
 
 from common import AutobuildError
+from common import Serialized
 import os
 import sys
 import subprocess
@@ -19,7 +20,7 @@ class ExecutableError(AutobuildError):
     pass
 
 
-class Executable(object):
+class Executable(Serialized):
     """
     An executable object which invokes a provided command as subprocess.
     
@@ -38,6 +39,8 @@ class Executable(object):
         myExecutable = Executable(command='gcc', options=['-ggdb'], arguments=['foo.c', 'bar.c'])
         result = myExecutable()
     """
+    
+    parent = None
     
     def __init__(self, command=None, options=[], arguments=None, parent=None):
         self.command = command
