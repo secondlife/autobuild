@@ -212,10 +212,21 @@ class S3Connection(Connection):
         return "%s%s/%s" % (self.amazonS3_server, self.bucket.name, self._get_key(filename).name)
 
 def _load_s3curl_credentials(account_name = 'lindenlab', credentials_file=None):
-    """Helper function for loading 'lindenlab' s3 credentials from ~/.s3curl"""
-    credentials_path = os.path.expandvars("$HOME/.s3curl")
+    """
+    Helper function for loading 'lindenlab' s3 credentials from s3curl.pl's ~/.s3curl config file
+    see the README file in the s3curl distribution (http://developer.amazonwebservices.com/connect/entry.jspa?externalID=128)
+    """
+    credentials_path = os.path.expanduser("~/.s3curl")
 
-    # *HACK - half-assed regex for parsing the perl hash that s3curl.pl stores its credentials in
+    # *HACK - half-assed regex for parsing the perl hash that s3curl.pl stores its credentials i.n
+    # s3curl.pl parses the file by calling eval(), as if perl wasn't dirty enough as it is...
+    # example:
+    # %awsSecretAccessKeys = (
+    #   lindenlab => {
+    #       id => 'ABCDABCDABCDABCD',
+    #       key => '01234567890abcdABCD/01234567890abcdABCD+',
+    #   },
+    #} 
     credentials_pattern = '%s\s*=>\s*{\s*id\s*=>\s*\'([^\']*)\'\s*,\s*key\s*=>\s*\'([^\']*)\',\s*}' % account_name
 
     try:
