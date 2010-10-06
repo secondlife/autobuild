@@ -48,14 +48,14 @@ class Executable(Serialized):
         self.arguments = arguments
         self.parent = parent
     
-    def __call__(self):
+    def __call__(self, options=[]):
         actual_command = self.get_command()
         if actual_command is None:
             raise ExecutableError('no command specified')
         all_arguments = [actual_command]
         all_arguments.extend(self.get_options())
+        all_arguments.extend(options)
         all_arguments.extend(self.get_arguments())
-        print all_arguments
         return subprocess.call(' '.join(all_arguments), shell=True)
     
     def get_arguments(self):

@@ -6,6 +6,7 @@
 Autobuild sub-command to build the source for a package.
 """
 
+import copy
 import os
 import shlex
 import subprocess
@@ -16,64 +17,81 @@ import common
 import autobuild_base
 import configfile
 from common import AutobuildError
+from executable import Executable
+from autobuild_tool_configure import configure
+from autobuild_tool_configure import _configure_a_configuration
+
+
+# Add autobuild/bin to path.
+os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.normpath(
+    os.path.join(os.path.dirname(__file__), os.pardir, "bin"))])
+
+
+class BuildError(AutobuildError):
+    pass
+    
 
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
-                    description='Runs the package\'s build command')
+                    description="Builds platform targets.")
 
     def register(self, parser):
         parser.add_argument('--config-file',
             dest='config_file',
             default=configfile.AUTOBUILD_CONFIG_FILE,
             help="")
-        parser.add_argument('--build-extra-args',
-            dest='build_extra_args',
-            default='',
-            help="extra arguments to the build command, will be split on any whitespace boundaries but obeys quotations")
+        parser.add_argument('--no-configure',
+            dest='do_not_configure',
+            default=False,
+            action="store_true",
+            help="do not configure before building")
+        parser.add_argument('build_extra_arguments', nargs="*", metavar='OPT',
+            help="an option to pass to the build command" )
+        parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
+            help="build a specific build configuration", metavar='CONFIGURATION')
+        parser.usage = """%(prog)s [-h] [--no-configure] [--config-file CONFIG_FILE] 
+                       [-c CONFIGURATION] [--dry-run] -- [OPT [OPT ...]]"""
 
     def run(self, args):
-        cf = configfile.ConfigFile()
-        cf.load(args.config_file)
-        build_command = read_build_command(cf)
-        do_build(build_command, args.build_extra_args)
-
-def read_build_command(cf):
-    package_definition = cf.package_definition
-    build_command = package_definition.build_command(common.get_current_platform())
-    if not build_command:
-        raise AutobuildError("No build command specified in config file.")
-    return build_command
-
-def do_build(build_command, build_extra_args):
-    build_command = shlex.split(build_command) + shlex.split(build_extra_args)
-
-    # Tease out command itself.
-    prog = build_command[0]
-    # Is it a simple filename, or does it have a path attached? If it's
-    # got a path, assume user knows what s/he's doing and just use it. But
-    # if it's a simple filename, perform a path search. This isn't quite
-    # the same as the search that would be performed by subprocess.call():
-    # for a command 'foo', our search will find 'foo.cmd', which empirically
-    # does NOT happen with subprocess.call().
-    if os.path.basename(prog) == prog:
-        # Because autobuild itself now provides certain convenience
-        # scripts for use as config-file build commands, ensure that
-        # autobuild/bin is available in our PATH.
-        bin = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir, "bin"))
-        pathdirs = os.environ.get("PATH", "").split(os.pathsep)
-        os.environ["PATH"] = os.pathsep.join(pathdirs + [bin, '.'])
-
-        # Search (augmented) PATH for the command. Replace it into the
-        # whole command line.
-        foundprog = common.find_executable(prog, os.path.splitext(prog)[1])
-        if foundprog:
-            build_command[0] = foundprog
+        if args.dry_run:
+            return
+        config = configfile.ConfigurationDescription(args.config_file)
+        configure_first = not args.do_not_configure
+        if args.configurations is not None:
+            for build_configuration_name in args.configurations:
+                if configure_first:
+                    result = configure.configure(config, build_configuration_name, 
+                        args.build_extra_arguments)
+                    if result != 0:
+                        raise BuildError("configuring configuration '%s' returned '%d'" % 
+                            (build_configuration_name, result))
+                result = build(config, build_configuration_name, args.build_extra_arguments)
+                if result != 0:
+                    raise BuildError("building configuration '%s' returned '%d'" % 
+                        (build_configuration_name, result))
         else:
-            print >>sys.stderr, "WARNING: Cannot find command %s in the path, we're probably about to fail..." % prog
+            for build_configuration in config.get_default_build_configurations():
+                if configure_first:
+                    result = _configure_a_configuration(build_configuration,
+                        args.build_extra_arguments)
+                    if result != 0:
+                        raise BuildError("configuring default configuration returned '%d'" % (result))                    
+                result = _build_a_configuration(build_configuration, args.build_extra_arguments)
+                if result != 0:
+                    raise BuildError("building default configuration returned '%d'" % (result))
 
-    print "in %r:\nexecuting: %s" % (os.getcwd(), ' '.join(repr(a) for a in build_command))
-    # *TODO - be careful here, we probably want to sanitize the environment further.
-    build_env = dict(os.environ, AUTOBUILD=common.get_autobuild_executable_path())
-    subprocess.call(build_command, env=build_env)
 
+def build(config, build_configuration_name, extra_arguments=[]):
+    """
+    Execute the platform build command for the named build configuration.
+    """
+    build_configuration = config.get_build_configuration(build_configuration_name)
+    return _build_a_configuration(build_configuration, extra_arguments)
+
+
+def _build_a_configuration(build_configuration, extra_arguments):
+    if build_configuration.build is not None:
+        return build_configuration.build(extra_arguments)
+    else:
+        return 0
