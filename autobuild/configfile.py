@@ -258,11 +258,12 @@ class ConfigFile(object):
     print "Name =", pd.name
 
     """
-    def __init__(self, package_name='anonymous'):
+    def __init__(self, package_name='anonymous', verbose=False):
         self.filename = None
         self.packages = {}
         self.definition = PackageInfo(name=package_name)
         self.changed = False
+        self.verbose = verbose
 
     def load(self, config_filename=AUTOBUILD_CONFIG_FILE):
         """
@@ -300,7 +301,8 @@ class ConfigFile(object):
             return False
 
         # load the file as a serialized LLSD
-        print "Loading %s" % self.filename
+        if self.verbose:
+            print "Loading %s" % self.filename
         try:
             keys = llsd.parse(file(self.filename, 'rb').read())
         except llsd.LLSDParseError:

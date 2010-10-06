@@ -124,6 +124,12 @@ def add_arguments(parser):
         action='append',
         dest='get_source',
         help="Get the source for this package instead of prebuilt binary.")
+    parser.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        default=False,
+        dest='verbose',
+        help="")
 
 def print_list(label, array):
     """
@@ -352,11 +358,11 @@ def install_packages(options, args):
         installed_filename = os.path.join(install_dir, installed_filename)
 
     # load the list of already installed packages
-    installed_file = configfile.ConfigFile()
+    installed_file = configfile.ConfigFile(verbose=options.verbose)
     installed_file.load(os.path.join(options.install_dir, installed_filename))
 
     # load the list of packages to install
-    config_file = configfile.ConfigFile()
+    config_file = configfile.ConfigFile(verbose=options.verbose)
     config_file.load(options.install_filename)
     if config_file.empty:
         print "No package information to load from", options.install_filename
@@ -388,7 +394,8 @@ def install_packages(options, args):
     if installed_file.changed:
         installed_file.save()
     else:
-        print "All packages are up to date."
+        if options.verbose:
+            print "All packages are up to date."
     return 0
 
 # define the entry point to this autobuild tool

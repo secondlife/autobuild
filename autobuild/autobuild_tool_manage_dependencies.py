@@ -13,13 +13,14 @@ import configfile
 import autobuild_base
 
 
-def add_dependency(addition, config_file=configfile.AUTOBUILD_CONFIG_FILE):
+# *TODO - determine if this is being called from anywhere -brad
+def add_dependency(addition, config_file=configfile.AUTOBUILD_CONFIG_FILE, verbose=False):
     """
     Adds a package dependency to the the given configuration file.  The formation for an addition
     is 'name,platform,url,md5,description,copywrite,license,licencefile'.  If a configuration file
     doesn't exist, one will be created.
     """
-    c = configfile.ConfigFile()
+    c = configfile.ConfigFile(verbose=verbose)
     c.load(config_file)
     _add_internal(c, addition)
     c.save()
@@ -86,7 +87,7 @@ class autobuild_tool(autobuild_base.autobuild_base):
 
     def run(self, args):
 
-        c = configfile.ConfigFile()
+        c = configfile.ConfigFile(verbose=args.verbose)
         if getattr(args, 'config_file', None) == None:
             print "No package config file Specified"
             return
