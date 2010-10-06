@@ -368,4 +368,6 @@ def test_load_s3_credentials():
     """)
 
     creds = connection._load_s3curl_credentials(credentials_file=s3curl_creds)
+    assert(creds['id'] == 'TESTID')
+    assert(creds['key'] == 'TEST/KEY+')
 
