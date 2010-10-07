@@ -9,9 +9,13 @@ import os
 import sys
 
 import autobuild_base
-from autobuild_tool_manifest import construct_manifest
 import common
 import configfile
+
+
+# FIXME: remove after bootstrap is updated  
+def construct_manifest(*args):
+    pass
 
 
 class autobuild_tool(autobuild_base.autobuild_base):

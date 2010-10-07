@@ -1,41 +1,55 @@
 <?xml version="1.0" ?>
 <llsd>
 <map>
-    <key>test1</key>
+    <key>installables</key>
+    <array>
+    </array>
+    <key>package_description</key>
     <map>
-      <key>builddir</key>
-      <string>package-test</string>
-      <key>copyright</key>
-      <string>Copyright (c) 2010, Linden Research, Inc.</string>
-      <key>description</key>
-      <string>Test package created by test_configfile.py</string>
       <key>license</key>
-      <string>GPL2</string>
-      <key>licensefile</key>
-      <string>LICENSES/test1.txt</string>
-      <key>manifest</key>
+      <string>GPL</string>
+      <key>license_file</key>
+      <undef />
+      <key>name</key>
+      <string>test1</string>
+      <key>platforms</key>
       <map>
         <key>common</key>
         <map>
-          <key>files</key>
+          <key>build_directory</key>
+          <undef />
+          <key>configurations</key>
+          <map>
+          </map>
+          <key>manifest</key>
           <array>
-            <string>include/file1</string>
-            <string>file2</string>
-            <string>LICENSES/*</string>
+            <string>include/*</string>
+            <string>LICENSES/*.txt</string>
           </array>
+          <key>name</key>
+          <string>common</string>
         </map>
         <key>linux</key>
         <map>
-          <key>files</key>
+          <key>build_directory</key>
+          <string>package-test</string>
+          <key>configurations</key>
+          <map>
+          </map>
+          <key>manifest</key>
           <array>
-            <string>lib/file3</string>
+            <string>lib/*</string>
           </array>
+          <key>name</key>
+          <string>linux</string>
         </map>
       </map>
-      <key>summary</key>
-      <string>Test package</string>
       <key>version</key>
       <string>1.0</string>
     </map>
+    <key>type</key>
+    <string>autobuild</string>
+    <key>version</key>
+    <string>1.2</string>
   </map>
 </llsd>

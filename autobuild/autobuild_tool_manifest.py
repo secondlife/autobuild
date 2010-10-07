@@ -3,6 +3,12 @@
 # Copyright (c) 2010, Linden Research, Inc.
 # $/LicenseInfo$
 
+"""
+Provides tools for manipulating platform manifests.
+
+Manifests specify by platform the files that should be bundled into 
+an archive when packaging the build product.
+"""
 
 import os
 

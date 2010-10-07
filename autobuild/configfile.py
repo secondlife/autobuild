@@ -62,6 +62,24 @@ class ConfigurationDescription(common.Serialized):
         else:
             raise ConfigurationError("no configuration for build configuration '%s'" % 
                 build_configuration_name)
+   
+    def get_build_directory(self, platform_name):
+        """
+        Returns the absolute path to the build directory.
+        """
+        if self.package_description is None:
+            raise ConfigurationError('no package configuration defined')
+        platform_description = self.package_description.platforms.get(platform_name, None)
+        if platform_description is None:
+            raise ConfigurationError("no configuration for platform '%s'" % current_platform)
+        config_directory = os.path.dirname(self.path)
+        if platform_description.build_directory is not None:
+            build_directory = platform_description.build_directory
+            if not os.path.isabs(build_directory):
+                build_directory = os.path.abspath(os.path.join(config_directory, build_directory))
+        else:
+            build_directory = config_directory
+        return build_directory
 
     def get_default_build_configurations(self):
         """
@@ -93,21 +111,9 @@ class ConfigurationDescription(common.Serialized):
     
     def make_build_directory(self):
         """
-        Makes the current platform's build directory if it does not exist and returns a path to it.
+        Makes the working platform's build directory if it does not exist and returns a path to it.
         """
-        if self.package_description is None:
-            raise ConfigurationError('no package configuration defined')
-        platform_description = self.package_description.platforms.get(
-            common.get_current_platform(), None)
-        if platform_description is None:
-            raise ConfigurationError("no configuration for platform '%s'" % current_platform)
-        config_directory = os.path.dirname(self.path)
-        if platform_description.build_directory is not None:
-            build_directory = platform_description.build_directory
-            if not os.path.isabs(build_directory):
-                build_directory = os.path.abspath(os.path.join(config_directory, build_directory))
-        else:
-            build_directory = config_directory
+        build_directory = self.get_build_directory(common.get_current_platform())
         if not os.path.isdir(build_directory):
             os.mkdir(build_directory)
         return build_directory
@@ -173,6 +179,9 @@ class PackageDescription(common.Serialized):
     
     def __init__(self, arg):
         self.platforms={}
+        self.license = None
+        self.license_file = None
+        self.version = None
         if isinstance(arg, dict):
             self.__init_from_dict(arg.copy())
         else:
@@ -194,6 +203,7 @@ class PlatformDescription(common.Serialized):
         dependencies
         build_directory
         manifest
+        name
         configurations
     """
     
@@ -201,6 +211,7 @@ class PlatformDescription(common.Serialized):
         self.configurations = {}
         self.manifest = []
         self.build_directory = None
+        self.name = None
         if dictionary is not None:
             self.__init_from_dict(dictionary.copy())
    
