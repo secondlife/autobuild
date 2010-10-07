@@ -22,6 +22,7 @@ class TestConfigFile(unittest.TestCase, AutobuildBaselineCompare):
         package = configfile.PackageDescription('test')
         config.package_description = package
         platform = configfile.PlatformDescription()
+        platform.build_directory = '.'
         build_cmd = Executable(command="gcc", options=['-wall'])
         build_configuration = configfile.BuildConfigurationDescription()
         build_configuration.build = build_cmd

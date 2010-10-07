@@ -48,9 +48,11 @@ class autobuild_tool(autobuild_base.autobuild_base):
             help="do not configure before building")
         parser.add_argument('build_extra_arguments', nargs="*", metavar='OPT',
             help="an option to pass to the build command" )
+        parser.add_argument('--all','-a',dest='all', default=False, action="store_true",
+            help="build all configurations")
         parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
             help="build a specific build configuration", metavar='CONFIGURATION')
-        parser.usage = """%(prog)s [-h] [--no-configure] [--config-file CONFIG_FILE] 
+        parser.usage = """%(prog)s [-h] [--no-configure] [--config-file CONFIG_FILE] [-a]
                        [-c CONFIGURATION] [--dry-run] -- [OPT [OPT ...]]"""
 
     def run(self, args):
@@ -62,28 +64,22 @@ class autobuild_tool(autobuild_base.autobuild_base):
         os.chdir(build_directory)
         try:
             configure_first = not args.do_not_configure
-            if args.configurations is not None:
-                for build_configuration_name in args.configurations:
-                    if configure_first:
-                        result = configure.configure(config, build_configuration_name, 
-                            args.build_extra_arguments)
-                        if result != 0:
-                            raise BuildError("configuring configuration '%s' returned '%d'" % 
-                                (build_configuration_name, result))
-                    result = build(config, build_configuration_name, args.build_extra_arguments)
-                    if result != 0:
-                        raise BuildError("building configuration '%s' returned '%d'" % 
-                            (build_configuration_name, result))
+            if args.all:
+                build_configurations = config.get_all_build_configurations()
+            elif args.configurations is not None:
+                build_configurations = \
+                    [config.get_build_configuration(name) for name in args.configurations]
             else:
-                for build_configuration in config.get_default_build_configurations():
-                    if configure_first:
-                        result = _configure_a_configuration(build_configuration,
-                            args.build_extra_arguments)
-                        if result != 0:
-                            raise BuildError("configuring default configuration returned '%d'" % (result))                    
-                    result = _build_a_configuration(build_configuration, args.build_extra_arguments)
+                build_configurations = config.get_default_build_configurations()
+            for build_configuration in build_configurations:
+                if configure_first:
+                    result = _configure_a_configuration(build_configuration,
+                        args.build_extra_arguments)
                     if result != 0:
-                        raise BuildError("building default configuration returned '%d'" % (result))
+                        raise BuildError("configuring default configuration returned '%d'" % (result))                    
+                result = _build_a_configuration(build_configuration, args.build_extra_arguments)
+                if result != 0:
+                    raise BuildError("building default configuration returned '%d'" % (result))
         finally:
             os.chdir(current_directory)
 

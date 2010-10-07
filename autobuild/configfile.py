@@ -44,34 +44,38 @@ class ConfigurationDescription(common.Serialized):
         self.version = AUTOBUILD_CONFIG_VERSION
         self.type = AUTOBUILD_CONFIG_TYPE
         self.__load(path)
-            
-    def save(self):
+   
+    def get_all_build_configurations(self):
         """
-        Save the configuration state to the input file.
+        Returns all build configurations.
         """
-        file(self.path, 'wb').write(llsd.format_pretty_xml(_flatten_to_dict(self)))
+        return self.get_platform().configurations.values()
     
     def get_build_configuration(self, build_configuration_name):
         """
         Returns the named platform specific build configuration. 
         """
-        if self.package_description is None:
-            raise ConfigurationError('no package configuration defined')
-        current_platform = common.get_current_platform()
-        platform_description = self.package_description.platforms.get(current_platform, None)
-        if platform_description is None:
-            raise ConfigurationError("no configuration for platform '%s'" % current_platform)
         build_configuration = \
-            platform_description.configurations.get(build_configuration_name, None)
+            self.get_platform().configurations.get(build_configuration_name, None)
         if build_configuration is not None:
             return build_configuration
         else:
             raise ConfigurationError("no configuration for build configuration '%s'" % 
-                build_configuration)
+                build_configuration_name)
 
     def get_default_build_configurations(self):
         """
         Returns the platform specific build configurations which are marked as default.
+        """
+        default_build_configurations = []
+        for (key, value) in self.get_platform().configurations.iteritems():
+            if value.default:
+                default_build_configurations.append(value)
+        return default_build_configurations
+    
+    def get_platform(self):
+        """
+        Returns the current platform description.
         """
         if self.package_description is None:
             raise ConfigurationError('no package configuration defined')
@@ -79,11 +83,8 @@ class ConfigurationDescription(common.Serialized):
             common.get_current_platform(), None)
         if platform_description is None:
             raise ConfigurationError("no configuration for platform '%s'" % current_platform)
-        default_build_configurations = []
-        for (key, value) in platform_description.configurations.items():
-            if value.default:
-                default_build_configurations.append(value)
-        return default_build_configurations
+        else:
+            return platform_description
     
     def make_build_directory(self):
         """
@@ -105,6 +106,12 @@ class ConfigurationDescription(common.Serialized):
         if not os.path.isdir(build_directory):
             os.mkdir(build_directory)
         return build_directory
+            
+    def save(self):
+        """
+        Save the configuration state to the input file.
+        """
+        file(self.path, 'wb').write(llsd.format_pretty_xml(_flatten_to_dict(self)))
             
     def __load(self, path):
         if os.path.isabs(path):

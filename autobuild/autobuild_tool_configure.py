@@ -39,17 +39,17 @@ class autobuild_tool(autobuild_base.autobuild_base):
         build_directory = config.make_build_directory()
         os.chdir(build_directory)
         try:
-            if args.configurations is not None:
-                for build_configuration_name in args.configurations:
-                    result = configure(config, build_configuration_name, args.additional_options)
-                    if result != 0:
-                        raise ConfigurationError("building configuration '%s' returned '%d'" % 
-                            (build_configuration_name, result))
+            if args.all:
+                build_configurations = config.get_all_build_configurations()
+            elif args.configurations is not None:
+                build_configurations = \
+                    [config.get_build_configuration(name) for name in args.configurations]
             else:
-                for build_configuration in config.get_default_build_configurations():
-                    result = _configure_a_configuration(build_configuration, args.additional_options)
-                    if result != 0:
-                        raise ConfigurationError("default configuration returned '%d'" % (result))
+                build_configurations = config.get_default_build_configurations()
+            for build_configuration in build_configurations:
+                result = _configure_a_configuration(build_configuration, args.additional_options)
+                if result != 0:
+                    raise ConfigurationError("default configuration returned '%d'" % (result))
         finally:
             os.chdir(current_directory)
 
