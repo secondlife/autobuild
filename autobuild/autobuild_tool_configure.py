@@ -8,6 +8,7 @@ import autobuild_base
 import common
 from common import AutobuildError
 import configfile
+import os
 
 
 class ConfigurationError(AutobuildError):
@@ -34,18 +35,23 @@ class autobuild_tool(autobuild_base.autobuild_base):
         if args.dry_run:
             return
         config = configfile.ConfigurationDescription(args.config_file)
-        if args.configurations is not None:
-            for build_configuration_name in args.configurations:
-                result = configure(config, build_configuration_name, args.additional_options)
-                if result != 0:
-                    raise ConfigurationError("building configuration '%s' returned '%d'" % 
-                        (build_configuration_name, result))
-        else:
-            for build_configuration in config.get_default_build_configurations():
-                result = _configure_a_configuration(build_configuration, args.additional_options)
-                if result != 0:
-                    raise ConfigurationError("default configuration returned '%d'" % (result))
-
+        current_directory = os.getcwd()
+        build_directory = config.make_build_directory()
+        os.chdir(build_directory)
+        try:
+            if args.configurations is not None:
+                for build_configuration_name in args.configurations:
+                    result = configure(config, build_configuration_name, args.additional_options)
+                    if result != 0:
+                        raise ConfigurationError("building configuration '%s' returned '%d'" % 
+                            (build_configuration_name, result))
+            else:
+                for build_configuration in config.get_default_build_configurations():
+                    result = _configure_a_configuration(build_configuration, args.additional_options)
+                    if result != 0:
+                        raise ConfigurationError("default configuration returned '%d'" % (result))
+        finally:
+            os.chdir(current_directory)
 
 def configure(config, build_configuration_name, extra_arguments=[]):
     """

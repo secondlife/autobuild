@@ -85,6 +85,27 @@ class ConfigurationDescription(common.Serialized):
                 default_build_configurations.append(value)
         return default_build_configurations
     
+    def make_build_directory(self):
+        """
+        Makes the current platform's build directory if it does not exist and returns a path to it.
+        """
+        if self.package_description is None:
+            raise ConfigurationError('no package configuration defined')
+        platform_description = self.package_description.platforms.get(
+            common.get_current_platform(), None)
+        if platform_description is None:
+            raise ConfigurationError("no configuration for platform '%s'" % current_platform)
+        config_directory = os.path.dirname(self.path)
+        if 'build_directory' in platform_description:
+            build_directory = platform_description.build_directory
+            if not os.path.isabs(build_directory):
+                build_directory = os.path.abspath(os.path.join(config_directory, build_directory))
+        else:
+            build_directory = config_directory
+        if not os.path.isdir(build_directory):
+            os.mkdir(build_directory)
+        return build_directory
+            
     def __load(self, path):
         if os.path.isabs(path):
             self.path = path
@@ -112,9 +133,11 @@ class ConfigurationDescription(common.Serialized):
             for package in installables:
                 self.installables.append(PackageDescription(package))
             self.update(saved_data)
-        else:
+        elif not os.path.exists(self.path):
             self.package_description = None
             self.installables = []
+        else:
+            raise ConfigurationError("cannot create configuration file %s" % self.path)
 
 
 class PackageDescription(common.Serialized):

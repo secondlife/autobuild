@@ -8,16 +8,18 @@ import autobuild.configfile as configfile
 from autobuild.executable import Executable
 import autobuild.common as common
 import subprocess
+import os
 
 
 class TestConfigure(unittest.TestCase, AutobuildBaselineCompare):
     def setUp(self):
+        os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
         self.tmp_file = self.get_tmp_file(0)
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         package = configfile.PackageDescription('test')
         platform = configfile.PlatformDescription()
         build_configuration = configfile.BuildConfigurationDescription()
-        build_configuration.configure = Executable(command="tests/noop.py")
+        build_configuration.configure = Executable(command="noop.py")
         build_configuration.default = True
         platform.configurations['Release'] = build_configuration
         package.platforms[common.get_current_platform()] = platform
