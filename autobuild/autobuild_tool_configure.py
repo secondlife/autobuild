@@ -27,9 +27,11 @@ class autobuild_tool(autobuild_base.autobuild_base):
             help="")
         parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
             help="build a specific build configuration", metavar='CONFIGURATION')
+        parser.add_argument('--all','-a',dest='all', default=False, action="store_true",
+            help="build all configurations")
         parser.add_argument('additional_options', nargs="*", metavar='OPT',
             help="an option to pass to the configuration command" )
-        parser.usage = "%(prog)s [-h] [--dry-run] [-c CONFIGURATION] [--config-file FILE] [-- OPT [OPT ...]]"
+        parser.usage = "%(prog)s [-h] [--dry-run] [-c CONFIGURATION][-a][--config-file FILE] [-- OPT [OPT ...]]"
 
     def run(self, args):
         if args.dry_run:

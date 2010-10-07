@@ -6,10 +6,7 @@
 Autobuild sub-command to build the source for a package.
 """
 
-import copy
 import os
-import shlex
-import subprocess
 import sys
 
 # autobuild modules:
@@ -17,7 +14,6 @@ import common
 import autobuild_base
 import configfile
 from common import AutobuildError
-from executable import Executable
 from autobuild_tool_configure import configure
 from autobuild_tool_configure import _configure_a_configuration
 
