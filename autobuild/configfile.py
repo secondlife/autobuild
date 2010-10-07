@@ -49,14 +49,14 @@ class ConfigurationDescription(common.Serialized):
         """
         Returns all build configurations.
         """
-        return self.get_platform().configurations.values()
+        return self.get_working_platform().configurations.values()
     
     def get_build_configuration(self, build_configuration_name):
         """
         Returns the named platform specific build configuration. 
         """
         build_configuration = \
-            self.get_platform().configurations.get(build_configuration_name, None)
+            self.get_working_platform().configurations.get(build_configuration_name, None)
         if build_configuration is not None:
             return build_configuration
         else:
@@ -68,23 +68,28 @@ class ConfigurationDescription(common.Serialized):
         Returns the platform specific build configurations which are marked as default.
         """
         default_build_configurations = []
-        for (key, value) in self.get_platform().configurations.iteritems():
+        for (key, value) in self.get_working_platform().configurations.iteritems():
             if value.default:
                 default_build_configurations.append(value)
         return default_build_configurations
     
-    def get_platform(self):
+    def get_platform(self, platform_name):
         """
-        Returns the current platform description.
+        Returns the named platform description. 
         """
         if self.package_description is None:
             raise ConfigurationError('no package configuration defined')
-        platform_description = self.package_description.platforms.get(
-            common.get_current_platform(), None)
+        platform_description = self.package_description.platforms.get(platform_name, None)
         if platform_description is None:
             raise ConfigurationError("no configuration for platform '%s'" % current_platform)
         else:
             return platform_description
+    
+    def get_working_platform(self):
+        """
+        Returns the working platform description.
+        """
+        return self.get_platform(common.get_current_platform())
     
     def make_build_directory(self):
         """
@@ -97,7 +102,7 @@ class ConfigurationDescription(common.Serialized):
         if platform_description is None:
             raise ConfigurationError("no configuration for platform '%s'" % current_platform)
         config_directory = os.path.dirname(self.path)
-        if 'build_directory' in platform_description:
+        if platform_description.build_directory is not None:
             build_directory = platform_description.build_directory
             if not os.path.isabs(build_directory):
                 build_directory = os.path.abspath(os.path.join(config_directory, build_directory))
@@ -194,6 +199,8 @@ class PlatformDescription(common.Serialized):
     
     def __init__(self, dictionary = None):
         self.configurations = {}
+        self.manifest = []
+        self.build_directory = None
         if dictionary is not None:
             self.__init_from_dict(dictionary.copy())
    

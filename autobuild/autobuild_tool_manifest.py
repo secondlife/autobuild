@@ -11,60 +11,74 @@ from common import get_current_platform, AutobuildError
 import configfile
 
 
-def construct_manifest(packageInfo, patterns, platform):
-    """
-    Creates the manifest in the package info structure for the given platform using the provided 
-    patterns.
-    """
-    packageInfo.set_manifest_files(platform, patterns)    
-    
-    
 class autobuild_tool(autobuild_base.autobuild_base):
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
-            description="Add manifest entries to the autobuild configuration file using the"
-            " provided patterns.")
+            description="Manipulate manifest entries to the autobuild configuration.")
      
     def register(self, parser):
-        parser.add_argument('-v', '--version', action='version', version='manifest tool 1.0')
-        parser.add_argument('-f','--file',
-            help="The configuration file to modify")
-        parser.add_argument('pattern', nargs='+',
-            help='File pattern to match when searching for files to add to the manifest')
-        parser.add_argument('-p','--package',
-            help="The package to which this manifest should be added")
-        parser.add_argument('--platform', default=get_current_platform(),
-            help="The platform associated with this manifest")
-        parser.add_argument('--verbose', action='store_true')
+        parser.add_argument('--config-file',
+            dest='config_file',
+            default=configfile.AUTOBUILD_CONFIG_FILE,
+            help="")
+        parser.add_argument('--platform','-p', default=get_current_platform(),
+            help="the platform manifest to manipulate")
+        parser.add_argument('command', nargs='?', default='print',
+            help="manifest command: add, remove, clear, or print")
+        parser.add_argument('pattern', nargs='*', help='a file pattern')
 
     def run(self, args):
-        config = configfile.ConfigFile()
-        if args.file is not None:
-            config.load(args.file)
+        config = configfile.ConfigurationDescription(args.config_file)
+        if args.command == 'add':
+            [add(config, args.platform, p) for p in args.pattern]
+        elif args.command == 'remove':
+            [remove(config, args.platform, p) for p in args.pattern]
+        elif args.command == 'clear':
+            clear(config, args.platform)
+        elif args.command == 'print':
+            print_manifest(config, args.platform)
         else:
-             config.load()
-        if args.package:
-            packageInfo = config.package(args.package)
-            if packageInfo is None:
-                raise UnkownPackageError("package '%s' not found" % args.package)
-        elif config.package_definition is not None:
-            packageInfo = config.package_definition
-        else:
-            raise DefaultPackageUndefinedError("default package not defined")
-        construct_manifest(packageInfo, args.pattern, args.platform)
-        if args.verbose or args.dry_run:
-            for file in packageInfo.manifest_files(args.platform):
-                print file
+            raise ManifestError('unknown command %s' % args.command)
         if args.dry_run is not None and not args.dry_run:
             config.save()
 
 
-class DefaultPackageUndefinedError(AutobuildError):
+class ManifestError(AutobuildError):
 	pass
 
 
-class UnkownPackageError(AutobuildError):
-	pass
+def add(config, platform_name, pattern):
+    """
+    Adds a pattern to the giving platform's manifest.
+    """
+    platform_description = config.get_platform(platform_name)
+    platform_description.manifest.append(pattern)
+
+
+def remove(config, platform_name, pattern):
+    """
+    Removes first occurance of a pattern in the manifest which is equivalent to the given pattern.
+    """
+    platform_description = config.get_platform(platform_name)
+    try:
+        platform_description.manifest.remove(pattern)
+    except:
+        pass
+
+
+def clear(config, platform_name):
+    """
+    Clears all entries from the manifest list.
+    """
+    config.get_platform(platform_name).manifest = []
+
+
+def print_manifest(config, platform_name):
+    """
+    Prints the platform's manifest.
+    """
+    for pattern in config.get_platform(platform_name).manifest:
+        print pattern
 
 
 if __name__ == "__main__":
