@@ -56,7 +56,6 @@ class TestManifest(unittest.TestCase, AutobuildBaselineCompare):
 
     def test_autobuild_manifest(self):
         self.config.save()
-        print self.config.get_platform('common')
         result = subprocess.call("autobuild manifest --config-file=%s -p common add *.cpp *.h '*.py'" % \
             self.tmp_file, shell=True)
         assert result == 0
@@ -73,7 +72,7 @@ class TestManifest(unittest.TestCase, AutobuildBaselineCompare):
         assert ('*.h' in common_manifest) and ('*.py' in common_manifest)
         
     def tearDown(self):
-        pass
+        self.cleanup_tmp_file()
 
 
 if __name__ == '__main__':

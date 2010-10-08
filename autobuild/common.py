@@ -172,22 +172,31 @@ def is_package_in_cache(package):
     to the local package cache.
     """
     return os.path.exists(get_package_in_cache(package))
+    
+def compute_md5(path):
+    """
+    Returns the MD5 sum for the given file.
+    """
+    if not os.path.isfile(path):
+        raise AutobuildError('%s is not a file' % path)
+    
+    try:
+        from hashlib import md5      # Python 2.6
+    except ImportError:
+        from md5 import new as md5   # Python 2.5 and earlier
+    stream = open(file, 'rb')
+    try:
+        hasher = md5(strem.read())
+    except:
+        raise AutobuildError('error computing hash')
+    return hasher.hexdigest()
 
 def does_package_match_md5(package, md5sum):
     """
     Returns True if the MD5 sum of the downloaded package archive
     matches the specified MD5 string.
     """
-    try:
-        from hashlib import md5      # Python 2.6
-    except ImportError:
-        from md5 import new as md5   # Python 2.5 and earlier
-
-    try:
-        hasher = md5(file(get_package_in_cache(package), 'rb').read())
-    except:
-        return False
-    return hasher.hexdigest() == md5sum
+    return compute_md5(get_package_in_cache(package)) == md5sum
 
 def download_package(package):
     """

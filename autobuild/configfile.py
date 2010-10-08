@@ -44,7 +44,18 @@ class ConfigurationDescription(common.Serialized):
         self.version = AUTOBUILD_CONFIG_VERSION
         self.type = AUTOBUILD_CONFIG_TYPE
         self.__load(path)
-   
+ 
+    def absolute_path(self, path):
+        """
+        Returns an absoulte path derived from the input path rooted at the configuration file's
+        directory when the input is a relative path.
+        """
+        if os.path.isabs(path):
+            return path
+        else:
+            return os.path.abspath(os.path.join(os.path.dirname(self.path), path))
+
+ 
     def get_all_build_configurations(self):
         """
         Returns all build configurations.
@@ -199,7 +210,7 @@ class PlatformDescription(common.Serialized):
     Contains the platform specific metadata for a package.
     
     Attributes:
-        archives
+        archive
         dependencies
         build_directory
         manifest
@@ -212,6 +223,7 @@ class PlatformDescription(common.Serialized):
         self.manifest = []
         self.build_directory = None
         self.name = None
+        self.archive = None
         if dictionary is not None:
             self.__init_from_dict(dictionary.copy())
    
@@ -219,6 +231,9 @@ class PlatformDescription(common.Serialized):
         configurations = dictionary.pop('configurations',{})
         for (key, value) in configurations.iteritems():
             self.configurations[key] = BuildConfigurationDescription(value)
+        archive = dictionary.pop('archive', None)
+        if archive is not None:
+            self.archive = ArchiveDescription(archive)
         self.update(dictionary)
         
 
@@ -253,11 +268,30 @@ class BuildConfigurationDescription(common.Serialized):
                 arguments=command.get('arguments'))
 
 
+class ArchiveDescription(common.Serialized):
+    """
+    Describes a dowloadable archive of artifacts for this package.
+    
+    Attributes:
+        hash
+        hash_algorithm
+        url
+    """
+    def __init__(self, dictionary = None):
+        self.hash = None
+        self.hash_algorithm = None
+        self.url = None
+        if dictionary is not None:
+            self.update(dictionary)
+
+
 def _flatten_to_dict(obj):
-    if isinstance(obj,dict):
+    if isinstance(obj, dict):
         result = {}
         for (key,value) in obj.items():
             result[key] = _flatten_to_dict(value)
         return result
+    elif isinstance(obj, list):
+        return [_flatten_to_dict(o) for o in obj]
     else:
         return obj
