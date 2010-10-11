@@ -13,6 +13,7 @@ import common
 from executable import Executable
 from common import AutobuildError
 from llbase import llsd
+import update
 
 
 AUTOBUILD_CONFIG_FILE="autobuild.xml"
@@ -150,24 +151,31 @@ class ConfigurationDescription(common.Serialized):
                 saved_data = llsd.parse(file(self.path, 'rb').read())
             except llsd.LLSDParseError:
                 raise AutobuildError("Config file is corrupt: %s. Aborting..." % self.filename)
-            if (not saved_data.has_key('type')) or (saved_data['type'] != 'autobuild'):
-                raise AutobuildError('not an autoubuild configuration file')
-            if (not saved_data.has_key('version')) or (saved_data['version'] != self.version):
+            if not saved_data.has_key('version'):
                 raise AutobuildError('incompatible configuration file')
-            package_description = saved_data.pop('package_description', None)
-            if package_description is not None:
-                self.package_description = PackageDescription(package_description)
-            installables = saved_data.pop('installables', [])
-            self.installables = []
-            for package in installables:
-                self.installables.append(PackageDescription(package))
-            self.update(saved_data)
+            if saved_data['version'] == self.version:
+                if (not saved_data.has_key('type')) or (saved_data['type'] != 'autobuild'):
+                    raise AutobuildError('not an autoubuild configuration file')
+                package_description = saved_data.pop('package_description', None)
+                if package_description is not None:
+                    self.package_description = PackageDescription(package_description)
+                installables = saved_data.pop('installables', [])
+                self.installables = []
+                for package in installables:
+                    self.installables.append(PackageDescription(package))
+                self.update(saved_data)
+            else:
+                self.package_description = None
+                self.installables = []
+                if saved_data['version'] in update.updaters:
+                    update.updaters[saved_data['version']](saved_data, self)
+                else:
+                    raise ConfigurationError("cannot update version %s file" % saved_data.version)
         elif not os.path.exists(self.path):
             self.package_description = None
             self.installables = []
         else:
             raise ConfigurationError("cannot create configuration file %s" % self.path)
-
 
 class PackageDescription(common.Serialized):
     """
