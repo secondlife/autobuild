@@ -9,14 +9,14 @@ Create archives of build output, ready for upload to the server.
 import sys
 import os
 import common
-from autobuild_base import autobuild_base
+from autobuild_base import AutobuildBase
 from configfile import ConfigFile, AUTOBUILD_CONFIG_FILE
 from connection import SCPConnection, S3Connection, S3ConnectionError, SCPConnectionError
 
 class UploadError(common.AutobuildError):
     pass
 
-class AutobuildTool(autobuild_base):
+class AutobuildTool(AutobuildBase):
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
                     description="upload tool for autobuild")

@@ -28,7 +28,7 @@ class BuildError(AutobuildError):
     pass
     
 
-class AutobuildTool(autobuild_base.autobuild_base):
+class AutobuildTool(autobuild_base.AutobuildBase):
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
                     description="Builds platform targets.")

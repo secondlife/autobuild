@@ -20,7 +20,7 @@ class ConfigurationError(AutobuildError):
     pass
 
 
-class AutobuildTool(autobuild_base.autobuild_base):
+class AutobuildTool(autobuild_base.AutobuildBase):
     def get_details(self):
         return dict(name='configure',
             description="Configures platform targets.")

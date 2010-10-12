@@ -392,7 +392,7 @@ def install_packages(options, args):
     return 0
 
 # define the entry point to this autobuild tool
-class AutobuildTool(autobuild_base.autobuild_base):
+class AutobuildTool(autobuild_base.AutobuildBase):
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
                     description='Fetch and install package archives.')

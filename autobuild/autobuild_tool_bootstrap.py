@@ -18,7 +18,7 @@ def construct_manifest(*args):
     pass
 
 
-class AutobuildTool(autobuild_base.autobuild_base):
+class AutobuildTool(autobuild_base.AutobuildBase):
     def get_details(self):
         return dict(name='bootstrap',
             description="Run an interactive session to build an Autobuild configuration file")

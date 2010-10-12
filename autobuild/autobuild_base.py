@@ -11,7 +11,7 @@ import unittest
 
 # Main tool functionality
 
-class autobuild_base:
+class AutobuildBase:
 
     def name_from_file(self, filename):
         """
