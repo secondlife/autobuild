@@ -12,6 +12,7 @@ import os
 import common
 from executable import Executable
 from common import AutobuildError
+from common import get_current_platform
 from llbase import llsd
 import update
 
@@ -55,29 +56,28 @@ class ConfigurationDescription(common.Serialized):
             return path
         else:
             return os.path.abspath(os.path.join(os.path.dirname(self.path), path))
-
  
-    def get_all_build_configurations(self):
+    def get_all_build_configurations(self, platform_name=get_current_platform()):
         """
-        Returns all build configurations.
+        Returns all build configurations for the platform.
         """
-        return self.get_working_platform().configurations.values()
+        return self.get_platform(platform_name).configurations.values()
     
-    def get_build_configuration(self, build_configuration_name):
+    def get_build_configuration(self, build_configuration_name, platform_name=get_current_platform()):
         """
-        Returns the named platform specific build configuration. 
+        Returns the named build configuration for the platform. 
         """
         build_configuration = \
-            self.get_working_platform().configurations.get(build_configuration_name, None)
+            self.get_platform(platform_name).configurations.get(build_configuration_name, None)
         if build_configuration is not None:
             return build_configuration
         else:
             raise ConfigurationError("no configuration for build configuration '%s'" % 
                 build_configuration_name)
    
-    def get_build_directory(self, platform_name):
+    def get_build_directory(self, platform_name=get_current_platform()):
         """
-        Returns the absolute path to the build directory.
+        Returns the absolute path to the build directory for the platform.
         """
         if self.package_description is None:
             raise ConfigurationError('no package configuration defined')
@@ -93,12 +93,12 @@ class ConfigurationDescription(common.Serialized):
             build_directory = config_directory
         return build_directory
 
-    def get_default_build_configurations(self):
+    def get_default_build_configurations(self, platform_name=get_current_platform()):
         """
         Returns the platform specific build configurations which are marked as default.
         """
         default_build_configurations = []
-        for (key, value) in self.get_working_platform().configurations.iteritems():
+        for (key, value) in self.get_platform(platform_name).configurations.iteritems():
             if value.default:
                 default_build_configurations.append(value)
         return default_build_configurations
@@ -119,7 +119,7 @@ class ConfigurationDescription(common.Serialized):
         """
         Returns the working platform description.
         """
-        return self.get_platform(common.get_current_platform())
+        return self.get_platform(get_current_platform())
     
     def make_build_directory(self):
         """
@@ -253,6 +253,7 @@ class BuildConfigurationDescription(common.Serialized):
         default
         configure
         build
+        name
     """
     
     build_steps = ['configure', 'build']
@@ -261,6 +262,7 @@ class BuildConfigurationDescription(common.Serialized):
         self.configure = None
         self.build = None
         self.default = False
+        self.name = None
         if dictionary is not None:
             self.__init_from_dict(dictionary.copy())
    

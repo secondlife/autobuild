@@ -21,6 +21,7 @@ class TestConfigure(unittest.TestCase, AutobuildBaselineCompare):
         build_configuration = configfile.BuildConfigurationDescription()
         build_configuration.configure = Executable(command="noop.py")
         build_configuration.default = True
+        build_configuration.name = 'Release'
         platform.configurations['Release'] = build_configuration
         package.platforms[common.get_current_platform()] = platform
         self.config.package_description = package

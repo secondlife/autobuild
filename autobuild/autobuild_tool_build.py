@@ -11,6 +11,7 @@ import sys
 
 # autobuild modules:
 import common
+import copy
 import autobuild_base
 import configfile
 from common import AutobuildError
@@ -69,11 +70,11 @@ class autobuild_tool(autobuild_base.autobuild_base):
                 build_configurations = config.get_default_build_configurations()
             for build_configuration in build_configurations:
                 if configure_first:
-                    result = _configure_a_configuration(build_configuration,
+                    result = _configure_a_configuration(config, build_configuration,
                         args.build_extra_arguments)
                     if result != 0:
                         raise BuildError("configuring default configuration returned '%d'" % (result))                    
-                result = _build_a_configuration(build_configuration, args.build_extra_arguments)
+                result = _build_a_configuration(config, build_configuration, args.build_extra_arguments)
                 if result != 0:
                     raise BuildError("building default configuration returned '%d'" % (result))
         finally:
@@ -85,11 +86,21 @@ def build(config, build_configuration_name, extra_arguments=[]):
     Execute the platform build command for the named build configuration.
     """
     build_configuration = config.get_build_configuration(build_configuration_name)
-    return _build_a_configuration(build_configuration, extra_arguments)
+    return _build_a_configuration(config, build_configuration, extra_arguments)
 
 
-def _build_a_configuration(build_configuration, extra_arguments):
+def _build_a_configuration(config, build_configuration, extra_arguments):
+    try:
+        common_build_configuration = \
+            config.get_build_configuration(build_configuration.name, 'common')
+        parent_build = common_build_configuration.build
+    except:
+        parent_build = None
     if build_configuration.build is not None:
-        return build_configuration.build(extra_arguments)
+        build_executable = copy.copy(build_configuration.build)
+        build_executable.parent = parent_build
+        return build_executable(extra_arguments)
+    elif parent_build is not none:
+        return parent_build(extra_arguments)
     else:
         return 0

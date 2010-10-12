@@ -5,6 +5,7 @@
 
 
 import autobuild_base
+import copy
 import common
 from common import AutobuildError
 import configfile
@@ -49,7 +50,8 @@ class autobuild_tool(autobuild_base.autobuild_base):
             else:
                 build_configurations = config.get_default_build_configurations()
             for build_configuration in build_configurations:
-                result = _configure_a_configuration(build_configuration, args.additional_options)
+                result = _configure_a_configuration(config, build_configuration,
+                    args.additional_options)
                 if result != 0:
                     raise ConfigurationError("default configuration returned '%d'" % (result))
         finally:
@@ -60,11 +62,21 @@ def configure(config, build_configuration_name, extra_arguments=[]):
     Execute the platform configure command for the named build configuration.
     """
     build_configuration = config.get_build_configuration(build_configuration_name)
-    return _configure_a_configuration(build_configuration, extra_arguments)
+    return _configure_a_configuration(config, build_configuration, extra_arguments)
 
 
-def _configure_a_configuration(build_configuration, extra_arguments):
+def _configure_a_configuration(config, build_configuration, extra_arguments):
+    try:
+        common_build_configuration = \
+            config.get_build_configuration(build_configuration.name, 'common')
+        parent_configure = common_build_configuration.configure
+    except:
+        parent_configure = None
     if build_configuration.configure is not None:
-        return build_configuration.configure(extra_arguments)
+        configure_executable = copy.copy(build_configuration.configure)
+        configure_executable.parent = parent_configure
+        return configure_executable(extra_arguments)
+    elif parent_configure is not None:
+        return parent_configure(extra_arguments)
     else:
         return 0

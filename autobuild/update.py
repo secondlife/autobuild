@@ -88,6 +88,7 @@ class _Update_1_1(object):
                 build_configuration = platform.configurations[default_configuration]
             else:
                 build_configuration = configfile.BuildConfigurationDescription()
+                build_configuration.name = default_configuration
                 platform.configurations[default_configuration] = build_configuration
             if 'command' in old_command:
                 tokens = shlex.split(old_command['command']);
