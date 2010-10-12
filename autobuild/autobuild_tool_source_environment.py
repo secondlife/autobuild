@@ -232,7 +232,7 @@ def do_source_environment(args):
         # *TODO - run get_params.generate_bash_script()
         pass
 
-class autobuild_tool(autobuild_base.autobuild_base):
+class AutobuildTool(autobuild_base.autobuild_base):
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
                     description='Prints out the shell environment Autobuild-based buildscripts to use (by calling \'eval\').')

@@ -16,7 +16,7 @@ from connection import SCPConnection, S3Connection, S3ConnectionError, SCPConnec
 class UploadError(common.AutobuildError):
     pass
 
-class autobuild_tool(autobuild_base):
+class AutobuildTool(autobuild_base):
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
                     description="upload tool for autobuild")
@@ -170,4 +170,4 @@ def _upload_to_s3(tarfiles, dry_run=False):
 
 # provide this line to make the tool work standalone too (which all tools should)
 if __name__ == "__main__":
-    sys.exit( autobuild_tool().main( sys.argv[1:] ) )
+    sys.exit( AutobuildTool().main( sys.argv[1:] ) )

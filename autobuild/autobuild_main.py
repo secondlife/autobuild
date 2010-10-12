@@ -26,12 +26,12 @@ class Autobuild(object):
 
     def listdir(self, dir):
         files = os.listdir(dir)
-        if 'autobuild_tool_test.py' in files:
-            del files[files.index('autobuild_tool_test.py')]
+        if 'AutobuildTool_test.py' in files:
+            del files[files.index('AutobuildTool_test.py')]
         return files
 
     def register_tool(self, tool):
-        newtool = tool.autobuild_tool()
+        newtool = tool.AutobuildTool()
         details = newtool.get_details()
         self.new_tool_subparser = self.subparsers.add_parser(details['name'], help=details['description']);
         newtool.register(self.new_tool_subparser)
@@ -50,7 +50,7 @@ class Autobuild(object):
                 file_name.startswith('autobuild_tool_')):
                 module_name=file_name[:-3]
                 possible_tool_module = __import__(module_name, globals(), locals(), []);
-                if(getattr(possible_tool_module, 'autobuild_tool', None)):
+                if(getattr(possible_tool_module, 'AutobuildTool', None)):
                     tools_list.append(possible_tool_module)
 
     def try_to_import_tool(self, tool, tools_list):
@@ -60,7 +60,7 @@ class Autobuild(object):
         full_tool_path = os.path.join(autobuild_package_dir, tool_file_name)
         if os.path.exists(full_tool_path):
             possible_tool_module = __import__(tool_module_name, globals(), locals(), []);
-            if(getattr(possible_tool_module, 'autobuild_tool', None)):
+            if(getattr(possible_tool_module, 'AutobuildTool', None)):
                 tools_list.append(possible_tool_module)
                 instance = self.register_tool(possible_tool_module)
                 return instance

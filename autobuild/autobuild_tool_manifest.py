@@ -17,7 +17,7 @@ from common import get_current_platform, AutobuildError
 import configfile
 
 
-class autobuild_tool(autobuild_base.autobuild_base):
+class AutobuildTool(autobuild_base.autobuild_base):
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
             description="Manipulate manifest entries to the autobuild configuration.")
@@ -88,4 +88,4 @@ def print_manifest(config, platform_name):
 
 
 if __name__ == "__main__":
-    sys.exit( autobuild_tool().main( sys.argv[1:] ) )
+    sys.exit( AutobuildTool().main( sys.argv[1:] ) )

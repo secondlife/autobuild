@@ -11,7 +11,7 @@ import configfile
 import autobuild_base
 
 
-class autobuild_tool(autobuild_base.autobuild_base):
+class AutobuildTool(autobuild_base.autobuild_base):
 
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
@@ -35,4 +35,4 @@ class autobuild_tool(autobuild_base.autobuild_base):
             c.save()
 
 if __name__ == "__main__":
-    sys.exit( autobuild_tool().main( sys.argv[1:] ) )
+    sys.exit( AutobuildTool().main( sys.argv[1:] ) )

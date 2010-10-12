@@ -26,7 +26,7 @@ class run_test_option(argparse.Action):
         optional_value = values[0]
         pass
         
-class autobuild_tool(autobuild_base.autobuild_base):
+class AutobuildTool(autobuild_base.autobuild_base):
 
     def get_details(self):
         return dict(name=self.name_from_file(__file__),

@@ -18,7 +18,7 @@ def construct_manifest(*args):
     pass
 
 
-class autobuild_tool(autobuild_base.autobuild_base):
+class AutobuildTool(autobuild_base.autobuild_base):
     def get_details(self):
         return dict(name='bootstrap',
             description="Run an interactive session to build an Autobuild configuration file")
@@ -321,4 +321,4 @@ def _input_choice(choices, default=None):
     
 
 if __name__ == "__main__":
-    sys.exit( autobuild_tool().main( sys.argv[1:] ) )
+    sys.exit( AutobuildTool().main( sys.argv[1:] ) )
