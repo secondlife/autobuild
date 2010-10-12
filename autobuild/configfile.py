@@ -295,13 +295,16 @@ class ArchiveDescription(common.Serialized):
             self.update(dictionary)
 
 
+# LLSD will only export dict objects, not objects which inherit from dict.  This function will 
+# recursively copy dict like objects into dict's in preparation for export.
 def _flatten_to_dict(obj):
     if isinstance(obj, dict):
         result = {}
         for (key,value) in obj.items():
-            result[key] = _flatten_to_dict(value)
+            if value:
+                result[key] = _flatten_to_dict(value)
         return result
     elif isinstance(obj, list):
-        return [_flatten_to_dict(o) for o in obj]
+        return [_flatten_to_dict(o) for o in obj if o]
     else:
         return obj
