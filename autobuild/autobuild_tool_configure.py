@@ -4,6 +4,10 @@
 # $/LicenseInfo$
 
 
+"""
+Configures source in preparation for building.
+"""
+
 import autobuild_base
 import copy
 import common
@@ -60,6 +64,14 @@ class autobuild_tool(autobuild_base.autobuild_base):
 def configure(config, build_configuration_name, extra_arguments=[]):
     """
     Execute the platform configure command for the named build configuration.
+
+    A special 'common' platform may be defined which can provide parent commands for the configure 
+    command using the inheritence mechanism described in the 'executable' package.  The working
+    platform's build configuration will be matched to the build configuration in common with the
+    same name if it exists.  To be configured, a build configuration must be defined in the working
+    platform though it does not need to contain any actual commands if it is desired that the common
+    commands be used.  Build configurations defined in the common platform but not the working
+    platform are not configured.
     """
     build_configuration = config.get_build_configuration(build_configuration_name)
     return _configure_a_configuration(config, build_configuration, extra_arguments)
