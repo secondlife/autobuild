@@ -38,6 +38,7 @@ class ConfigurationDescription(common.Serialized):
     Attributes:
         package_description
         installables
+        platform_configurations
     """
     
     path = None
@@ -45,6 +46,9 @@ class ConfigurationDescription(common.Serialized):
     def __init__(self, path):
         self.version = AUTOBUILD_CONFIG_VERSION
         self.type = AUTOBUILD_CONFIG_TYPE
+        self.installables = []
+        self.package_description = None
+        self.platform_configurations = {}
         self.__load(path)
  
     def absolute_path(self, path):
@@ -160,20 +164,16 @@ class ConfigurationDescription(common.Serialized):
                 if package_description is not None:
                     self.package_description = PackageDescription(package_description)
                 installables = saved_data.pop('installables', [])
-                self.installables = []
                 for package in installables:
                     self.installables.append(PackageDescription(package))
                 self.update(saved_data)
             else:
-                self.package_description = None
-                self.installables = []
                 if saved_data['version'] in update.updaters:
                     update.updaters[saved_data['version']](saved_data, self)
                 else:
                     raise ConfigurationError("cannot update version %s file" % saved_data.version)
         elif not os.path.exists(self.path):
-            self.package_description = None
-            self.installables = []
+            pass
         else:
             raise ConfigurationError("cannot create configuration file %s" % self.path)
 
@@ -222,7 +222,6 @@ class PlatformDescription(common.Serialized):
         dependencies
         build_directory
         manifest
-        name
         configurations
     """
     
@@ -230,7 +229,6 @@ class PlatformDescription(common.Serialized):
         self.configurations = {}
         self.manifest = []
         self.build_directory = None
-        self.name = None
         self.archive = None
         if dictionary is not None:
             self.__init_from_dict(dictionary.copy())
@@ -253,7 +251,6 @@ class BuildConfigurationDescription(common.Serialized):
         default
         configure
         build
-        name
     """
     
     build_steps = ['configure', 'build']
@@ -262,7 +259,6 @@ class BuildConfigurationDescription(common.Serialized):
         self.configure = None
         self.build = None
         self.default = False
-        self.name = None
         if dictionary is not None:
             self.__init_from_dict(dictionary.copy())
    
