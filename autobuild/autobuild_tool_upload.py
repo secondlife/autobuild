@@ -26,11 +26,13 @@ class AutobuildTool(AutobuildBase):
         Define arguments specific to this subcommand (tool).
         """
         parser.add_argument('archive', nargs=1,
-                            help="Specify the archive to upload to install-packages.lindenlab.com "
+                            help="specify the archive to upload to install-packages.lindenlab.com "
                                  "or to S3, as indicated by config file")
-        parser.add_argument('--config-file', default=AUTOBUILD_CONFIG_FILE,
-                            dest='config_file',
-                            help='The file used to describe how to build the package.')
+        parser.add_argument('--upload-to-s3',
+            action='store_true',
+            default=False,
+            dest='upload_to_s3',
+            help="upload this archive to amazon S3")
 
     def run(self, args):
         # upload() is written to expect a list of files, and in fact at some
@@ -38,65 +40,20 @@ class AutobuildTool(AutobuildBase):
         # line. Here's the odd part. We call it 'archive' so it shows up as
         # singular in help text -- but in fact, because of argparse
         # processing, it arrives as a list.
-        upload(args.archive, args.config_file, args.dry_run)
+        upload(args.archive, args.upload_to_s3, args.dry_run)
         if args.dry_run:
             print "This was only a dry-run."
-
-def dissectTarfileName(tarfilename):
-    """Try to get important parts from tarfile.
-    @param tarfilename Fully-qualified path to tarfile to upload.
-    """
-    # split_tarname() returns:
-    # (path, [package, version, platform, timestamp], extension)
-    # e.g. for:
-    # /path/to/expat-1.95.8-darwin-20080810.tar.bz2
-    # it returns:
-    # ("/path/to", ["expat", "1.95.8", "darwin", "20080810"], ".tar.bz2")
-    # We just want the middle list.
-    tarparts = common.split_tarname(tarfilename)[1]
-    try:
-        # return package, platform
-        return tarparts[0], tarparts[2]
-    except IndexError:
-        raise UploadError("Error: tarfilename %r must be canonical. Does not contain platform string." %
-                          tarfilename)
-
-def checkTarfileForUpload(config, tarfilename):
-    """Get status on S3ability of a tarfile.  Returns boolean."""
-    pkgname, platform = dissectTarfileName(tarfilename)
-
-    info = config.package_definition
-    if info is None:
-        # We don't know how to proceed. A safe guess would be to skip
-        # uploading to S3 -- but that presents the likelihood of nasty
-        # surprises later (e.g. broken open-source build). Inform the user.
-        raise UploadError("Unknown package %s (tarfile %s) -- can't decide whether to upload to S3"
-                          % (pkgname, tarfilename))
-    if info.name != pkgname:
-        raise UploadError("Package configuration %s does not match tarfile package %s."
-            % (info.name, pkgname))
-    # Here info is definitely not None.
-    if info.uploadtos3 is None:
-        raise UploadError("Package %s (tarfile %s) does not specify whether to upload to S3" %
-                          (pkgname, tarfilename))
-    return info.uploadtos3
 
 
 # This function is intended for use by another Python script. It takes a
 # specific argument list and indicates error by raising an exception.
-def upload(wildfiles, config_file, dry_run=False):
+def upload(wildfiles, upload_to_s3, dry_run=False):
     """
     wildfiles is an iterable of archive pathnames -- of which we only examine
     the first. (Historical quirk.) Despite the parameter name, we do not
     perform glob matching on that pathname. The basename of the archive
     pathname must be in canonical autobuild archive form:
     package-version-platform-datestamp.extension
-
-    config_file specifies the name of the configuration file to load to check
-    whether the 'package' implied by the first part of wildfiles[0] should or
-    should not be uploaded to S3. If we don't have information about that
-    package, or if the package definition in the specified config file fails
-    to specify uploadtos3, upload() raises an exception.
 
     dry_run specifies that no actual uploads are to be performed.
 
@@ -116,15 +73,10 @@ def upload(wildfiles, config_file, dry_run=False):
     if not tarfiles:
         raise UploadError("No files found matching %s. Nothing to upload." %
                           " or ".join(repr(w) for w in wildfiles))
-
-    # Check whether the config file specifies S3 upload; if it doesn't say,
-    # that's an error. Do this before SCP upload so that such an error doesn't
-    # leave us in the awkward position of having to rename the tarfile to
-    # retry the upload to SCP and S3. Collect any tarfiles that should be
-    # uploaded to S3 in a separate list.
-    config = ConfigFile()
-    config.load(config_file)
-    s3ables = [tarfile for tarfile in tarfiles if checkTarfileForUpload(config, tarfile)]
+    if upload_to_s3:
+        s3ables = tarfiles
+    else:
+        s3ables = []
 
     # Now upload to our internal install-packages server.
     uploaded = _upload_to_internal(tarfiles, dry_run)

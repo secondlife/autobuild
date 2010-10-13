@@ -25,8 +25,6 @@ from autobuild import common
 from autobuild.autobuild_tool_upload import upload, UploadError, \
      SCPConnection, S3Connection, S3ConnectionError, SCPConnectionError
 
-from autobuild.configfile import ConfigFile, PackageInfo
-
 scp = common.get_default_scp_command()
 ssh = common.find_executable(['ssh', 'plink'], ['.exe'])
 USER = os.environ.get("USER", common.get_current_user())
@@ -83,28 +81,11 @@ class TestWithConfigFile(object):
         os.mkdir(self.origdir)
         self.downloads = os.path.join(self.tempdir, "downloads")
         os.mkdir(self.downloads)
-        self.config_file_upshrug = os.path.join(self.tempdir, "autobuild_upshrug.xml")
-        self.config_file_upno = os.path.join(self.tempdir, "autobuild_upno.xml")
-        self.config_file_upyes = os.path.join(self.tempdir, "autobuild_upyes.xml")
         self.scpconn = SCPConnection()
         self.s3conn = S3Connection()
         self.cleanups = set()
         self.scpcleanups = set()
         self.S3cleanups = set()
-
-        # Upload to S3 value unset.
-        c_upshrug = ConfigFile('upshrug')
-        c_upshrug.save(self.config_file_upshrug)
-        
-        # Do not upload to S3
-        c_upno = ConfigFile('upno')
-        c_upno.package_definition.uploadtos3 = False
-        c_upno.save(self.config_file_upno)
-        
-        # Upload to S3
-        c_upyes = ConfigFile('upyes')
-        c_upyes.package_definition.uploadtos3 = True
-        c_upyes.save(self.config_file_upyes)
 
         # Now make bogus archive files for all those
         self.unknown_archive = self.make_archive("unknown")
@@ -126,39 +107,6 @@ class TestWithConfigFile(object):
         f.write("%s version %s for %s\n" % (name, version, platform))
         f.close()
         return pathname
-
-    def make_PackageInfo(self, name, version="1.0", platform="%s.bogus" % USER):
-        p = PackageInfo()
-        # Swipe dummy package info from test_configfile.py
-        # Intentionally omit the uploadtos3 property: some of our tests want
-        # that unset. Caller must set it if desired.
-        p.summary = "%s package" % name
-        p.description = "%s package created by %s" % (name, os.path.basename(__file__))
-        p.copyright = time.strftime("Copyright (c) %Y, Linden Research, Inc.")
-        p.license = "GPL2"
-        p.licensefile = "http://develop.secondlife.com/develop-on-sl-platform/viewer-licensing/gpl/"
-        p.homepage = "http://www.secondlife.com/"
-        p.source = "http://www.secondlife.com/%s-source" % name
-        p.sourcetype = "archive"
-        p.sourcedir = "%s-source" % name
-        p.version = version
-        p.patches = "foo bar"
-        p.obsoletes = "baz bar foo"
-
-        p.set_archives_url(platform, 'http://www.secondlife.com')
-        p.set_archives_md5(platform, '22eac1bea219257a71907cbe1170c640')
-
-        p.set_dependencies_url(platform, 'http://www.secondlife.com')
-        p.set_dependencies_md5(platform, '22eac1bea219257a71907cbe1170c640')
-
-        p.set_configure_command('common', 'configure --enabled-shared')
-        p.set_build_command('common', 'build.sh')
-        p.set_build_directory('common', "%s-build" % name)
-        p.set_post_build_command('common', 'postbuild.sh')
-
-        p.set_manifest_files('common', ['file1','file2'])
-        p.set_manifest_files('windows', ['file3'])
-        return p
 
     def teardown(self):
         # Get rid of the temp download directory.
@@ -227,17 +175,17 @@ class TestWithConfigFile(object):
 
     @raises(UploadError)
     def testUnknown(self):
-        upload([self.unknown_archive], self.config_file_upshrug, dry_run=True)
+        upload([self.unknown_archive], True, dry_run=True)
 
     @raises(UploadError)
     def testShrug(self):
-        upload([self.upshrug_archive], self.config_file_upshrug, dry_run=True)
+        upload([self.upshrug_archive], True, dry_run=True)
 
     def testNoDry(self):
         # Capture print output
         oldout, sys.stdout = sys.stdout, StringIO()
         try:
-            uploaded = upload([self.upno_archive], self.config_file_upno, dry_run=True)
+            uploaded = upload([self.upno_archive], False, dry_run=True)
         finally:
             testout, sys.stdout = sys.stdout, oldout
         # We shouldn't have talked about S3
@@ -252,7 +200,7 @@ class TestWithConfigFile(object):
         # Capture print output
         oldout, sys.stdout = sys.stdout, StringIO()
         try:
-            uploaded = upload([self.upyes_archive], self.config_file_upyes, dry_run=True)
+            uploaded = upload([self.upyes_archive], True, dry_run=True)
         finally:
             testout, sys.stdout = sys.stdout, oldout
         # We should have talked about S3
@@ -274,7 +222,7 @@ class TestWithConfigFile(object):
         # SCPFileExists().
         assert not self.scpconn.SCPFileExists(self.upno_archive)
         # Let dry_run default to False
-        uploaded = upload([self.upno_archive], self.config_file_upno)
+        uploaded = upload([self.upno_archive], False)
         # Should claim to have uploaded exactly one file
         assert_equals(len(uploaded), 1)
         self.scp_verify(self.upno_archive, uploaded[0])
@@ -287,7 +235,7 @@ class TestWithConfigFile(object):
         oldout, sys.stdout = sys.stdout, StringIO()
         try:
             # Try to upload the same file
-            uploaded = upload([self.upno_archive], self.config_file_upno)
+            uploaded = upload([self.upno_archive], False)
         finally:
             testout, sys.stdout = sys.stdout, oldout
         assert not uploaded, "dup scp-only upload returned %s" % uploaded
@@ -300,7 +248,7 @@ class TestWithConfigFile(object):
         assert not self.scpconn.SCPFileExists(self.upyes_archive)
         assert not self.s3conn.S3FileExists(self.upyes_archive)
         # Let dry_run default to False
-        uploaded = upload([self.upyes_archive], self.config_file_upyes)
+        uploaded = upload([self.upyes_archive], True)
         # One file, two servers, should get two URLs back
         assert_equals(len(uploaded), 2)
         # Sort URLs so we're sure they're ["http:...", "scp:..."]
@@ -311,7 +259,7 @@ class TestWithConfigFile(object):
         # new URLs.
         oldout, sys.stdout = sys.stdout, StringIO()
         try:
-            uploaded = upload([self.upyes_archive], self.config_file_upyes)
+            uploaded = upload([self.upyes_archive], True)
         finally:
             testout, sys.stdout = sys.stdout, oldout
         assert not uploaded, "dup scp+s3 upload returned %s" % uploaded
