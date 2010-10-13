@@ -305,3 +305,6 @@ def collect_uploads(uploaded):
     for url in uploaded:
         result.setdefault(url.split(':', 1)[0], []).append(url)
     return result
+
+    assert(creds['id'] == 'TESTID')
+    assert(creds['key'] == 'TEST/KEY+')

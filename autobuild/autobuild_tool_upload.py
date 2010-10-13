@@ -6,6 +6,7 @@
 Create archives of build output, ready for upload to the server.
 """
 
+import argparse
 import sys
 import os
 import common
@@ -33,6 +34,20 @@ class AutobuildTool(AutobuildBase):
             default=False,
             dest='upload_to_s3',
             help="upload this archive to amazon S3")
+        parser.add_argument('--credentials', default="~/.s3curl",
+                            dest='credentials',
+                            help="The file containing s3 credentials. Currently this option is ignored and the default is hardcoded.  The default is $HOME/.s3curl (or %%USERPROFILE%%/.s3curl on windows).  see below for details")
+
+        parser.epilog = """
+example .s3curl credentials file contents:
+  %awsSecretAccessKeys = (
+    lindenlab => {
+      id => 'ABCDABCDABCDABCD',
+      key => '01234567890abcdABCD/01234567890abcdABCD+',
+    },
+  }"""
+        # force argparse to output our epilog as-is instead of reformatting the whitespace
+        parser.formatter_class = argparse.RawDescriptionHelpFormatter
 
     def run(self, args):
         # upload() is written to expect a list of files, and in fact at some
