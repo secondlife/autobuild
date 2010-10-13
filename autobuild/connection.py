@@ -211,7 +211,7 @@ class S3Connection(Connection):
         key = self._get_key(filename)
         return "%s%s/%s" % (self.amazonS3_server, self.bucket.name, self._get_key(filename).name)
 
-def _load_s3curl_credentials():
+def _load_s3curl_credentials(account_name = 'lindenlab', credentials_file=None):
     """
     Helper function for loading 'lindenlab' s3 credentials from s3curl.pl's ~/.s3curl config file
     see the README file in the s3curl distribution (http://developer.amazonwebservices.com/connect/entry.jspa?externalID=128)
@@ -230,14 +230,16 @@ def _load_s3curl_credentials():
     credentials_pattern = '%s\s*=>\s*{\s*id\s*=>\s*\'([^\']*)\'\s*,\s*key\s*=>\s*\'([^\']*)\',\s*}' % account_name
 
     try:
-        s3curl_text = open(credentials_file).read()
+        if not credentials_file:
+            credentials_file = open(credentials_path)
+        s3curl_text = credentials_file.read()
 
         m = re.search(credentials_pattern, s3curl_text, re.MULTILINE)
         creds = dict(id=m.group(1), key=m.group(2))
         return creds
     except IOError, err:
         # IOError happens when ~/.s3curl is missing
-        raise S3ConnectionError("failed to find s3 credentials in '%s' -- see the README file in the s3curl distribution (http://developer.amazonwebservices.com/connect/entry.jspa?externalID=128)'" % credentials_file)
+        raise S3ConnectionError("failed to find s3 credentials in '%s' -- see the README file in the s3curl distribution (http://developer.amazonwebservices.com/connect/entry.jspa?externalID=128)'" % credentials_path)
     except AttributeError, err:
         # AttributeError happens when regex doesn't find a match
-        raise S3ConnectionError("failed to parse s3 credentials from '%s' -- see the README file in the s3curl distribution (http://developer.amazonwebservices.com/connect/entry.jspa?externalID=128)'" % credentials_file)
+        raise S3ConnectionError("failed to parse s3 credentials from '%s' -- see the README file in the s3curl distribution (http://developer.amazonwebservices.com/connect/entry.jspa?externalID=128)'" % credentials_path)
