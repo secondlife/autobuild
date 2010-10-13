@@ -13,6 +13,7 @@ that may installed by autobuild.
 import sys
 import os
 import common
+import pprint
 import argparse
 import configfile
 import autobuild_base
@@ -63,7 +64,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             for p in args.argument:
                 remove(config, p) 
         elif args.command == 'print':
-            print config.installables
+            pprint.pprint(configfile.compact_to_dict(config.installables), sys.stdout, 1, 80)
         else:
             raise InstallablesError('unknown command %s' % args.command)
         if not args.dry_run and args.command != 'print':

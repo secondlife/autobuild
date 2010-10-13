@@ -138,7 +138,7 @@ class ConfigurationDescription(common.Serialized):
         """
         Save the configuration state to the input file.
         """
-        file(self.path, 'wb').write(llsd.format_pretty_xml(_flatten_to_dict(self)))
+        file(self.path, 'wb').write(llsd.format_pretty_xml(_compact_to_dict(self)))
             
     def __load(self, path):
         if os.path.isabs(path):
@@ -291,16 +291,25 @@ class ArchiveDescription(common.Serialized):
             self.update(dictionary)
 
 
+def compact_to_dict(description):
+    """
+    Creates a dict from the provided description recursively copying member descriptions to dicts  
+    and removing and elements which are None or evaluate to False (e.g. empty strings and 
+    containers)
+    """
+    return _compact_to_dict(description)
+
+
 # LLSD will only export dict objects, not objects which inherit from dict.  This function will 
 # recursively copy dict like objects into dict's in preparation for export.
-def _flatten_to_dict(obj):
+def _compact_to_dict(obj):
     if isinstance(obj, dict):
         result = {}
         for (key,value) in obj.items():
             if value:
-                result[key] = _flatten_to_dict(value)
+                result[key] = _compact_to_dict(value)
         return result
     elif isinstance(obj, list):
-        return [_flatten_to_dict(o) for o in obj if o]
+        return [_compact_to_dict(o) for o in obj if o]
     else:
         return obj
