@@ -72,7 +72,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
 
 _PACKAGE_ATTRIBUTES =  ['descripition', 'copyright', 'license', 'license_file', 'source', \
-            'source_type', 'source_directory']
+            'source_type', 'source_directory', 'version']
 _ARCHIVE_ATTRIBUTES = ['hash', 'hash_algorithm', 'url']
 
 
@@ -80,51 +80,54 @@ def add(config, installable_data):
     """
     Adds a package to the configuration's installable list.
     """
-    if 'name' not in installable_data:
+    installable_data = installable_data.copy()
+    installable_name = installable_data.pop('name', None)
+    if installable_name is None:
         raise InstallablesError('installable name not given')
-    if [p for p in config.installables if p.name == installable_data['name']]:
-        raise InstallablesError('package %s already exists, use edit instead' % 
-            installable_data['name'])
-    package_description = configfile.PackageDescription(installable_data['name'])
+    if [p for p in config.installables if p.name == installable_name]:
+        raise InstallablesError('package %s already exists, use edit instead' %  installable_name)
+    package_description = configfile.PackageDescription(installable_name)
     if 'platform' in installable_data:
         platform_description = configfile.PlatformDescription()
-        platform_description.name = installable_data['platform']
+        platform_description.name = installable_data.pop('platform')
         package_description.platforms[platform_description.name] = platform_description
         for element in _PACKAGE_ATTRIBUTES:
             if element in installable_data:
-                package_description[element] = installable_data[element]
+                package_description[element] = installable_data.pop(element)
         archive_description = configfile.ArchiveDescription()
         platform_description.archive = archive_description
         for element in _ARCHIVE_ATTRIBUTES:
             if element in installable_data:
-                archive_description[element] = installable_data[element]
+                archive_description[element] = installable_data.pop(element)
     config.installables.append(package_description)
+    _warn_unused(installable_data)
 
 
 def edit(config, installable_data):
     """
     Modifies an existing installable entry.
     """
-    if 'name' not in installable_data:
+    installable_data = installable_data.copy()
+    installable_name = installable_data.pop('name', None)
+    if installable_name is None:
         raise InstallablesError('installable name not given')
-    package_list = [p for p in config.installables if p.name == installable_data['name']]
+    package_list = [p for p in config.installables if p.name == installable_name]
     if not package_list:
-        raise InstallablesError('package %s already exists, use edit instead' % 
-            installable_data['name'])
+        raise InstallablesError('package %s does not exist, use add instead' % installable_name)
     if len(package_list) > 1:
         raise InstallablesError('multiple packages named %s exists, edit is ambiguous' % 
-            installable_data['name'])
+            installable_name)
     package_description = package_list[0]
     for element in _PACKAGE_ATTRIBUTES:
         if element in installable_data:
-            package_description[element] = installable_data[element]
+            package_description[element] = installable_data.pop(element)
     if 'platform' in installable_data:
-        platform_name = installable_data['platform']
+        platform_name = installable_data.pop('platform')
         if platform_name in package_description.platforms:
             platform_description = package_description.platforms[platform_name]
         else:
             platform_description = configfile.PlatformDescription()
-            platform_description.name = installable_data['platform']
+            platform_description.name = installable_data.pop('platform')
             package_description.platforms[platform_description.name] = platform_description
         if platform_description.archive is not None:
             archive_description = platform_description.archive
@@ -133,7 +136,8 @@ def edit(config, installable_data):
             platform_description.archive = archive_description
         for element in _ARCHIVE_ATTRIBUTES:
             if element in installable_data:
-                archive_description[element] = installable_data[element]
+                archive_description[element] = installable_data.pop(element)
+    _warn_unused(installable_data)
 
 
 def remove(config, installable_name):
@@ -187,4 +191,8 @@ def _archive_information(archive_path):
     if _is_uri(archive_path):
         archive_data['url'] = archive_path
     return archive_data
-    
+
+
+def _warn_unused(data):
+    for (key, value) in data.iteritems():
+        print >> sys.stderr, 'ignoring unused argument %s=%s' % (key, value)

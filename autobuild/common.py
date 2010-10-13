@@ -186,7 +186,7 @@ def compute_md5(path):
         from md5 import new as md5   # Python 2.5 and earlier
     stream = open(file, 'rb')
     try:
-        hasher = md5(strem.read())
+        hasher = md5(stream.read())
     except:
         raise AutobuildError('error computing hash')
     return hasher.hexdigest()

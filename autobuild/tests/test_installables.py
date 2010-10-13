@@ -69,6 +69,8 @@ class TestInstallables(unittest.TestCase, AutobuildBaselineCompare):
         package_description = self.config.installables[0]
         platform_description = package_description.platforms['darwin']
         assert package_description.license == 'Apache'
+        assert package_description.version == '1.1'
+        assert package_description.name == 'test'
         assert platform_description.archive.hash_algorithm == 'sha-1'
         assert platform_description.archive.hash == "74688495b0871ddafcc0ca1a6db57c34"
         assert platform_description.archive.url == 'http://foo.bar.com/test-1.1-darwin-20101008.tar.bz2'
