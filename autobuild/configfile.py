@@ -87,7 +87,7 @@ class ConfigurationDescription(common.Serialized):
             raise ConfigurationError('no package configuration defined')
         platform_description = self.package_description.platforms.get(platform_name, None)
         if platform_description is None:
-            raise ConfigurationError("no configuration for platform '%s'" % current_platform)
+            raise ConfigurationError("no configuration for platform '%s'" % platform_name)
         config_directory = os.path.dirname(self.path)
         if platform_description.build_directory is not None:
             build_directory = platform_description.build_directory
