@@ -125,12 +125,6 @@ def add_arguments(parser):
         dest='as_source',
         default=[],
         help="Get the source for this package instead of prebuilt binary.")
-    parser.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        default=False,
-        dest='verbose',
-        help="")
 
 def print_list(label, array):
     """
