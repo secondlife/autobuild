@@ -303,6 +303,7 @@ class ArchiveDescription(common.Serialized):
         if dictionary is not None:
             self.update(dictionary)
 
+
 def compact_to_dict(description):
     """
     Creates a dict from the provided description recursively copying member descriptions to dicts  
