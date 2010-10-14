@@ -36,6 +36,7 @@ class _Update_1_1(object):
         'source':'source', \
         'sourcetype':'source_type', \
         'sourcedir':'source_directory', \
+        'version':'version', \
     }
     
     archive_properties = {
