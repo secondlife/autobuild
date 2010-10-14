@@ -19,6 +19,10 @@ import configfile
 import autobuild_base
 import re
 from common import AutobuildError
+import logging
+
+
+logger = logging.getLogger('autobuild.installables')
 
 
 # Match key=value arguments.
@@ -58,13 +62,13 @@ class AutobuildTool(autobuild_base.AutobuildBase):
     def run(self, args):
         config = configfile.ConfigurationDescription(args.config_file)
         if args.interactive:
-            print >> sys.stderr, "interactive mode not implemented"
+            logger.error("interactive mode not implemented")
             return
         if args.command == 'add':
             _do_add(config, args.name, args.argument, args.archive)
         elif args.command == 'edit':
             if args.archive:
-                print >> sys.stderr, 'ignoring --archive option', args.archive
+                logger.warning('ignoring --archive option ' + args.archive)
             _do_edit(config, args.name, args.argument)
         elif args.command == 'remove':
             remove(config, args.name)
@@ -162,7 +166,7 @@ def _process_key_value_arguments(arguments):
         if match:
             dictionary[match.group(1)] = match.group(2)
         else:
-            print >> sys.stderr, 'ignoring malformed argument', argument
+            logger.warning('ignoring malformed argument ' + argument)
     return dictionary
 
 
@@ -222,4 +226,4 @@ def _check_name(name):
 
 def _warn_unused(data):
     for (key, value) in data.iteritems():
-        print >> sys.stderr, 'ignoring unused argument %s=%s' % (key, value)
+        logger.warning('ignoring unused argument %s=%s' % (key, value))

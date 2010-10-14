@@ -64,7 +64,7 @@ class _Update_1_1(object):
                 package = configfile.PackageDescription(old_package_name)
                 self._insert_pacakge_properties(old_package, package)
                 self._insert_archives(old_package['archives'], package)
-                self.config.installables.append(package)
+                self.config.installables[old_package_name] = package
 
     def _insert_pacakge_properties(self, old_package, package):
         for (key, value) in self.package_properties.iteritems():
