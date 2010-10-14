@@ -24,13 +24,13 @@ Date   : 2010-04-19
 
 import os
 import sys
-import optparse
 import pprint
 import common
 import configfile
 import autobuild_base
 from llbase import llsd
 import subprocess
+import hash_algorithms
 
 AutobuildError = common.AutobuildError
 
@@ -75,54 +75,55 @@ def add_arguments(parser):
         dest='install_filename',
         help='The file used to describe what should be installed.')
     parser.add_argument(
-        '--installed-manifest', 
+        '--installed-manifest',
         default=configfile.INSTALLED_CONFIG_FILE,
         dest='installed_filename',
         help='The file used to record what is installed.')
     parser.add_argument(
-        '-p', '--platform', 
+        '-p', '--platform',
         default=common.get_current_platform(),
         dest='platform',
         help='Override the automatically determined platform.')
     parser.add_argument(
-        '--install-dir', 
+        '--install-dir',
         default=None,
         dest='install_dir',
         help='Where to unpack the installed files.')
     parser.add_argument(
-        '--list', 
+        '--list',
         action='store_true',
         default=False,
         dest='list_archives',
         help="List the archives specified in the package file.")
     parser.add_argument(
-        '--list-installed', 
+        '--list-installed',
         action='store_true',
         default=False,
         dest='list_installed',
         help="List the installed package names and exit.")
     parser.add_argument(
-        '--skip-license-check', 
+        '--skip-license-check',
         action='store_false',
         default=True,
         dest='check_license',
         help="Do not perform the license check.")
     parser.add_argument(
-        '--list-licenses', 
+        '--list-licenses',
         action='store_true',
         default=False,
         dest='list_licenses',
         help="List known licenses and exit.")
     parser.add_argument(
-        '--export-manifest', 
+        '--export-manifest',
         action='store_true',
         default=False,
         dest='export_manifest',
         help="Print the install manifest to stdout and exit.")
     parser.add_argument(
-        '--get-source',
+        '--as-source',
         action='append',
-        dest='get_source',
+        dest='as_source',
+        default=[],
         help="Get the source for this package instead of prebuilt binary.")
     parser.add_argument(
         '--verbose', '-v',
@@ -141,29 +142,25 @@ def print_list(label, array):
         list = ", ".join(array)
     print "%s: %s" % (label, list)
     return True
-    
+
 def handle_query_args(options, config_file, installed_file):
     """
     Handle any arguments to query for package information.
     Returns True if an argument was handled.
     """
     if options.list_installed:
-        return print_list("Installed", installed_file.packages)
+        return print_list("Installed", installed_file.installables.keys())
 
     if options.list_archives:
-        return print_list("Packages", config_file.packages)
+        return print_list("Packages", config_file.installables.keys())
 
     if options.list_licenses:
-        licenses = []
-        for pname in config_file.packages:
-            package = config_file.package(pname)
-            if package.license:
-                licenses.append(package.license)
+        licenses = [package.license for package in config_file.installables.itervalues()
+                    if package.license]
         return print_list("Licenses", licenses)
 
     if options.export_manifest:
-        for name in installed_file.packages:
-            package = installed_file.package(name)
+        for package in installed_file.installables.itervalues():
             pprint.pprint(package)
         return True
 
@@ -177,38 +174,59 @@ def get_packages_to_install(packages, config_file, installed_config, platform, a
     """
 
     # if no packages specified, consider all
-    if packages is None or len(packages) == 0:
-        packages = config_file.packages
+    if not packages:
+        packages = config_file.installables.keys()
 
     # compile a subset of packages we actually need to install
-    to_install = []
-    for pname in packages:
-        
-        toinstall = config_file.package(pname)
-        installed = installed_config.package(pname)
+    return [pname for pname in packages
+            if should_install(pname, config_file, installed_config, platform, as_source)]
 
+def should_install(package_name, config_file, installed_config, platform, as_source):
+
+    try:
+        toinstall = config_file.installables[package_name]
+    except KeyError:
         # raise error if named package doesn't exist in autobuild.xml
-        if not toinstall:
-            raise AutobuildError('Unknown package: %s' % pname)
+        raise AutobuildError('Unknown package: %s' % package_name)
 
-        if pname in as_source:
-            if not toinstall.source:
-                raise AutobuildError("No source url specified for %" % pname)
-            if not toinstall.sourcetype:
-                raise AutobuildError("No source repository type specified for %" % pname)
-        else:
-            # check that we have a platform-specific or common url to use
-            if not toinstall.archives_url(platform):
-               raise AutobuildError("No url specified for this platform for %s" % pname)
+    if package_name in as_source:
+        if not toinstall.source:
+            raise AutobuildError("No source url specified for %s" % package_name)
+        if not toinstall.sourcetype:
+            raise AutobuildError("No source repository type specified for %s" % package_name)
 
-        # install this package if it is new or out of date
-        if installed == None or \
-           toinstall.archives_url(platform) != installed.archives_url(platform) or \
-           toinstall.archives_md5(platform) != installed.archives_md5(platform) or\
-           pname in as_source:
-            to_install.append(pname)
+        # Always update a source package
+        return True
 
-    return to_install
+    # Not a source package, but a reference to a binary archive. Check that we
+    # have a platform-specific or common url to use.
+    srcpf = toinstall.get_platform(platform)
+    if not srcpf:
+       raise AutobuildError("No platform %s for %s" % (platform, package_name))
+    if not srcpf.archive:
+       raise AutobuildError("No archive specified for platform %s for %s" %
+                            (platform, package_name))
+
+    # install this package if it is new or out of date
+    try:
+        installed = installed_config.installables[package_name]
+    except KeyError:
+        # package hasn't yet been installed at all
+        return True
+
+    dstpf = installed.get_platform(platform)
+    if not dstpf:
+        # This package appears in installed_config, but with no entry for this
+        # platform, so can't be installed yet for this platform.
+        return True
+
+    # Because ArchiveDescription isa dict, we can rely on builtin dict
+    # comparison to compare each attribute (key) individually. We must install
+    # an update if the URL, hash_algorithm or hash value differs. This test
+    # also handles the case when dstpf.archive is None.
+    # Note the sense of the test: if the data does not match, then we
+    # should_install(). If everything matches, there's no need.
+    return srcpf.archive != dstpf.archive
 
 def pre_install_license_check(packages, config_file):
     """
@@ -216,30 +234,32 @@ def pre_install_license_check(packages, config_file):
     license property set.
     """
     for pname in packages:
-        package = config_file.package(pname)
+        package = config_file.installables[pname]
         license = package.license
         if not license:
-            raise AutobuildError("No license specified for %s. Aborting... (you can use --skip-license-check)" % pname)
+            raise AutobuildError("No license specified for %s. Aborting... "
+                                 "(you can use --skip-license-check)" % pname)
 
 def post_install_license_check(packages, config_file, install_dir):
     """
-    Raises a runtime exception if the licensefile property for any of
+    Raises a runtime exception if the license_file property for any of
     the specified packages does not refer to a valid file in the
     extracted archive, or does not specify an http:// URL to the
     license description.
     """
     for pname in packages:
-        package = config_file.package(pname)
-        licensefile = package.licensefile
+        package = config_file.installables[pname]
+        license_file = package.license_file
         # if not specified, assume a default naming convention
-        if not licensefile:
-            licensefile = 'LICENSES/%s.txt' % pname
+        if not license_file:
+            license_file = 'LICENSES/%s.txt' % pname
         # if a URL is given, assuming it's valid for now
-        if licensefile.startswith('http://'):
+        if license_file.startswith('http://'):
             continue
         # otherwise, assert that the license file is in the archive
-        if not os.path.exists(os.path.join(install_dir, licensefile)):
-            raise AutobuildError("Invalid or undefined licensefile for %s. (you can use --skip-license-check)" % pname)
+        if not os.path.exists(os.path.join(install_dir, license_file)):
+            raise AutobuildError("Invalid or undefined license_file for %s: %s "
+                                 "(you can use --skip-license-check)" % (pname, license_file))
 
 def do_install(packages, config_file, installed_file, platform, install_dir, dry_run, as_source=[]):
     """
@@ -254,96 +274,88 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
     if not os.path.exists(install_dir):
         os.makedirs(install_dir)
 
-    # Filter for files which we actually requested to install.
+    # Decide whether to check out (or update) source, or download a tarball
     for pname in packages:
-        package = config_file.package(pname)
+        package = config_file.installables[pname]
         if pname in as_source:
-            _install_source(pname, package.sourcetype,
-                package.source, installed_file, config_file, dry_run)
+            _install_source(package, installed_file, config_file, dry_run)
         else:
             _install_binary(package, platform, config_file, install_dir, installed_file, dry_run)
 
-def _install_source(pname, repotype, url, installed_config, config_file, dry_run):
+def _install_source(package, installed_config, config_file, dry_run):
     if dry_run:
-        print "Dry run mode: not installing source for %s" % pname
+        print "Dry run mode: not installing %s source for %s from %s" % \
+              (package.sourcetype, package.name, package.source)
         return
-    package_to_install = config_file.package(pname)
-    if package_to_install:
-        if package_to_install.source != url:
-            raise AutobuildError("Source repository %s does not match installed %s" %
-                (url, package_to_install.source))
-        if package_to_install.sourcetype != repotype:
-            raise AutobuildError("Source repository type %s does not match installed type %s" %
-                (repotype, package_to_install.sourcetype))
-    else:
-        package_to_install = configfile.PackageInfo()
-    
+
     # By convention source is downloaded into the parent directory containing this project.
     sourcepath = os.path.normpath(
-        os.path.join(os.path.dirname(config_file.filename), os.pardir, pname))
-    if repotype == 'svn':
+        os.path.join(os.path.dirname(config_file.filename), os.pardir, package.name))
+    if package.sourcetype == 'svn':
         if os.path.isdir(sourcepath):
             if subprocess.call(['svn', 'update', sourcepath]) != 0:
-                raise AutobuildError("Error updating %s" % pname)
+                raise AutobuildError("Error updating %s" % package.name)
         else:
-            if subprocess.call(['svn', 'checkout', url, sourcepath]) != 0:
-                raise AutobuildError("Error checking out %s" % pname)
-    elif repotype == 'hg':
+            if subprocess.call(['svn', 'checkout', package.source, sourcepath]) != 0:
+                raise AutobuildError("Error checking out %s" % package.name)
+    elif package.sourcetype == 'hg':
         if os.path.isdir(sourcepath):
-            cwd = os.getcwd()
-            os.chdir(sourcepath)
-            try:
-                if subprocess.call(['hg', 'pull']) != 0:
-                    raise AutobuildError("Error pulling %s" % pname)
-                if subprocess.call(['hg', 'update']) != 0:
-                    raise AutobuildError("Error updating %s" % pname)
-            finally:
-                os.chdir(cwd)
+            if subprocess.call(['hg', "--repository", sourcepath, 'pull', "-u"]) != 0:
+                raise AutobuildError("Error pulling %s" % package.name)
         else:
-            if subprocess.call(['hg', 'clone', url, sourcepath]) != 0:
-                raise AutobuildError("Error cloning %s" % pname)
+            if subprocess.call(['hg', 'clone', package.source, sourcepath]) != 0:
+                raise AutobuildError("Error cloning %s" % package.name)
     else:
-        raise AutobuildError("Unsupported repository type %s" % repotype)
-    
-    package_to_install.source = url
-    package_to_install.sourcetype = repotype
-    installed_config.set_package(pname, package_to_install)
-    
+        raise AutobuildError("Unsupported repository type %s for %s" %
+                             (package.sourcetype, package.name))
+
+    installed_config.set_package(package.name, package)
+
 def _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
     # find the url/md5 for the platform, or fallback to 'common'
-    url = package.archives_url(platform)
-    md5 = package.archives_md5(platform)
-    cachefile = common.get_package_in_cache(url)
+    pf = package.get_platform(platform)
+    archive = pf.archive
+    cachefile = common.get_package_in_cache(archive.url)
 
     # download the package, if it's not already in our cache
-    if not common.is_package_in_cache(url):
+    if not os.path.exists(cachefile):
 
         # download the package to the cache
-        if not common.download_package(url):
-            raise AutobuildError("Failed to download %s" % url)
+        if not common.download_package(archive.url):
+            raise AutobuildError("Failed to download %s" % archive.url)
 
-        # error out if MD5 doesn't matches
-        if not common.does_package_match_md5(url, md5):
-            common.remove_package(url)
-            raise AutobuildError("md5 mismatch for %s" % cachefile)
+        # error out if MD5 doesn't match
+        if not hash_algorithms.verify_hash(archive.hash_algorithm, cachefile, archive.hash):
+            common.remove_package(archive.url)
+            raise AutobuildError("%s mismatch for %s" % (archive.hash_algorithm, cachefile))
 
     # dry run mode = download but don't install packages
     if dry_run:
-        print "Dry run mode: not installing %s" % pname
+        print "Dry run mode: not installing %s" % package.name
         return
 
     # extract the files from the package
-    files = common.extract_package(url, install_dir)
+    files = common.extract_package(archive.url, install_dir)
 
     # update the installed-packages.xml file
-    pname = package.name
-    package = installed_file.package(pname)
-    if not package:
-        package = configfile.PackageInfo()
-    package.set_archives_url(platform, url)
-    package.set_archives_md5(platform, md5)
-    package.set_archives_files(platform, files)
-    installed_file.set_package(pname, package)
+    try:
+        ipkg = installed_file.installables[package.name]
+    except KeyError:
+        ipkg = package
+
+    try:
+        # Use direct lookup in the platforms dict instead of get_platform():
+        # even if we end up using the "common" specification in autobuild.xml,
+        # in installed-packages.xml we should say we've installed this package
+        # on THIS platform rather than on "common".
+        iplat = ipkg.platforms[platform]
+    except KeyError:
+        iplat = pf
+        ipkg.platforms[platform] = iplat
+    if not iplat.archive:
+        iplat.archive = archive
+    iplat.manifest = files
+    installed_file.installables[package.name] = ipkg
 
 def install_packages(options, args):
     # write packages into 'packages' subdir of build directory by default
@@ -353,26 +365,19 @@ def install_packages(options, args):
 
     # get the absolute paths to the install dir and installed-packages.xml file
     install_dir = os.path.realpath(options.install_dir)
-    installed_filename = options.installed_filename
-    if not os.path.isabs(installed_filename):
-        installed_filename = os.path.join(install_dir, installed_filename)
+    # If installed_filename is already an absolute pathname, join() is smart
+    # enough to leave it alone. Therefore we can do this unconditionally.
+    installed_filename = os.path.join(install_dir, options.installed_filename)
 
     # load the list of already installed packages
-    installed_file = configfile.ConfigFile(verbose=options.verbose)
-    installed_file.load(os.path.join(options.install_dir, installed_filename))
+    installed_file = configfile.ConfigurationDescription(installed_filename)
 
     # load the list of packages to install
-    config_file = configfile.ConfigFile(verbose=options.verbose)
-    config_file.load(options.install_filename)
-    if config_file.empty:
-        print "No package information to load from", options.install_filename
-        return 0
+    config_file = configfile.ConfigurationDescription(options.install_filename)
 
-    # get the list of packages to actually installed
-    if not options.get_source:
-        options.get_source = []
-    packages = get_packages_to_install(args, config_file, installed_file, 
-        options.platform, as_source=options.get_source)
+    # get the list of packages to actually install
+    packages = get_packages_to_install(args, config_file, installed_file,
+        options.platform, as_source=options.as_source)
 
     # handle any arguments to query for information
     if handle_query_args(options, config_file, installed_file):
@@ -384,18 +389,14 @@ def install_packages(options, args):
 
     # do the actual install of the new/updated packages
     do_install(packages, config_file, installed_file, options.platform, install_dir,
-               options.dry_run, as_source=options.get_source)
+               options.dry_run, as_source=options.as_source)
 
-    # check the licensefile properties for the newly installed packages
+    # check the license_file properties for the newly installed packages
     if options.check_license and not options.dry_run:
         post_install_license_check(packages, config_file, install_dir)
 
-    # update the installed-packages.xml file, if it was changed
-    if installed_file.changed:
-        installed_file.save()
-    else:
-        if options.verbose:
-            print "All packages are up to date."
+    # update the installed-packages.xml file
+    installed_file.save()
     return 0
 
 # define the entry point to this autobuild tool

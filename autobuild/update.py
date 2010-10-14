@@ -51,7 +51,7 @@ class _Update_1_1(object):
             old_package = old_config['package_definition']
             package_description = configfile.PackageDescription('unnamed')
             self.config.package_description = package_description
-            self._insert_pacakge_properties(old_package, package_description)
+            self._insert_package_properties(old_package, package_description)
             self._insert_command('configure', old_package.get('configure', {}), package_description)
             self._insert_command('build', old_package.get('build', {}), package_description)
             for (platform_name, manifest) in old_package.get('manifest', {}).items():
@@ -62,11 +62,11 @@ class _Update_1_1(object):
         if 'installables' in old_config:
             for (old_package_name, old_package) in old_config['installables'].iteritems():
                 package = configfile.PackageDescription(old_package_name)
-                self._insert_pacakge_properties(old_package, package)
+                self._insert_package_properties(old_package, package)
                 self._insert_archives(old_package['archives'], package)
-                self.config.installables.append(package)
+                self.config.installables[old_package_name] = package
 
-    def _insert_pacakge_properties(self, old_package, package):
+    def _insert_package_properties(self, old_package, package):
         for (key, value) in self.package_properties.iteritems():
             if key in old_package:
                 package[value] = old_package[key]

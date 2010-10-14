@@ -145,7 +145,7 @@ def print_installable(config, installable_name):
     if installable_name is None:
         pretty_print(config.installables)
     else:
-        [pretty_print(p) for p in config.installables if p.name == installable_name]
+        pretty_print(config.installables.get(installable_name))
 
 
 def remove(config, installable_name):
