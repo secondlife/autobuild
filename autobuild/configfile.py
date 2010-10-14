@@ -131,7 +131,7 @@ class ConfigurationDescription(common.Serialized):
         """
         build_directory = self.get_build_directory(common.get_current_platform())
         if not os.path.isdir(build_directory):
-            os.mkdir(build_directory)
+            os.makedirs(build_directory)
         return build_directory
             
     def save(self):
