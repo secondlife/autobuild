@@ -45,8 +45,7 @@ class AutobuildBase:
         Utility to run a command in interactive mode.
 
         Requires:
-            description (str)
-            help (str)
+            instance to be a class describing the feature to be configured interactively.
         """
         try:
             data = getattr(self, '_ARGUMENTS')

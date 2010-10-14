@@ -18,8 +18,8 @@ from autobuild_base import AutobuildBase
 from common import AutobuildError, get_current_platform
 
 CONFIG_NAME_DEFAULT='default'
-DEFAULT_CONFIG_CMD='make configure'
-DEFAULT_BUILD_CMD='make'
+DEFAULT_CONFIG_CMD=''
+DEFAULT_BUILD_CMD=''
 
 class AutobuildTool(AutobuildBase):
 
@@ -39,33 +39,39 @@ class AutobuildTool(AutobuildBase):
             dest='config_file',
             default=configfile.AUTOBUILD_CONFIG_FILE,
             help="")
-        parser.add_argument(
-            '-i','--interactive', 
-            action='store_true',
-            default=False,
-            dest='interactive',
-            help="run as an interactive session")
         parser.add_argument('command', nargs='?', default='print',
-            help="commands: build, configure, package, or print")
+            help="commands: bootstrap, build, configure, package, or print")
         parser.add_argument('argument', nargs='*', help=_arg_help_str(self._ARGUMENTS))
 
     def run(self, args):
         config = configfile.ConfigurationDescription(args.config_file)
         arg_dict = _process_key_value_arguments(args.argument)
-        if args.interactive:
+        if not arg_dict:  # if no parameters provided, default to interactive
+            interactive = True
+            print "No arguments given. Entering interactive mode..."
+        cmd_instance = None
+        if args.command == 'bootstrap':
+            print "Entering interactive mode."
             self.interactive_mode(Build(config))
             self.interactive_mode(Configure(config))
             self.interactive_mode(Package(config))
-        if args.command == 'build':
-            Build(config).run(**arg_dict)
+        elif args.command == 'build':
+            cmd_instance = Build(config)
         elif args.command == 'configure':
-            Configure(config).run(**arg_dict)
+            cmd_instance = Configure(config)
         elif args.command == 'package':
-            Package(config).run(**arg_dict)
-        elif args.command == 'print' and not args.interactive:
+            cmd_instance = Package(config)
+        elif args.command == 'print':
             print config
-        elif not args.interactive:
+        elif not interactive:
             raise AutobuildError('unknown command %s' % args.command)
+
+        if cmd_instance:
+            if interactive:
+                self.interactive_mode(cmd_instance)
+            else:
+                cmd_instance.run(**arg_dict)
+
         if not args.dry_run and args.command != 'print':
             config.save()
 
