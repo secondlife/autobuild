@@ -87,7 +87,7 @@ class ConfigurationDescription(common.Serialized):
             raise ConfigurationError('no package configuration defined')
         platform_description = self.package_description.platforms.get(platform_name, None)
         if platform_description is None:
-            raise ConfigurationError("no configuration for platform '%s'" % current_platform)
+            raise ConfigurationError("no configuration for platform '%s'" % platform_name)
         config_directory = os.path.dirname(self.path)
         if platform_description.build_directory is not None:
             build_directory = platform_description.build_directory
@@ -115,7 +115,7 @@ class ConfigurationDescription(common.Serialized):
             raise ConfigurationError('no package configuration defined')
         platform_description = self.package_description.platforms.get(platform_name, None)
         if platform_description is None:
-            raise ConfigurationError("no configuration for platform '%s'" % current_platform)
+            raise ConfigurationError("no configuration for platform '%s'" % platform_name)
         else:
             return platform_description
     
@@ -197,7 +197,7 @@ class PackageDescription(common.Serialized):
     """
     
     def __init__(self, arg):
-        self.platforms={}
+        self.platforms=[]
         self.license = None
         self.license_file = None
         self.version = None
@@ -207,9 +207,9 @@ class PackageDescription(common.Serialized):
             self.name = arg
             
     def __init_from_dict(self, dictionary):
-        platforms = dictionary.pop('platforms',{})
-        for (key, value) in platforms.iteritems():
-            self.platforms[key] = PlatformDescription(value)
+        #platforms = dictionary.pop('platforms',[])
+        #for (key, value) in platforms.items():
+        #    self.platforms[key] = PlatformDescription(value)
         self.update(dictionary)
 
 

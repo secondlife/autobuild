@@ -62,7 +62,9 @@ class AutobuildBase:
 
         input_values = {}
         for argument in self._ARGUMENTS[command]:
-            input_values[argument] = raw_input("    %s> " % argument)
+            i = raw_input("    %s> " % argument)
+            if i:
+                input_values[argument] = i
 
         print "You input:"
         print "%s" % input_values

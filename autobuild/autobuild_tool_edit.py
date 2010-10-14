@@ -26,7 +26,7 @@ class AutobuildTool(AutobuildBase):
     _ARGUMENTS = {
         'configure':   ['name', 'platform', 'cmd'], 
         'build':   ['name', 'platform', 'cmd'], 
-        'package': ['descripition', 'copyright', 'license', 'license_file', 'source', 
+        'package': ['name', 'descripition', 'copyright', 'license', 'license_file', 'source', 
                     'source_type', 'source_directory', 'version', 'patches', 'platforms'],
         }
 
@@ -46,9 +46,10 @@ class AutobuildTool(AutobuildBase):
     def run(self, args):
         config = configfile.ConfigurationDescription(args.config_file)
         arg_dict = _process_key_value_arguments(args.argument)
-        if not arg_dict:  # if no parameters provided, default to interactive
+        # if no parameters provided, default to interactive
+        interactive = False
+        if not arg_dict and args.command != 'print':  
             interactive = True
-            print "No arguments given. Entering interactive mode..."
         cmd_instance = None
         if args.command == 'bootstrap':
             print "Entering interactive mode."
@@ -63,7 +64,7 @@ class AutobuildTool(AutobuildBase):
             cmd_instance = Package(config)
         elif args.command == 'print':
             print config
-        elif not interactive:
+        else:
             raise AutobuildError('unknown command %s' % args.command)
 
         if cmd_instance:
@@ -110,7 +111,7 @@ class _config(InteractiveCommand):
         self.help = "Enter name of existing configuration to modify, or new name to create a new configuration."
         self.config = config
 
-    def _create_build_config_desc(self, config, name, platform, cmd):
+    def _create_build_config_desc(self, config, name, platform):
         if not name:
             raise AutobuildError('build configuration name not given')
         
@@ -120,6 +121,14 @@ class _config(InteractiveCommand):
         config.platform_configurations[platform] = platform_description
         return build_config_desc
 
+    def get_build_config_desc(self, name, platform):
+        # fetch existing value if there is one
+        try:
+            build_config_desc = self.config.get_build_configuration(name, platform)
+        except configfile.ConfigurationError:
+            build_config_desc = self._create_build_config_desc(self.config, name, platform)
+        return build_config_desc 
+
 
 class Build(_config):
 
@@ -128,8 +137,9 @@ class Build(_config):
         """
         Updates the build command.
         """
-        build_config_desc = self._create_build_config_desc(self.config, name, platform, cmd)
-        build_config_desc.build = cmd
+        build_config_desc = self.get_build_config_desc(name, platform) 
+        if cmd:
+            build_config_desc.build = cmd
 
 
 class Configure(_config):
@@ -139,8 +149,9 @@ class Configure(_config):
         """
         Updates the configure command.
         """
-        build_config_desc = self._create_build_config_desc(self.config, name, platform, cmd)
-        build_config_desc.configure = cmd
+        build_config_desc = self.get_build_config_desc(name, platform) 
+        if cmd:
+            build_config_desc.configure = cmd
 
 
 class Package(InteractiveCommand):
@@ -150,12 +161,22 @@ class Package(InteractiveCommand):
         _desc.append('%s' % config.package_description)
         self.description = '\n'.join(_desc)
         self.config = config
+        self.help = "All fields strings. 'platforms' should be a comma-separated list."
+
+    def create_or_update_package_desc(self, kwargs):
+        # fetch existing value if there is one
+        try:
+            package_desc = self.config.package_description
+            package_desc.update(kwargs)
+        except AttributeError:
+            package_desc = configfile.PackageDescription(kwargs)
+        return package_desc 
 
     def run(self, **kwargs):
         """
         Configure packaging details as necessary to build a package.
         """
-        pkg = configfile.PackageDescription(kwargs)
+        pkg = self.create_or_update_package_desc(kwargs)
         self.config.package_description = pkg
 
 
