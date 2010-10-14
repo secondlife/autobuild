@@ -87,7 +87,7 @@ def add(config, installable_name, installable_data):
     """
     _check_name(installable_name)
     installable_data = installable_data.copy()
-    if [p for p in config.installables if p.name == installable_name]:
+    if installable_name in config.installables:
         raise InstallablesError('package %s already exists, use edit instead' %  installable_name)
     package_description = configfile.PackageDescription(installable_name)
     if 'platform' in installable_data:
@@ -102,7 +102,7 @@ def add(config, installable_name, installable_data):
         for element in _ARCHIVE_ATTRIBUTES:
             if element in installable_data:
                 archive_description[element] = installable_data.pop(element)
-    config.installables.append(package_description)
+    config.installables[installable_name] = package_description
     _warn_unused(installable_data)
 
 
@@ -112,13 +112,9 @@ def edit(config, installable_name, installable_data):
     """
     _check_name(installable_name)
     installable_data = installable_data.copy()
-    package_list = [p for p in config.installables if p.name == installable_name]
-    if not package_list:
+    if installable_name not in config.installables:
         raise InstallablesError('package %s does not exist, use add instead' % installable_name)
-    if len(package_list) > 1:
-        raise InstallablesError('multiple packages named %s exists, edit is ambiguous' % 
-            installable_name)
-    package_description = package_list[0]
+    package_description = config.installables[installable_name]
     for element in _PACKAGE_ATTRIBUTES:
         if element in installable_data:
             package_description[element] = installable_data.pop(element)
@@ -156,9 +152,7 @@ def remove(config, installable_name):
     """
     Removes named installable from configuration installables.
     """
-    package_list = [p for p in config.installables if p.name == installable_name]
-    for package in package_list:
-        config.installables.remove(package)
+    config.installables.pop(installable_name)
 
 
 def _process_key_value_arguments(arguments):

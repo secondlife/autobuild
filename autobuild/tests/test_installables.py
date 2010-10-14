@@ -27,7 +27,7 @@ class TestInstallables(unittest.TestCase, AutobuildBaselineCompare):
             url='http://foo.bar.com/test.tar.bz2')
         installables.add(self.config, 'test', data)
         assert len(self.config.installables) == 1
-        package_description = self.config.installables[0]
+        package_description = self.config.installables['test']
         assert package_description.name == 'test'
         assert package_description.license == data['license']
         assert data['platform'] in package_description.platforms
@@ -51,7 +51,7 @@ class TestInstallables(unittest.TestCase, AutobuildBaselineCompare):
         assert result == 0
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         assert len(self.config.installables) == 1
-        package_description = self.config.installables[0]
+        package_description = self.config.installables['test']
         assert package_description.name == 'test'
         assert package_description.license == 'GPL'
         assert 'darwin' in package_description.platforms
@@ -66,7 +66,7 @@ class TestInstallables(unittest.TestCase, AutobuildBaselineCompare):
         result = subprocess.call(cmd, shell=True)
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         assert len(self.config.installables) == 1
-        package_description = self.config.installables[0]
+        package_description = self.config.installables['test']
         platform_description = package_description.platforms['darwin']
         assert package_description.license == 'Apache'
         assert package_description.version == '1.1'

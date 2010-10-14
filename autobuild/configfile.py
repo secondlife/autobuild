@@ -46,7 +46,7 @@ class ConfigurationDescription(common.Serialized):
     def __init__(self, path):
         self.version = AUTOBUILD_CONFIG_VERSION
         self.type = AUTOBUILD_CONFIG_TYPE
-        self.installables = []
+        self.installables = {}
         self.package_description = None
         self.platform_configurations = {}
         self.__load(path)
@@ -154,7 +154,7 @@ class ConfigurationDescription(common.Serialized):
             try:
                 saved_data = llsd.parse(file(self.path, 'rb').read())
             except llsd.LLSDParseError:
-                raise AutobuildError("Config file is corrupt: %s. Aborting..." % self.filename)
+                raise AutobuildError("Config file is corrupt: %s. Aborting..." % self.path)
             if not saved_data.has_key('version'):
                 raise AutobuildError('incompatible configuration file')
             if saved_data['version'] == self.version:
@@ -163,9 +163,9 @@ class ConfigurationDescription(common.Serialized):
                 package_description = saved_data.pop('package_description', None)
                 if package_description is not None:
                     self.package_description = PackageDescription(package_description)
-                installables = saved_data.pop('installables', [])
-                for package in installables:
-                    self.installables.append(PackageDescription(package))
+                installables = saved_data.pop('installables', {})
+                for (name, package) in installables.iteritems():
+                    self.installables[name] = PackageDescription(package)
                 self.update(saved_data)
             else:
                 if saved_data['version'] in update.updaters:
