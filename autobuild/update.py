@@ -100,7 +100,7 @@ class _Update_1_1(object):
                 build_configuration[type] = Executable(command=command, arguments=tokens)
                 build_configuration.default = True
             if 'directory' in old_command:
-                build_configuration.build_directory = old_command['directory']
+                platform.build_directory = old_command['directory']
     
     def _get_platform(self, platform_name, package):
         if platform_name in package.platforms:
