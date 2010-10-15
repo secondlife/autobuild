@@ -112,7 +112,11 @@ class _config(InteractiveCommand):
         stream.write("Current configure and build settings:\n")
         configfile.pretty_print(config.get_all_platforms(), stream) 
         self.description = stream.getvalue()
-        self.help = "Enter name of existing configuration to modify, or new name to create a new configuration."
+        stream.close()
+        stream = StringIO()
+        stream.write("Enter name of existing configuration to modify, or new name to create a new configuration.")
+        stream.write("\nUse commas to speparate independent options and arguments.")
+        self.help = stream.getvalue()
         self.config = config
 
     def _create_build_config_desc(self, config, name, platform, build, configure):
