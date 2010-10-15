@@ -186,7 +186,7 @@ def compute_md5(path):
         from hashlib import md5      # Python 2.6
     except ImportError:
         from md5 import new as md5   # Python 2.5 and earlier
-    stream = open(file, 'rb')
+    stream = open(path, 'rb')
     try:
         hasher = md5(stream.read())
     except:
