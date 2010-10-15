@@ -26,7 +26,7 @@ class AutobuildTool(AutobuildBase):
     _ARGUMENTS = {
         'configure':   ['name', 'platform', 'cmd'], 
         'build':   ['name', 'platform', 'cmd'], 
-        'package': ['name', 'descripition', 'copyright', 'license', 'license_file', 'source', 
+        'package': ['name', 'description', 'copyright', 'license', 'license_file', 'source', 
                     'source_type', 'source_directory', 'version', ],
         }
 
