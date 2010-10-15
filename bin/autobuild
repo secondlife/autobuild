@@ -9,6 +9,7 @@ Command to manage the creation and installation of package archives.
 """
 
 import sys
+import logging
 import os
 
 script_path = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
@@ -22,11 +23,14 @@ except ImportError, excp:
 from autobuild.common import AutobuildError
 
 if __name__ == "__main__":
+    logger = logging.getLogger('autobuild')
     try:
         os.environ['PATH'] = os.environ.get('PATH') + os.pathsep + script_path
         sys.exit( Autobuild().main(sys.argv[1:]) )
     except KeyboardInterrupt, e:
         sys.exit("Aborted...")
     except AutobuildError, e:
+        if logger.getEffectiveLevel() <= logging.DEBUG:
+            logger.exception(str(e))
         sys.exit("ERROR: %s" % e)
 
