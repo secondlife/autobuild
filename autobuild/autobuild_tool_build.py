@@ -53,6 +53,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             help="build all configurations")
         parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
             help="build a specific build configuration", metavar='CONFIGURATION')
+        parser.add_argument('--use-cwd', dest='use_cwd', default=False, action="store_true",
+            help="build in current working directory")
         parser.usage = """%(prog)s [-h] [--no-configure] [--config-file CONFIG_FILE] [-a]
                        [-c CONFIGURATION] [--dry-run] -- [OPT [OPT ...]]"""
 
@@ -60,7 +62,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         config = configfile.ConfigurationDescription(args.config_file)
         current_directory = os.getcwd()
         build_directory = config.make_build_directory()
-        os.chdir(build_directory)
+        if not args.use_cwd:
+            os.chdir(build_directory)
         try:
             configure_first = not args.do_not_configure
             if args.all:

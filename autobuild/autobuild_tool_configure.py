@@ -40,13 +40,16 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             help="build all configurations")
         parser.add_argument('additional_options', nargs="*", metavar='OPT',
             help="an option to pass to the configuration command" )
+        parser.add_argument('--use-cwd', dest='use_cwd', default=False, action="store_true",
+            help="configure in current working directory")
         parser.usage = "%(prog)s [-h] [--dry-run] [-c CONFIGURATION][-a][--config-file FILE] [-- OPT [OPT ...]]"
 
     def run(self, args):
         config = configfile.ConfigurationDescription(args.config_file)
         current_directory = os.getcwd()
         build_directory = config.make_build_directory()
-        os.chdir(build_directory)
+        if not args.use_cwd:
+            os.chdir(build_directory)
         try:
             if args.all:
                 build_configurations = config.get_all_build_configurations()
