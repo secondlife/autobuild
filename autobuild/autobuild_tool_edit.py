@@ -117,7 +117,10 @@ class _config(InteractiveCommand):
         
         init_dict ={'build': build, 'configure': configure}
         build_config_desc = configfile.BuildConfigurationDescription(init_dict)
-        platform_description = configfile.PlatformDescription()
+        try:
+            platform_description = config.get_platform(platform)
+        except configfile.ConfigurationError:
+            platform_description = configfile.PlatformDescription()
         platform_description.configurations[name] = build_config_desc
         config.package_description.platforms[platform] = platform_description
         return build_config_desc
