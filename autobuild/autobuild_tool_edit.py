@@ -27,7 +27,7 @@ class AutobuildTool(AutobuildBase):
         'configure':   ['name', 'platform', 'cmd'], 
         'build':   ['name', 'platform', 'cmd'], 
         'package': ['name', 'descripition', 'copyright', 'license', 'license_file', 'source', 
-                    'source_type', 'source_directory', 'version', 'patches', 'platforms'],
+                    'source_type', 'source_directory', 'version', ],
         }
 
     def get_details(self):
@@ -106,27 +106,31 @@ class _config(InteractiveCommand):
 
     def __init__(self, config):
         _desc = ["Current configure and build settings:",] 
-        _desc.append('%s' % config.platform_configurations)
+        _desc.append('%s' % config.get_really_all_build_configurations())
         self.description = '\n'.join(_desc)
         self.help = "Enter name of existing configuration to modify, or new name to create a new configuration."
         self.config = config
 
-    def _create_build_config_desc(self, config, name, platform):
+    def _create_build_config_desc(self, config, name, platform, build, configure):
         if not name:
             raise AutobuildError('build configuration name not given')
         
-        build_config_desc = configfile.BuildConfigurationDescription()
+        init_dict ={'build': build, 'configure': configure}
+        build_config_desc = configfile.BuildConfigurationDescription(init_dict)
         platform_description = configfile.PlatformDescription()
         platform_description.configurations[name] = build_config_desc
-        config.platform_configurations[platform] = platform_description
+        config.package_description.platforms[platform] = platform_description
         return build_config_desc
 
-    def get_build_config_desc(self, name, platform):
+    def create_or_update_build_config_desc(self, name, platform, build=None, configure=None):
         # fetch existing value if there is one
         try:
             build_config_desc = self.config.get_build_configuration(name, platform)
+            cmds = dict([tuple for tuple in [('build', build), ('configure', configure)] if tuple[1]])
+            for name in build_config_desc.build_steps:
+                build_config_desc.__extract_command(name, cmds)
         except configfile.ConfigurationError:
-            build_config_desc = self._create_build_config_desc(self.config, name, platform)
+            build_config_desc = self._create_build_config_desc(self.config, name, platform, build, configure)
         return build_config_desc 
 
 
@@ -137,9 +141,8 @@ class Build(_config):
         """
         Updates the build command.
         """
-        build_config_desc = self.get_build_config_desc(name, platform) 
-        if cmd:
-            build_config_desc.build = cmd
+        command = {'command':cmd}
+        build_config_desc = self.create_or_update_build_config_desc(name, platform, build=command) 
 
 
 class Configure(_config):
@@ -149,9 +152,8 @@ class Configure(_config):
         """
         Updates the configure command.
         """
-        build_config_desc = self.get_build_config_desc(name, platform) 
-        if cmd:
-            build_config_desc.configure = cmd
+        command = {'command':cmd}
+        build_config_desc = self.create_or_update_build_config_desc(name, platform, configure=command)
 
 
 class Package(InteractiveCommand):
@@ -161,7 +163,6 @@ class Package(InteractiveCommand):
         _desc.append('%s' % config.package_description)
         self.description = '\n'.join(_desc)
         self.config = config
-        self.help = "All fields strings. 'platforms' should be a comma-separated list."
 
     def create_or_update_package_desc(self, kwargs):
         # fetch existing value if there is one
