@@ -9,6 +9,9 @@ Author : Alain Linden
 """
 
 import os
+import pprint
+import sys
+import StringIO
 import common
 from executable import Executable
 from common import AutobuildError
@@ -327,6 +330,22 @@ def compact_to_dict(description):
     containers)
     """
     return _compact_to_dict(description)
+
+
+def pretty_print(description, stream=sys.stdout):
+    """
+    Pretty prints a compact version of any description to a stream. 
+    """
+    pprint.pprint(compact_to_dict(description), stream, 1, 80)
+
+
+def pretty_print_string(description):
+    """
+    Generates a pretty print string for a description.
+    """
+    stream = StringIO()
+    pretty_print(description, stream)
+    return stream.getvalue()
 
 
 # LLSD will only export dict objects, not objects which inherit from dict.  This function will 
