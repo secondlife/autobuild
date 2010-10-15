@@ -4,6 +4,7 @@ import sys
 import os
 import common
 import argparse
+import logging
 
 class run_help(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -73,21 +74,23 @@ class Autobuild(object):
         
         self.parser.parent = self
         self.parser.add_argument('--help',
-        help='Find all valid Autobuild Tools and show help', action=run_help,
-        nargs='?', default=argparse.SUPPRESS)
-
+            help='find all valid Autobuild Tools and show help', action=run_help,
+            nargs='?', default=argparse.SUPPRESS)
+        
         argdefs = (
             (('--dry-run',),
-             dict(help='Run tool in dry run mode if available', action='store_true')),
-##          (('--config-file',),
-##           dict(help="Specify configuration file",
-##                default=configfile.AUTOBUILD_CONFIG_FILE,
-##                dest="config_file")),
-            )
-
+                dict(help='run tool in dry run mode if available', action='store_true')),
+             (('--quite',),
+                dict(help='minimal output', action='store_const',
+                    const=logging.ERROR, dest='logging_level', default=logging.WARNING)),
+             (('--verbose',),
+                dict(help='verbose output', action='store_const', const=logging.INFO, dest='logging_level')),
+             (('--debug',),
+                dict(help='debug output', action='store_const', const=logging.DEBUG, dest='logging_level')),
+        )
         for args, kwds in argdefs:
             self.parser.add_argument(*args, **kwds)
-        
+            
         tool_to_run = -1;
 
         for arg in args_in:
@@ -103,6 +106,10 @@ class Autobuild(object):
                 break
 
         args = self.parser.parse_args(args_in)
+                
+        logger = logging.getLogger('autobuild')
+        logger.setLevel(args.logging_level)
+        logger.addHandler(logging.StreamHandler())
  
         if tool_to_run != -1:
             tool_to_run.run(args)

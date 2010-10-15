@@ -2,8 +2,8 @@
 <llsd>
 <map>
     <key>installables</key>
-    <array>
-    </array>
+    <map>
+    </map>
     <key>package_description</key>
     <map>
       <key>license</key>

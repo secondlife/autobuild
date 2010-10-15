@@ -14,6 +14,10 @@ import common
 from common import AutobuildError
 import configfile
 import os
+import logging
+
+
+logger = logging.getLogger('autobuild.configure')
 
 
 class ConfigurationError(AutobuildError):
@@ -39,8 +43,6 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         parser.usage = "%(prog)s [-h] [--dry-run] [-c CONFIGURATION][-a][--config-file FILE] [-- OPT [OPT ...]]"
 
     def run(self, args):
-        if args.dry_run:
-            return
         config = configfile.ConfigurationDescription(args.config_file)
         current_directory = os.getcwd()
         build_directory = config.make_build_directory()
@@ -55,7 +57,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 build_configurations = config.get_default_build_configurations()
             for build_configuration in build_configurations:
                 result = _configure_a_configuration(config, build_configuration,
-                    args.additional_options)
+                    args.additional_options, args.dry_run)
                 if result != 0:
                     raise ConfigurationError("default configuration returned '%d'" % (result))
         finally:
@@ -77,7 +79,7 @@ def configure(config, build_configuration_name, extra_arguments=[]):
     return _configure_a_configuration(config, build_configuration, extra_arguments)
 
 
-def _configure_a_configuration(config, build_configuration, extra_arguments):
+def _configure_a_configuration(config, build_configuration, extra_arguments, dry_run=False):
     try:
         common_build_configuration = \
             config.get_build_configuration(build_configuration.name, 'common')
@@ -87,8 +89,13 @@ def _configure_a_configuration(config, build_configuration, extra_arguments):
     if build_configuration.configure is not None:
         configure_executable = copy.copy(build_configuration.configure)
         configure_executable.parent = parent_configure
-        return configure_executable(extra_arguments)
     elif parent_configure is not None:
-        return parent_configure(extra_arguments)
+        configure_executable = parent_configure
+    else:
+        logger.info('no configure executable defined; doing nothing')
+        return 0
+    logger.info('executing configure command %s', configure_executable)
+    if not dry_run:
+        return configure_executable(extra_arguments)
     else:
         return 0

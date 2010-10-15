@@ -33,7 +33,7 @@ class ConfigurationError(AutobuildError):
 
 class ConfigurationDescription(common.Serialized):
     """
-    An autoubuild configuration.
+    An autobuild configuration.
     
     Attributes:
         package_description
@@ -46,21 +46,21 @@ class ConfigurationDescription(common.Serialized):
     def __init__(self, path):
         self.version = AUTOBUILD_CONFIG_VERSION
         self.type = AUTOBUILD_CONFIG_TYPE
-        self.installables = []
+        self.installables = {}
         self.package_description = None
         self.platform_configurations = {}
         self.__load(path)
  
     def absolute_path(self, path):
         """
-        Returns an absoulte path derived from the input path rooted at the configuration file's
+        Returns an absolute path derived from the input path rooted at the configuration file's
         directory when the input is a relative path.
         """
         if os.path.isabs(path):
             return path
         else:
             return os.path.abspath(os.path.join(os.path.dirname(self.path), path))
- 
+
     def get_all_build_configurations(self, platform_name=get_current_platform()):
         """
         Returns all build configurations for the platform.
@@ -115,7 +115,7 @@ class ConfigurationDescription(common.Serialized):
             raise ConfigurationError('no package configuration defined')
         platform_description = self.package_description.platforms.get(platform_name, None)
         if platform_description is None:
-            raise ConfigurationError("no configuration for platform '%s'" % platform_name)
+            raise ConfigurationError("no configuration for platform '%s'" % current_platform)
         else:
             return platform_description
     
@@ -131,14 +131,14 @@ class ConfigurationDescription(common.Serialized):
         """
         build_directory = self.get_build_directory(common.get_current_platform())
         if not os.path.isdir(build_directory):
-            os.mkdir(build_directory)
+            os.makedirs(build_directory)
         return build_directory
             
     def save(self):
         """
         Save the configuration state to the input file.
         """
-        file(self.path, 'wb').write(llsd.format_pretty_xml(_flatten_to_dict(self)))
+        file(self.path, 'wb').write(llsd.format_pretty_xml(_compact_to_dict(self)))
             
     def __load(self, path):
         if os.path.isabs(path):
@@ -154,24 +154,25 @@ class ConfigurationDescription(common.Serialized):
             try:
                 saved_data = llsd.parse(file(self.path, 'rb').read())
             except llsd.LLSDParseError:
-                raise AutobuildError("Config file is corrupt: %s. Aborting..." % self.filename)
+                raise AutobuildError("Config file %s is corrupt. Aborting..." % self.path)
             if not saved_data.has_key('version'):
-                raise AutobuildError('incompatible configuration file')
+                raise AutobuildError('incompatible configuration file ' + self.path)
             if saved_data['version'] == self.version:
                 if (not saved_data.has_key('type')) or (saved_data['type'] != 'autobuild'):
-                    raise AutobuildError('not an autoubuild configuration file')
+                    raise AutobuildError(self.path + ' not an autobuild configuration file')
                 package_description = saved_data.pop('package_description', None)
                 if package_description is not None:
                     self.package_description = PackageDescription(package_description)
-                installables = saved_data.pop('installables', [])
-                for package in installables:
-                    self.installables.append(PackageDescription(package))
+                installables = saved_data.pop('installables', {})
+                for (name, package) in installables.iteritems():
+                    self.installables[name] = PackageDescription(package)
                 self.update(saved_data)
             else:
                 if saved_data['version'] in update.updaters:
                     update.updaters[saved_data['version']](saved_data, self)
                 else:
-                    raise ConfigurationError("cannot update version %s file" % saved_data.version)
+                    raise ConfigurationError("cannot update version %s file %s" %
+                                             (saved_data.version, self.path))
         elif not os.path.exists(self.path):
             pass
         else:
@@ -197,7 +198,7 @@ class PackageDescription(common.Serialized):
     """
     
     def __init__(self, arg):
-        self.platforms=[]
+        self.platforms={}
         self.license = None
         self.license_file = None
         self.version = None
@@ -205,11 +206,21 @@ class PackageDescription(common.Serialized):
             self.__init_from_dict(arg.copy())
         else:
             self.name = arg
-            
+
+    def get_platform(self, platform):
+        """
+        Find the child PlatformDescription either for the named platform or
+        for 'common'. Return None if neither PlatformDescription exists.
+        """
+        try:
+            return self.platforms[platform]
+        except KeyError:
+            return self.platforms.get("common")
+
     def __init_from_dict(self, dictionary):
-        #platforms = dictionary.pop('platforms',[])
-        #for (key, value) in platforms.items():
-        #    self.platforms[key] = PlatformDescription(value)
+        platforms = dictionary.pop('platforms',{})
+        for (key, value) in platforms.iteritems():
+            self.platforms[key] = PlatformDescription(value)
         self.update(dictionary)
 
 
@@ -283,6 +294,8 @@ class ArchiveDescription(common.Serialized):
         hash_algorithm
         url
     """
+    # Implementations for various values of hash_algorithm should be found in
+    # hash_algorithms.py.
     def __init__(self, dictionary = None):
         self.hash = None
         self.hash_algorithm = None
@@ -291,16 +304,25 @@ class ArchiveDescription(common.Serialized):
             self.update(dictionary)
 
 
+def compact_to_dict(description):
+    """
+    Creates a dict from the provided description recursively copying member descriptions to dicts  
+    and removing and elements which are None or evaluate to False (e.g. empty strings and 
+    containers)
+    """
+    return _compact_to_dict(description)
+
+
 # LLSD will only export dict objects, not objects which inherit from dict.  This function will 
 # recursively copy dict like objects into dict's in preparation for export.
-def _flatten_to_dict(obj):
+def _compact_to_dict(obj):
     if isinstance(obj, dict):
         result = {}
         for (key,value) in obj.items():
             if value:
-                result[key] = _flatten_to_dict(value)
+                result[key] = _compact_to_dict(value)
         return result
     elif isinstance(obj, list):
-        return [_flatten_to_dict(o) for o in obj if o]
+        return [_compact_to_dict(o) for o in obj if o]
     else:
         return obj
