@@ -24,8 +24,8 @@ DEFAULT_BUILD_CMD=''
 class AutobuildTool(AutobuildBase):
 
     _ARGUMENTS = {
-        'configure':   ['name', 'platform', 'cmd'], 
-        'build':   ['name', 'platform', 'cmd'], 
+        'configure':   ['name', 'platform', 'cmd', 'options', 'arguments'], 
+        'build':   ['name', 'platform', 'cmd', 'options', 'arguments'], 
         'package': ['name', 'description', 'copyright', 'license', 'license_file', 'source', 
                     'source_type', 'source_directory', 'version', ],
         }
@@ -69,6 +69,7 @@ class AutobuildTool(AutobuildBase):
 
         if cmd_instance:
             if interactive:
+                print "No args provided. Entering interactive mode..."
                 self.interactive_mode(cmd_instance)
             else:
                 cmd_instance.run(**arg_dict)
@@ -108,7 +109,9 @@ class _config(InteractiveCommand):
         _desc = ["Current configure and build settings:",] 
         _desc.append('%s' % config.get_all_platforms())
         self.description = '\n'.join(_desc)
-        self.help = "Enter name of existing configuration to modify, or new name to create a new configuration."
+        _help = ["Enter name of existing configuration to modify, or new name to create a new configuration."]
+        _help.append( "Use commas to speparate independent options and arguments." )
+        self.help = '\n'.join(_help)
         self.config = config
 
     def _create_build_config_desc(self, config, name, platform, build, configure):
@@ -140,29 +143,33 @@ class _config(InteractiveCommand):
 class Build(_config):
 
     def run(self, platform=get_current_platform(), name=CONFIG_NAME_DEFAULT, 
-              cmd=DEFAULT_BUILD_CMD):
+              cmd=DEFAULT_BUILD_CMD, options='', arguments=''):
         """
         Updates the build command.
         """
-        command = {'command':cmd}
+        command = { 'command':cmd, 
+                    'options':listify_str(options), 
+                    'arguments':listify_str(arguments)}
         build_config_desc = self.create_or_update_build_config_desc(name, platform, build=command) 
 
 
 class Configure(_config):
 
     def run(self, platform=get_current_platform(), name=CONFIG_NAME_DEFAULT, 
-                  cmd=DEFAULT_CONFIG_CMD):
+                  cmd=DEFAULT_CONFIG_CMD, options='', arguments=''):
         """
         Updates the configure command.
         """
-        command = {'command':cmd}
+        command = { 'command':cmd, 
+                    'options':listify_str(options), 
+                    'arguments':listify_str(arguments)}
         build_config_desc = self.create_or_update_build_config_desc(name, platform, configure=command)
 
 
 class Package(InteractiveCommand):
 
     def __init__(self, config):
-        _desc = ['Current package settings',]
+        _desc = ['Current package settings:',]
         _desc.append('%s' % config.package_description)
         self.description = '\n'.join(_desc)
         self.config = config
@@ -194,5 +201,10 @@ def _process_key_value_arguments(arguments):
             print >> sys.stderr, 'ignoring malformed argument', argument
     return dictionary
 
+
+def listify_str(str):
+    list = str.split(',')
+    list = [p.strip() for p in list]
+    return list
 
 
