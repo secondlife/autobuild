@@ -124,7 +124,7 @@ class ConfigurationDescription(common.Serialized):
             raise ConfigurationError('no package configuration defined')
         platform_description = self.package_description.platforms.get(platform_name, None)
         if platform_description is None:
-            raise ConfigurationError("no configuration for platform '%s'" % current_platform)
+            raise ConfigurationError("no configuration for platform '%s'" % platform_name)
         else:
             return platform_description
     
