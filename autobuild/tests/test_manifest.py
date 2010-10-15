@@ -61,7 +61,6 @@ class TestManifest(unittest.TestCase, AutobuildBaselineCompare):
         assert result == 0
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         common_manifest = self.config.get_platform('common').manifest
-        print self.config.get_platform('common')
         assert ('*.cpp' in common_manifest) and ('*.h' in common_manifest) and ('*.py' in common_manifest)
         result = subprocess.call('autobuild manifest --config-file=%s -p common remove *.cpp' % \
             self.tmp_file, shell=True)

@@ -57,6 +57,12 @@ class Executable(Serialized):
         all_arguments.extend(options)
         all_arguments.extend(self.get_arguments())
         return subprocess.call(' '.join(all_arguments), shell=True)
+   
+    def __str__(self):
+        all_arguments = [self.get_command()]
+        all_arguments.extend(self.get_options())
+        all_arguments.extend(self.get_arguments())
+        return ' '.join(all_arguments)
     
     def get_arguments(self):
         """

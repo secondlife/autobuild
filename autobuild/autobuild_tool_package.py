@@ -30,10 +30,14 @@ import tarfile
 import time
 import glob
 import common
+import logging
 import configfile
 import autobuild_base
 from connection import SCPConnection, S3Connection
 from common import AutobuildError
+
+
+logger = logging.getLogger('autobuild.package')
 
 
 class AutobuildTool(autobuild_base.AutobuildBase):
@@ -102,9 +106,8 @@ def package(config, platform_name, archive_filename=None, check_license=True, dr
     else:
         tarfilename = os.path.abs(os.path.join(config_directory, archive_filename))
     if dry_run:
-        for file in files:
-            print "Adding (dry-run)", file
-        print "Dry-run: would have created %s" % tarfilename
+        for f in files:
+            logger.info('added ' + f)
     else:
         _create_tarfile(tarfilename, build_directory, files)
 
@@ -114,7 +117,7 @@ def _generate_archive_name(package_description, platform_name, suffix=''):
     # do not have hyphens in them as this will confuse the
     # related split_tarname() method.
     package_name = package_description.name.replace('-', '_')
-    platform_name = platform.replace('/', '_').replace('-', '_')
+    platform_name = platform_name.replace('/', '_').replace('-', '_')
     name = package_name + '-' + package_description.version + '-'
     name += platform_name + '-'
     name += time.strftime("%Y%m%d") + suffix
@@ -161,6 +164,7 @@ def _create_tarfile(tarfilename, build_directory, filelist):
         for file in filelist:
             try:
                 tfile.add(file)
+                logger.info('added ' + file)
             except:
                 raise PackageError("unable to add %s to %s" % (file, tarfilename))
         tfile.close()

@@ -35,6 +35,10 @@ class TestPackaging(unittest.TestCase):
         tarball = tarfile.open(self.tar_name)
         assert [os.path.basename(f) for f in tarball.getnames()].sort() == \
             ['file3', 'file1', 'test1.txt'].sort()
+        os.remove(self.tar_name)
+        result = subprocess.call('autobuild package --config-file=%s -p linux --dry-run' % \
+            (self.config_path), shell=True)
+        assert result == 0
     
     def tearDown(self):
         if os.path.exists(self.tar_name):

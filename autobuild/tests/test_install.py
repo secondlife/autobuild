@@ -25,7 +25,7 @@ class FakeOptions:
         self.check_license = True
         self.list_licenses = False
         self.export_manifest = False
-        self.get_source = False
+        self.as_source = []
         self.verbose = False
 
 class TestInstall(unittest.TestCase):
