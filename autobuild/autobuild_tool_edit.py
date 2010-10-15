@@ -13,6 +13,7 @@ Build configuration includes:
 """
 
 import sys
+from StringIO import StringIO
 import configfile
 from autobuild_base import AutobuildBase
 from common import AutobuildError, get_current_platform
@@ -63,7 +64,7 @@ class AutobuildTool(AutobuildBase):
         elif args.command == 'package':
             cmd_instance = Package(config)
         elif args.command == 'print':
-            print config
+            configfile.pretty_print(config)
         else:
             raise AutobuildError('unknown command %s' % args.command)
 
@@ -95,9 +96,10 @@ class InteractiveCommand(object):
     """
 
     def __init__(self, config):
-        _desc = ["Current settings:",] 
-        _desc.append('%s' % config)
-        self.description = '\n'.join(_desc)
+        stream = StringIO()
+        stream.write("Current settings:\n")
+        configfile.pretty_print(config, stream) 
+        self.description = stream.getvalue()
         self.help = "Enter new or modified configuration values."
         self.config = config
 
@@ -105,9 +107,10 @@ class InteractiveCommand(object):
 class _config(InteractiveCommand):
 
     def __init__(self, config):
-        _desc = ["Current configure and build settings:",] 
-        _desc.append('%s' % config.get_all_platforms())
-        self.description = '\n'.join(_desc)
+        stream = StringIO()
+        stream.write("Current configure and build settings:\n")
+        configfile.pretty_print(config.get_all_platforms(), stream) 
+        self.description = stream.getvalue()
         self.help = "Enter name of existing configuration to modify, or new name to create a new configuration."
         self.config = config
 
