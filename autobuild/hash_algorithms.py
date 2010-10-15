@@ -13,7 +13,7 @@ $/LicenseInfo$
 import common
 from common import AutobuildError
 
-def verify_hash(self, hash_algorithm, pathname, hash):
+def verify_hash(hash_algorithm, pathname, hash):
     if not hash:
         # If there's no specified hash value, what can we do? We could
         # unconditionally fail, but that risks getting the user stuck. So
@@ -38,5 +38,5 @@ def verify_hash(self, hash_algorithm, pathname, hash):
     # it.
     return function(pathname, hash)
 
-def _verify_md5(self, pathname, hash):
+def _verify_md5(pathname, hash):
     return common.compute_md5(pathname) == hash

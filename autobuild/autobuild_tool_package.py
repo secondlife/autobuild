@@ -94,8 +94,7 @@ def package(config, platform_name, archive_filename=None, check_license=True, dr
     if(platform_name != 'common'):
         files.extend(_get_file_list(config.get_platform('common'), build_directory))
     if check_license:
-        if not _check_license(package_description, build_directory, files):
-            raise PackageError('failed licence check')
+        _check_or_add_license(package_description, build_directory, files)
     config_directory = os.path.dirname(config.path)
     if not archive_filename:
         tardir = config_directory
@@ -139,19 +138,20 @@ def _get_file_list(platform_description, build_directory):
     return files
 
 
-def _check_license(package_description, build_directory, filelist):
+def _check_or_add_license(package_description, build_directory, filelist):
     if not package_description.license:
         raise PackageError("the license field is not specified")
     licensefile = package_description.license_file
     if not licensefile:
         licensefile = 'LICENSES/%s.txt' % package_description.name
     if licensefile.startswith('http://'):
-        return True
-    for file in filelist:
-        # use os.path.normpath for windows os.pathsep compatibility
-        if os.path.normpath(licensefile) == os.path.normpath(file):
-            return True
-    return False
+        pass # No need to add.
+    elif os.path.normpath(licensefile) in [os.path.normpath(f) for f in filelist]:
+        pass # Already found.
+    elif os.path.isfile(os.path.join(build_directory, licensefile)):
+        filelist.append(licensefile) # Can add to to the package.
+    else:
+        raise PackageError('cannot add license file %s' % licensefile)
 
 
 def _create_tarfile(tarfilename, build_directory, filelist):
