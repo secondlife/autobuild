@@ -115,7 +115,7 @@ class _config(InteractiveCommand):
         if not name:
             raise AutobuildError('build configuration name not given')
         
-        init_dict ={'build': build, 'configure': configure}
+        init_dict = dict({'build': build, 'configure': configure})
         build_config_desc = configfile.BuildConfigurationDescription(init_dict)
         try:
             platform_description = config.get_platform(platform)
@@ -127,12 +127,12 @@ class _config(InteractiveCommand):
 
     def create_or_update_build_config_desc(self, name, platform, build=None, configure=None):
         # fetch existing value if there is one
+        cmds = dict([tuple for tuple in [('build', build), ('configure', configure)] if tuple[1]])
         try:
             build_config_desc = self.config.get_build_configuration(name, platform)
-            cmds = dict([tuple for tuple in [('build', build), ('configure', configure)] if tuple[1]])
             for name in build_config_desc.build_steps:
-                build_config_desc.__extract_command(name, cmds)
-        except (configfile.ConfigurationError, AttributeError):
+                build_config_desc.update(cmds)
+        except configfile.ConfigurationError:
             build_config_desc = self._create_build_config_desc(self.config, name, platform, build, configure)
         return build_config_desc 
 
