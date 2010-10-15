@@ -129,7 +129,9 @@ class ConfigurationDescription(common.Serialized):
             return platform_description
     
     def get_all_platforms(self):
-        if not self.package_description:
+        try:
+            return self.package_description.platforms
+        except AttributeError:
             self.package_description = PackageDescription({})
         return self.package_description.platforms
 

@@ -106,7 +106,7 @@ class _config(InteractiveCommand):
 
     def __init__(self, config):
         _desc = ["Current configure and build settings:",] 
-        _desc.append('%s' % config.get_really_all_build_configurations())
+        _desc.append('%s' % config.get_all_platforms())
         self.description = '\n'.join(_desc)
         self.help = "Enter name of existing configuration to modify, or new name to create a new configuration."
         self.config = config
@@ -132,7 +132,7 @@ class _config(InteractiveCommand):
             cmds = dict([tuple for tuple in [('build', build), ('configure', configure)] if tuple[1]])
             for name in build_config_desc.build_steps:
                 build_config_desc.__extract_command(name, cmds)
-        except configfile.ConfigurationError:
+        except (configfile.ConfigurationError, AttributeError):
             build_config_desc = self._create_build_config_desc(self.config, name, platform, build, configure)
         return build_config_desc 
 
