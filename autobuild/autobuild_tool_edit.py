@@ -17,6 +17,7 @@ from StringIO import StringIO
 import configfile
 from autobuild_base import AutobuildBase
 from common import AutobuildError, get_current_platform
+from interactive import InteractiveCommand
 
 CONFIG_NAME_DEFAULT='default'
 DEFAULT_CONFIG_CMD=''
@@ -84,25 +85,6 @@ def _arg_help_str(arg_dict):
     for (key, value) in arg_dict.items():
         s.append('%s: %s' % (key, value))
     return '\n'.join(s)
-
-
-class InteractiveCommand(object):
-    """
-    Class describing characteristics of a particular command.
-
-    Should contain:
-        description  description for interactive mode
-        help         additional help text for interactive mode
-        run          method used to run this command
-    """
-
-    def __init__(self, config):
-        stream = StringIO()
-        stream.write("Current settings:\n")
-        configfile.pretty_print(config, stream) 
-        self.description = stream.getvalue()
-        self.help = "Enter new or modified configuration values."
-        self.config = config
 
 
 class _config(InteractiveCommand):
