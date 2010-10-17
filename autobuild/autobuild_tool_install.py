@@ -32,7 +32,8 @@ from llbase import llsd
 import subprocess
 import hash_algorithms
 
-AutobuildError = common.AutobuildError
+class InstallError(common.AutobuildError):
+    pass
 
 __help = """\
 This autobuild command fetches and installs package archives.
@@ -181,24 +182,24 @@ def should_install(package_name, config_file, installed_config, platform, as_sou
         toinstall = config_file.installables[package_name]
     except KeyError:
         # raise error if named package doesn't exist in autobuild.xml
-        raise AutobuildError('Unknown package: %s' % package_name)
+        raise InstallError('unknown package: %s' % package_name)
 
     if package_name in as_source:
         if not toinstall.source:
-            raise AutobuildError("No source url specified for %s" % package_name)
+            raise InstallError("no source url specified for %s" % package_name)
         if not toinstall.sourcetype:
-            raise AutobuildError("No source repository type specified for %s" % package_name)
+            raise InstallError("no source repository type specified for %s" % package_name)
 
         # Always update a source package
         return True
 
     # Not a source package, but a reference to a binary archive. Check that we
     # have a platform-specific or common url to use.
-    srcpf = toinstall.get_platform(platform)
-    if not srcpf:
-       raise AutobuildError("No platform %s for %s" % (platform, package_name))
-    if not srcpf.archive:
-       raise AutobuildError("No archive specified for platform %s for %s" %
+    req_platform = toinstall.get_platform(platform)
+    if not req_platform:
+       raise InstallError("no platform %s for %s" % (platform, package_name))
+    if not req_platform.archive:
+       raise InstallError("no archive specified for platform %s for %s" %
                             (platform, package_name))
 
     # install this package if it is new or out of date
@@ -208,19 +209,19 @@ def should_install(package_name, config_file, installed_config, platform, as_sou
         # package hasn't yet been installed at all
         return True
 
-    dstpf = installed.get_platform(platform)
-    if not dstpf:
+    inst_platform = installed.get_platform(platform)
+    if not inst_platform:
         # This package appears in installed_config, but with no entry for this
         # platform, so can't be installed yet for this platform.
         return True
 
-    # Because ArchiveDescription isa dict, we can rely on builtin dict
-    # comparison to compare each attribute (key) individually. We must install
-    # an update if the URL, hash_algorithm or hash value differs. This test
-    # also handles the case when dstpf.archive is None.
+    # Rely on ArchiveDescription's equality-comparison method to discover
+    # whether the installed ArchiveDescription matches the requested one. This
+    # test also handles the case when inst_platform.archive is None (not yet
+    # installed).
     # Note the sense of the test: if the data does not match, then we
     # should_install(). If everything matches, there's no need.
-    return srcpf.archive != dstpf.archive
+    return req_platform.archive != inst_platform.archive
 
 def pre_install_license_check(packages, config_file):
     """
@@ -231,7 +232,7 @@ def pre_install_license_check(packages, config_file):
         package = config_file.installables[pname]
         license = package.license
         if not license:
-            raise AutobuildError("No license specified for %s. Aborting... "
+            raise InstallError("no license specified for %s. Aborting... "
                                  "(you can use --skip-license-check)" % pname)
 
 def post_install_license_check(packages, config_file, install_dir):
@@ -252,7 +253,7 @@ def post_install_license_check(packages, config_file, install_dir):
             continue
         # otherwise, assert that the license file is in the archive
         if not os.path.exists(os.path.join(install_dir, license_file)):
-            raise AutobuildError("Invalid or undefined license_file for %s: %s "
+            raise InstallError("invalid or undefined license_file for %s: %s "
                                  "(you can use --skip-license-check)" % (pname, license_file))
 
 def do_install(packages, config_file, installed_file, platform, install_dir, dry_run, as_source=[]):
@@ -282,25 +283,29 @@ def _install_source(package, installed_config, config_file, dry_run):
               (package.sourcetype, package.name, package.source)
         return
 
-    # By convention source is downloaded into the parent directory containing this project.
-    sourcepath = os.path.normpath(
-        os.path.join(os.path.dirname(config_file.filename), os.pardir, package.name))
+    if not package.source_directory:
+        raise InstallError("%s requested as_source, but no source_directory specified" %
+                           package.name)
+    # Question: package.source_directory is specific to each
+    # PackageDescription; do we need to further qualify the pathname with the
+    # package.name?
+    sourcepath = config_file.absolute_path(os.path.join(package.source_directory, package.name))
     if package.sourcetype == 'svn':
         if os.path.isdir(sourcepath):
             if subprocess.call(['svn', 'update', sourcepath]) != 0:
-                raise AutobuildError("Error updating %s" % package.name)
+                raise InstallError("error updating %s" % package.name)
         else:
             if subprocess.call(['svn', 'checkout', package.source, sourcepath]) != 0:
-                raise AutobuildError("Error checking out %s" % package.name)
+                raise InstallError("error checking out %s" % package.name)
     elif package.sourcetype == 'hg':
         if os.path.isdir(sourcepath):
             if subprocess.call(['hg', "--repository", sourcepath, 'pull', "-u"]) != 0:
-                raise AutobuildError("Error pulling %s" % package.name)
+                raise InstallError("error pulling %s" % package.name)
         else:
             if subprocess.call(['hg', 'clone', package.source, sourcepath]) != 0:
-                raise AutobuildError("Error cloning %s" % package.name)
+                raise InstallError("error cloning %s" % package.name)
     else:
-        raise AutobuildError("Unsupported repository type %s for %s" %
+        raise InstallError("unsupported repository type %s for %s" %
                              (package.sourcetype, package.name))
 
     installed_config.set_package(package.name, package)
@@ -316,12 +321,12 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
 
         # download the package to the cache
         if not common.download_package(archive.url):
-            raise AutobuildError("Failed to download %s" % archive.url)
+            raise InstallError("failed to download %s" % archive.url)
 
         # error out if MD5 doesn't match
         if not hash_algorithms.verify_hash(archive.hash_algorithm, cachefile, archive.hash):
             common.remove_package(archive.url)
-            raise AutobuildError("%s mismatch for %s" % (archive.hash_algorithm, cachefile))
+            raise InstallError("%s mismatch for %s" % (archive.hash_algorithm, cachefile))
 
     # dry run mode = download but don't install packages
     if dry_run:
