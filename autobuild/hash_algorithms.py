@@ -13,7 +13,37 @@ $/LicenseInfo$
 import common
 from common import AutobuildError
 
+# Valid configfile.ArchiveDescription.hash_algorithm values are registered
+# here by means of the @hash_algorithm decorator.
+REGISTERED_ALGORITHMS = {}
+
+class hash_algorithm(object):
+    """
+    This decorator is used to register each supported hash algorithm in
+    REGISTERED_ALGORITHMS using syntax like:
+
+    @hash_algorithm("md5")
+    def _verify_md5(self, pathname, hash):
+        ...
+    """
+    # called when we instantiate @hash_algorithm("md5")
+    def __init__(self, key):
+        self.key = key
+
+    # called when this decorator is applied to an implementation function
+    def __call__(self, func):
+        global REGISTERED_ALGORITHMS
+        # Register the decorated function with the specified key.
+        REGISTERED_ALGORITHMS[self.key] = func
+        # Unlike many decorators, we don't want to wrap the passed function in
+        # any way; just return the same function.
+        return func
+
+
 def verify_hash(self, hash_algorithm, pathname, hash):
+    """
+    Primary entry point for this module
+    """
     if not hash:
         # If there's no specified hash value, what can we do? We could
         # unconditionally fail, but that risks getting the user stuck. So
@@ -29,7 +59,7 @@ def verify_hash(self, hash_algorithm, pathname, hash):
         hash_algorithm = "md5"
 
     try:
-        function = globals()["_verify_" + hash_algorithm]
+        function = REGISTERED_ALGORITHMS[hash_algorithm]
     except KeyError:
         raise AutobuildError("Unsupported hash type %s for %s" %
                              (hash_algorithm, pathname))
@@ -38,5 +68,7 @@ def verify_hash(self, hash_algorithm, pathname, hash):
     # it.
     return function(pathname, hash)
 
+
+@hash_algorithm("md5")
 def _verify_md5(self, pathname, hash):
     return common.compute_md5(pathname) == hash

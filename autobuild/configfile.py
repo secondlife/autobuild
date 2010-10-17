@@ -319,6 +319,37 @@ class ArchiveDescription(common.Serialized):
         if dictionary is not None:
             self.update(dictionary)
 
+    def __eq__(self, other):
+        """
+        Return True if the other ArchiveDescription matches this one: if the
+        other one describes what's installed, and this one describes what's
+        supposed to be installed, is the install up-to-date?
+        """
+        # If we're comparing to something that's not even an
+        # ArchiveDescription, no way is it equal.
+        if not isinstance(other, ArchiveDescription):
+            return False
+##         # Disabled because, if the hash_algorithm is as good as (say) MD5, we
+##         # can safely say that if the hash matches, we have the right tarball
+##         # -- even if we downloaded it from a different URL. That would be a
+##         # dubious assumption if we were using a weaker hash such as a 16-bit
+##         # checksum.
+##         # Whoops, the archive is found at a different URL now, have to re-download.
+##         if self.url != other.url:
+##             return False
+        # If there's no hash_algorithm, assume "md5". That works for either
+        # side: an ArchiveDescription with hash_algorithm None matches an
+        # ArchiveDescription with hash_algorithm explicitly set to "md5".
+        if (self.hash_algorithm or "md5") != (other.hash_algorithm or "md5"):
+            return False
+        # It's only reasonable to compare hash values if the hash_algorithm
+        # matches.
+        return self.hash == other.hash
+
+    def __ne__(self, other):
+        # Use the same logic for both == and != operators.
+        return not self.__eq__(other)
+
 
 def compact_to_dict(description):
     """
