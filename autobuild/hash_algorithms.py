@@ -40,6 +40,7 @@ class hash_algorithm(object):
         return func
 
 
+def verify_hash(hash_algorithm, pathname, hash):
     """
     Primary entry point for this module
     """
@@ -69,4 +70,5 @@ class hash_algorithm(object):
 
 
 @hash_algorithm("md5")
+def _verify_md5(pathname, hash):
     return common.compute_md5(pathname) == hash
