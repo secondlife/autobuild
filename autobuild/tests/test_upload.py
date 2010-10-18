@@ -19,11 +19,12 @@ import tarfile
 import urllib2
 import tempfile
 import subprocess
+import logging
 from cStringIO import StringIO
 from nose.tools import *                # assert_etc()
 from autobuild import common
 from autobuild.autobuild_tool_upload import upload, UploadError, \
-     SCPConnection, S3Connection, S3ConnectionError, SCPConnectionError
+     SCPConnection, S3Connection, S3ConnectionError, SCPConnectionError, logger
 
 scp = common.get_default_scp_command()
 ssh = common.find_executable(['ssh', 'plink'], ['.exe'])
@@ -43,6 +44,8 @@ def setup():
     This setup() function is run once for this whole module, as opposed to
     TestWithConfigFile.setup(), which is run once per test method.
     """
+    logger.setLevel(logging.INFO)   
+    
     if not ssh:
         raise common.AutobuildError("Cannot find ssh command to clean up scp server")
     # TestWithConfigFile.teardown() has the benefit of working with a list of
@@ -172,14 +175,6 @@ class TestWithConfigFile(object):
                 
         if reraise is not None:
             raise reraise[0], reraise[1], reraise[2]
-
-    @raises(UploadError)
-    def testUnknown(self):
-        upload([self.unknown_archive], True, dry_run=True)
-
-    @raises(UploadError)
-    def testShrug(self):
-        upload([self.upshrug_archive], True, dry_run=True)
 
     def testNoDry(self):
         # Capture print output
