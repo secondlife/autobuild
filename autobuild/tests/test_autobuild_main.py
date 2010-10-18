@@ -32,9 +32,6 @@ class TestOptions(unittest.TestCase):
         self.autobuild_fixture.parser.exit = mock_exit
         self.old_exit = sys.exit
         sys.exit = mock_exit
-        def mock_listdir(dir):
-            return ['autobuild_tool_test.py']
-        self.autobuild_fixture.listdir = mock_listdir
         pass
 
     def tearDown(self):
@@ -76,10 +73,10 @@ class TestOptions(unittest.TestCase):
     def test_tool_register(self):
         """test_tool_register: check autobuild test finds & registers autobuild_tool_test.py"""
         try:
-            ret = self.autobuild_fixture.main(['test', '-h'])
+            ret = self.autobuild_fixture.main(['build', '-h'])
             self.fail()
         except EarlyExitException:
-            self.assertNotEquals(-1, captured_stdout.find("Test Tool Internal Help"))
+            self.assertNotEquals(-1, captured_stdout.find("an option to pass to the build command"))
         pass
         
     def test_tool_search_for_tools(self):
@@ -88,43 +85,7 @@ class TestOptions(unittest.TestCase):
             ret = self.autobuild_fixture.main(['--help'])
             self.fail()
         except EarlyExitException:
-            self.assertNotEquals(-1, captured_stdout.find("Test Tool for Autobuild"))
-        pass
-        
-    def test_tool_version(self):
-        """test_tool_version: check test tool has independent version"""
-        try:
-            ret = self.autobuild_fixture.main(['test', '-v'])
-            self.fail()
-        except EarlyExitException:
-            self.assertNotEquals(-1, captured_stdout.find("test tool module 1.0"))
-        pass
-        
-    def test_tool_run(self):
-        """test_tool_run: ensure imported test tool runs when invoked with correct options"""
-        try:
-            ret = self.autobuild_fixture.main(['test', '--Test','x','y','z','-o','--option', '3'])
-            self.assertNotEquals(-1, captured_stdout.find("the answer is:'3'xyz"))
-        except EarlyExitException:
-            self.fail()
-        pass
-
-    def test_main_dry_run(self):
-        """test_main_dry_run: ensure imported test tool gets the global --dry-run flag"""
-        try:
-            ret = self.autobuild_fixture.main(['--dry-run', 'test', '--Test','x','y','z','-o','--option', '3'])
-            self.assertNotEquals(-1, captured_stdout.find("Dry run mode in operation!"))
-        except EarlyExitException:
-            self.fail()
-        pass
-
-    def test_tool_dry_run(self):
-        """test_tool_dry_run: ensure imported test tool gets the global --dry-run flag"""
-        try:
-            ret = self.autobuild_fixture.main(['test', '--Test','x','y','z','-o','--option', '3', '--dry-run'])
-            self.assertNotEquals(-1, captured_stdout.find("Dry run mode in operation!"))
-        except EarlyExitException:
-            self.fail()
+            self.assertNotEquals(-1, captured_stdout.find("Builds platform targets."))
         pass
 
 
