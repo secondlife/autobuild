@@ -3,19 +3,25 @@
 # $/LicenseInfo$
 
 """
-Create archives of build output, ready for upload to the server.
+Services for uploading packages to servers.
 """
 
 import argparse
 import sys
+import logging
 import os
 import common
 from autobuild_base import AutobuildBase
 from configfile import ConfigFile, AUTOBUILD_CONFIG_FILE
 from connection import SCPConnection, S3Connection, S3ConnectionError, SCPConnectionError
 
+
+logger = logging.getLogger('autobuild.upload')
+
+
 class UploadError(common.AutobuildError):
     pass
+
 
 class AutobuildTool(AutobuildBase):
     def get_details(self):
@@ -78,7 +84,7 @@ def upload(wildfiles, upload_to_s3, dry_run=False):
     scp: scheme but are otherwise non-canonical.
     """
     if not wildfiles:
-        raise UploadError("Error: no tarfiles specified to upload.")
+        raise UploadError("no tarfiles to upload")
     wildfiles = wildfiles[:1]
     # This logic used to perform glob expansion on all of wildfiles. Now we
     # accept a single tarfile name which must match a real file, rather than
@@ -86,7 +92,7 @@ def upload(wildfiles, upload_to_s3, dry_run=False):
     # we capture a 'tarfiles' list.
     tarfiles = [tarfile for tarfile in wildfiles if os.path.exists(tarfile)]
     if not tarfiles:
-        raise UploadError("No files found matching %s. Nothing to upload." %
+        raise UploadError("no files found matching %s" %
                           " or ".join(repr(w) for w in wildfiles))
     if upload_to_s3:
         s3ables = tarfiles
@@ -94,12 +100,14 @@ def upload(wildfiles, upload_to_s3, dry_run=False):
         s3ables = []
 
     # Now upload to our internal install-packages server.
+    logger.info('uploading %s to internal server' % tarfiles)
     uploaded = _upload_to_internal(tarfiles, dry_run)
 
     # Finally, upload to S3 any tarfiles that should be uploaded to S3.
     if not s3ables:
         return uploaded
     
+    logger.info('uploading %s to amazon s3' % tarfiles)
     s3uploaded = _upload_to_s3(s3ables, dry_run)
     uploaded.extend(s3uploaded)
     
@@ -111,7 +119,7 @@ def upload_package(package, toS3=False):
     Upload a package (optionally to S3 when flag is set).
     """
     if not os.path.exists(package):
-        raise UploadError("Package %s does not exist." % package)
+        raise UploadError("package %s does not exist" % package)
     files = [package]
     uploaded = _upload_to_internal(files)
     if toS3:
