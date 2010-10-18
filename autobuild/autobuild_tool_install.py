@@ -161,7 +161,7 @@ def handle_query_args(options, config_file, installed_file):
 
     return False
 
-def get_packages_to_install(packages, config_file, installed_config, platform, as_source=[]):
+def get_packages_to_install(packages, config_file, installed_config, platform):
     """
     Given the (potentially empty) list of package archives on the command line, work out
     the set of packages that are out of date and require a new download/install. This will
@@ -174,23 +174,33 @@ def get_packages_to_install(packages, config_file, installed_config, platform, a
 
     # compile a subset of packages we actually need to install
     return [pname for pname in packages
-            if should_install(pname, config_file, installed_config, platform, as_source)]
+            if should_install(pname, config_file, installed_config, platform)]
 
-def should_install(package_name, config_file, installed_config, platform, as_source):
+def should_install(package_name, config_file, installed_config, platform):
     try:
         toinstall = config_file.installables[package_name]
     except KeyError:
         # raise error if named package doesn't exist in autobuild.xml
         raise InstallError('unknown package: %s' % package_name)
 
-    if package_name in as_source:
-        if not toinstall.source:
-            raise InstallError("no source url specified for %s" % package_name)
-        if not toinstall.sourcetype:
-            raise InstallError("no source repository type specified for %s" % package_name)
-
-        # Always update a source package
+    # Has this package ever been installed before?
+    try:
+        installed = installed_config.installables[package_name]
+    except KeyError:
+        # package hasn't yet been installed at all
         return True
+
+    # Here the package has already been installed. Need to update it?
+
+    # The --as_source command-line switch only affects the installation of new
+    # packages. When we first install a package, we remember whether it's
+    # --as_source. Every subsequent 'autobuild install' affecting that package
+    # must honor the original --as_source setting. After an initial
+    # --as_source install, it's HANDS OFF! The possibility of local source
+    # changes makes any further autobuild operations on that repository
+    # ill-advised.
+    if installed.as_source:
+        return False
 
     # Not a source package, but a reference to a binary archive. Check that we
     # have a platform-specific or common url to use.
@@ -202,12 +212,6 @@ def should_install(package_name, config_file, installed_config, platform, as_sou
                             (platform, package_name))
 
     # install this package if it is new or out of date
-    try:
-        installed = installed_config.installables[package_name]
-    except KeyError:
-        # package hasn't yet been installed at all
-        return True
-
     inst_platform = installed.get_platform(platform)
     if not inst_platform:
         # This package appears in installed_config, but with no entry for this
@@ -271,7 +275,20 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
     # Decide whether to check out (or update) source, or download a tarball
     for pname in packages:
         package = config_file.installables[pname]
-        if pname in as_source:
+        try:
+            installed = installed_file.installables[pname]
+        except KeyError:
+            # New install, so honor --as_source switch.
+            source_install = (pname in as_source)
+        else:
+            # Existing install. If pname was previously installed --as_source,
+            # do not mess with it now.
+            source_install = installed.as_source
+            if source_install:
+                continue
+
+        # Existing tarball install, or new package install of either kind
+        if source_install:
             _install_source(package, installed_file, config_file, dry_run)
         else:
             _install_binary(package, platform, config_file, install_dir, installed_file, dry_run)
@@ -282,33 +299,37 @@ def _install_source(package, installed_config, config_file, dry_run):
               (package.sourcetype, package.name, package.source)
         return
 
+    if not package.source:
+        raise InstallError("no source url specified for %s" % package.name)
+    if not package.sourcetype:
+        raise InstallError("no source repository type specified for %s" % package.name)
     if not package.source_directory:
-        raise InstallError("%s requested as_source, but no source_directory specified" %
-                           package.name)
+        raise InstallError("no source_directory specified for %s" % package.name)
+
     # Question: package.source_directory is specific to each
     # PackageDescription; do we need to further qualify the pathname with the
     # package.name?
     sourcepath = config_file.absolute_path(os.path.join(package.source_directory, package.name))
+    if os.path.isdir(sourcepath):
+        raise InstallError("trying to install %s --as_source over existing directory %s" %
+                           (package.name, sourcepath))
     if package.sourcetype == 'svn':
-        if os.path.isdir(sourcepath):
-            if subprocess.call(['svn', 'update', sourcepath]) != 0:
-                raise InstallError("error updating %s" % package.name)
-        else:
-            if subprocess.call(['svn', 'checkout', package.source, sourcepath]) != 0:
-                raise InstallError("error checking out %s" % package.name)
+        if subprocess.call(['svn', 'checkout', package.source, sourcepath]) != 0:
+            raise InstallError("error checking out %s" % package.name)
     elif package.sourcetype == 'hg':
-        if os.path.isdir(sourcepath):
-            if subprocess.call(['hg', "--repository", sourcepath, 'pull', "-u"]) != 0:
-                raise InstallError("error pulling %s" % package.name)
-        else:
-            if subprocess.call(['hg', 'clone', package.source, sourcepath]) != 0:
-                raise InstallError("error cloning %s" % package.name)
+        if subprocess.call(['hg', 'clone', package.source, sourcepath]) != 0:
+            raise InstallError("error cloning %s" % package.name)
     else:
         raise InstallError("unsupported repository type %s for %s" %
-                             (package.sourcetype, package.name))
+                           (package.sourcetype, package.name))
 
-    installed_config.set_package(package.name, package)
-    package.as_source = True
+    # Copy PackageDescription metadata from the autobuild.xml entry.
+    ipkg = package.copy()
+    # Set it as the installed package.
+    installed_config.installables[package.name] = ipkg
+    ipkg.as_source = True
+    # But clear platforms: we only use platforms for tarball installs.
+    ipkg.platforms.clear()
 
 def _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
     # find the url/md5 for the platform, or fallback to 'common'
@@ -346,6 +367,7 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     ipkg = package.copy()
     # Set it as the installed package.
     installed_file.installables[package.name] = ipkg
+    ipkg.as_source = False
     # But clear platforms: there should be exactly one.
     ipkg.platforms.clear()
 
@@ -355,7 +377,6 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     iplat = pf.copy()
     ipkg.platforms[platform] = iplat
     iplat.manifest = files
-    ipkg.as_source = False
 
 def uninstall(package_name, installed_config):
     """
@@ -393,8 +414,7 @@ def install_packages(options, args):
     config_file = configfile.ConfigurationDescription(options.install_filename)
 
     # get the list of packages to actually install
-    packages = get_packages_to_install(args, config_file, installed_file,
-        options.platform, as_source=options.as_source)
+    packages = get_packages_to_install(args, config_file, installed_file, options.platform)
 
     # handle any arguments to query for information
     if handle_query_args(options, config_file, installed_file):
