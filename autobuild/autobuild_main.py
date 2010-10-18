@@ -80,7 +80,7 @@ class Autobuild(object):
         argdefs = (
             (('--dry-run',),
                 dict(help='run tool in dry run mode if available', action='store_true')),
-             (('--quite',),
+             (('--quiet',),
                 dict(help='minimal output', action='store_const',
                     const=logging.ERROR, dest='logging_level', default=logging.WARNING)),
              (('--verbose',),
