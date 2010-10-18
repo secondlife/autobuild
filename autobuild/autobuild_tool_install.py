@@ -177,7 +177,6 @@ def get_packages_to_install(packages, config_file, installed_config, platform, a
             if should_install(pname, config_file, installed_config, platform, as_source)]
 
 def should_install(package_name, config_file, installed_config, platform, as_source):
-
     try:
         toinstall = config_file.installables[package_name]
     except KeyError:
@@ -309,6 +308,7 @@ def _install_source(package, installed_config, config_file, dry_run):
                              (package.sourcetype, package.name))
 
     installed_config.set_package(package.name, package)
+    package.as_source = True
 
 def _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
     # find the url/md5 for the platform, or fallback to 'common'
@@ -333,28 +333,46 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
         print "Dry run mode: not installing %s" % package.name
         return
 
+    # If this package has already been installed, first uninstall the older
+    # version.
+    uninstall(package.name, installed_file)
+
     # extract the files from the package
     files = common.extract_package(archive.url, install_dir)
 
-    # update the installed-packages.xml file
-    try:
-        ipkg = installed_file.installables[package.name]
-    except KeyError:
-        ipkg = package
-
-    try:
-        # Use direct lookup in the platforms dict instead of get_platform():
-        # even if we end up using the "common" specification in autobuild.xml,
-        # in installed-packages.xml we should say we've installed this package
-        # on THIS platform rather than on "common".
-        iplat = ipkg.platforms[platform]
-    except KeyError:
-        iplat = pf
-        ipkg.platforms[platform] = iplat
-    if not iplat.archive:
-        iplat.archive = archive
-    iplat.manifest = files
+    # Update the installed-packages.xml file. The above uninstall() call
+    # should have removed any existing entry in installed_file. Copy
+    # PackageDescription metadata from the autobuild.xml entry.
+    ipkg = package.copy()
+    # Set it as the installed package.
     installed_file.installables[package.name] = ipkg
+    # But clear platforms: there should be exactly one.
+    ipkg.platforms.clear()
+
+    # Even if we end up using the "common" specification in autobuild.xml,
+    # in installed-packages.xml we should say we've installed this package
+    # on THIS platform rather than on "common".
+    iplat = pf.copy()
+    ipkg.platforms[platform] = iplat
+    iplat.manifest = files
+    ipkg.as_source = False
+
+def uninstall(package_name, installed_config):
+    """
+    Uninstall specified package_name: remove related files and delete
+    package_name from the installed_config ConfigurationDescription.
+
+    For a package_name installed with --as_source, simply remove the
+    PackageDescription from installed_config.
+    """
+    try:
+        package = installed_config.installables[package_name]
+    except KeyError:
+        # If the package has never yet been installed, we're good.
+        return
+
+    # oh oh, caller expects us to actually DO something
+    raise NotImplementedError("uninstall() not yet implemented")
 
 def install_packages(options, args):
     # write packages into 'packages' subdir of build directory by default
