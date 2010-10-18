@@ -23,13 +23,48 @@ class TestEdit(unittest.TestCase, AutobuildBaselineCompare):
         self.tmp_file = self.get_tmp_file(4)
         self.edit_cmd = AutobuildToolEdit()
 
-    def test_build(self):
-        expected_config = {'package_description': {'platforms': {'windows': {'configurations': {'newbuild': {'build': {'command': 'make this', 'arguments': [], 'options': []}}}}}}, 'version': '1.2', 'type': 'autobuild'}
-        args = ['build', 'name=newbuild', 'platform=windows', 'cmd=make this', "--config-file=%s" % self.tmp_file]
+    def _try_cmd(self, args):
+        """
+        Try running an edit 'command with args'.
+        Return results.
+        """
         self.edit_cmd.main(args)
-        built_config = llsd.parse(file(self.tmp_file, 'rb').read())
+        return llsd.parse(file(self.tmp_file, 'rb').read())
+
+    def test_build(self):
+        """
+        Perform command-line configuration of build command.
+        Check results.
+        """
+        args = ['build', 'name=newbuild', 'platform=windows', 'cmd=makethis', "--config-file=%s" % self.tmp_file]
+        expected_config = {'package_description': {'platforms': {'windows': {'configurations': {'newbuild': {'build': {'command': 'makethis', 'arguments': [], 'options': []}}}}}}, 'version': '1.2', 'type': 'autobuild'}
+        built_config = self._try_cmd(args)
         assert (expected_config == built_config)
            
+    def test_configure(self):
+        """
+        Perform command-line configuration of configure command.
+        Check results.
+        """
+        args = ['configure', 'name=newbuild', 'platform=windows', 'cmd=makethat', "--config-file=%s" % self.tmp_file]
+        expected_config = {'package_description': {'platforms': {'windows': {'configurations': {'newbuild': {'configure': {'command': 'makethat', 'arguments': [], 'options': []}}}}}}, 'version': '1.2', 'type': 'autobuild'}
+        built_config = self._try_cmd(args)
+        assert (expected_config == built_config)
+
+    def test_build_configure(self):
+        """
+        Perform two updates to the config file in series. 
+        Check results after each iteration.
+        """
+        args = ['configure', 'name=newbuild', 'platform=windows', 'cmd=makethat', "--config-file=%s" % self.tmp_file]
+        built_config1 = self._try_cmd(args)
+        expected_config1 = {'package_description': {'platforms': {'windows': {'configurations': {'newbuild': {'configure': {'command': 'makethat', 'arguments': [], 'options': []}}}}}}, 'version': '1.2', 'type': 'autobuild'}
+        assert (expected_config1 == built_config1)
+        args = ['build', 'name=newbuild', 'platform=windows', 'cmd=makethis', "--config-file=%s" % self.tmp_file]
+        built_config2 = self._try_cmd(args)
+        expected_config2 = {'package_description': {'platforms': {'windows': {'configurations': {'newbuild': {'build': {'command': 'makethis', 'arguments': [], 'options': []}, 'configure': {'command': 'makethat'}}}}}}, 'version': '1.2', 'type': 'autobuild'}
+        assert (expected_config2 == built_config2)
+
     def tearDown(self):
         self.cleanup_tmp_file()
 
