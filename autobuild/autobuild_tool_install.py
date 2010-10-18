@@ -22,8 +22,30 @@ Date   : 2010-04-19
 # *TODO: add support for an 'autobuild uninstall' command
 # *TODO: add an 'autobuild info' command to query config file contents
 
+# alain: twould be nice if you could add some logging to the install tool.
+# nat: What's the model? I had some test failures due to no such thing as common.log().
+# alain: most other commands are using the logging package.  See, e.g., package.
+# nat: Is that centrally constructed?
+# alain: common.log was removed.
+# nat: s/constructed/configured/
+# alain: you can look at the python package logging if you are interested.
+# alain: the usual metaphor is to use logging.getLogger('autobuild.<tool>')
+# nat: I've used it before. Will look at autobuild_tool_package.py.
+# alain: the 'autobuild' logger is configured from the main.
+# alain: sub loggers inherit.
+# nat: Aha, that's what I was asking, thanks.
+# alain: One thing I'd like to see is a message for each package installed at info level so when I use --verbose I can actually see what's getting installed.
+# alain: feel free to be profligate with debug logging if you so desire ;-)
+# alain: (I haven't really, if truth be told).
+# nat: So at what level would you like to see the individual files belonging to package tarballs?
+# alain: INFO should be the default for all things not warning or error.
+# alain: INFO only gets printed when --verbose is used.
+# nat: And --verbose setting log level INFO is part of the main configuration? Cool.
+# alain: at --quiet, only ERROR is printed.
+
 import os
 import sys
+import errno
 import pprint
 import common
 import configfile
@@ -356,7 +378,7 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
 
     # If this package has already been installed, first uninstall the older
     # version.
-    uninstall(package.name, installed_file)
+    uninstall(package.name, installed_file, install_dir)
 
     # extract the files from the package
     files = common.extract_package(archive.url, install_dir)
@@ -378,22 +400,38 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     ipkg.platforms[platform] = iplat
     iplat.manifest = files
 
-def uninstall(package_name, installed_config):
+def uninstall(package_name, installed_config, install_dir):
     """
     Uninstall specified package_name: remove related files and delete
     package_name from the installed_config ConfigurationDescription.
 
     For a package_name installed with --as_source, simply remove the
     PackageDescription from installed_config.
+
+    Saving the modified installed_config is the caller's responsibility.
     """
     try:
-        package = installed_config.installables[package_name]
+        # Not only retrieve this package's installed PackageDescription, but
+        # remove it from installed_config at the same time.
+        package = installed_config.installables.pop(package_name)
     except KeyError:
         # If the package has never yet been installed, we're good.
         return
 
-    # oh oh, caller expects us to actually DO something
-    raise NotImplementedError("uninstall() not yet implemented")
+    if package.as_source:
+        # Only delete files for a tarball install.
+        return
+
+    # The platforms attribute should contain exactly one PlatformDescription.
+    # We don't especially care about its key name.
+    platform = package.platforms.popitem()[1]
+    for f in platform.manifest:
+        fn = os.path.join(install_dir, f)
+        try:
+            os.remove(fn)
+        except OSError, err:
+            if err.errno != errno.ENOENT:
+                raise
 
 def install_packages(options, args):
     # write packages into 'packages' subdir of build directory by default
