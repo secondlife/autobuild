@@ -14,14 +14,14 @@ from autobuild import configfile
 from autobuild import common
 from autobuild.autobuild_main import Autobuild
 from baseline_compare import AutobuildBaselineCompare
-from autobuild.autobuild_tool_edit import AutobuildToolEdit
+from autobuild.autobuild_tool_edit import AutobuildTool
 
 
 class TestEdit(unittest.TestCase, AutobuildBaselineCompare):
     def setUp(self):
         os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
         self.tmp_file = self.get_tmp_file(4)
-        self.edit_cmd = AutobuildToolEdit()
+        self.edit_cmd = AutobuildTool()
 
     def _try_cmd(self, args):
         """

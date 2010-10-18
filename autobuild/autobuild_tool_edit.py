@@ -23,7 +23,7 @@ CONFIG_NAME_DEFAULT='default'
 DEFAULT_CONFIG_CMD=''
 DEFAULT_BUILD_CMD=''
 
-class AutobuildToolEdit(AutobuildBase):
+class AutobuildTool(AutobuildBase):
 
     _ARGUMENTS = {
         'configure':   ['name', 'platform', 'cmd', 'options', 'arguments'], 
