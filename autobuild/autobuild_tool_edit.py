@@ -13,6 +13,7 @@ Build configuration includes:
 """
 
 import sys
+import shlex
 from StringIO import StringIO
 import configfile
 from autobuild_base import AutobuildBase
@@ -193,8 +194,5 @@ def _process_key_value_arguments(arguments):
 
 
 def listify_str(str):
-    list = str.split(',')
-    list = [p.strip() for p in list]
-    return list
-
+    return shlex.split(str, False, False)
 

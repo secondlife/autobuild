@@ -37,7 +37,7 @@ class TestEdit(unittest.TestCase, AutobuildBaselineCompare):
         Check results.
         """
         args = ['build', 'name=newbuild', 'platform=windows', 'cmd=makethis', "--config-file=%s" % self.tmp_file]
-        expected_config = {'package_description': {'platforms': {'windows': {'configurations': {'newbuild': {'build': {'command': 'makethis', 'arguments': [], 'options': []}}}}}}, 'version': '1.2', 'type': 'autobuild'}
+        expected_config = {'package_description': {'platforms': {'windows': {'configurations': {'newbuild': {'build': {'command': 'makethis'}}}}}}, 'version': '1.2', 'type': 'autobuild'}
         built_config = self._try_cmd(args)
         assert (expected_config == built_config)
            
@@ -47,7 +47,7 @@ class TestEdit(unittest.TestCase, AutobuildBaselineCompare):
         Check results.
         """
         args = ['configure', 'name=newbuild', 'platform=windows', 'cmd=makethat', "--config-file=%s" % self.tmp_file]
-        expected_config = {'package_description': {'platforms': {'windows': {'configurations': {'newbuild': {'configure': {'command': 'makethat', 'arguments': [], 'options': []}}}}}}, 'version': '1.2', 'type': 'autobuild'}
+        expected_config = {'package_description': {'platforms': {'windows': {'configurations': {'newbuild': {'configure': {'command': 'makethat'}}}}}}, 'version': '1.2', 'type': 'autobuild'}
         built_config = self._try_cmd(args)
         assert (expected_config == built_config)
 
@@ -58,11 +58,11 @@ class TestEdit(unittest.TestCase, AutobuildBaselineCompare):
         """
         args = ['configure', 'name=newbuild', 'platform=windows', 'cmd=makethat', "--config-file=%s" % self.tmp_file]
         built_config1 = self._try_cmd(args)
-        expected_config1 = {'package_description': {'platforms': {'windows': {'configurations': {'newbuild': {'configure': {'command': 'makethat', 'arguments': [], 'options': []}}}}}}, 'version': '1.2', 'type': 'autobuild'}
+        expected_config1 = {'package_description': {'platforms': {'windows': {'configurations': {'newbuild': {'configure': {'command': 'makethat'}}}}}}, 'version': '1.2', 'type': 'autobuild'}
         assert (expected_config1 == built_config1)
         args = ['build', 'name=newbuild', 'platform=windows', 'cmd=makethis', "--config-file=%s" % self.tmp_file]
         built_config2 = self._try_cmd(args)
-        expected_config2 = {'package_description': {'platforms': {'windows': {'configurations': {'newbuild': {'build': {'command': 'makethis', 'arguments': [], 'options': []}, 'configure': {'command': 'makethat'}}}}}}, 'version': '1.2', 'type': 'autobuild'}
+        expected_config2 = {'package_description': {'platforms': {'windows': {'configurations': {'newbuild': {'build': {'command': 'makethis'}, 'configure': {'command': 'makethat'}}}}}}, 'version': '1.2', 'type': 'autobuild'}
         assert (expected_config2 == built_config2)
 
     def tearDown(self):
