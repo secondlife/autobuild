@@ -424,7 +424,7 @@ def uninstall(package_name, installed_config, install_dir):
 
     # The platforms attribute should contain exactly one PlatformDescription.
     # We don't especially care about its key name.
-    platform = package.platforms.popitem()[1]
+    _, platform = package.platforms.popitem()
     for f in platform.manifest:
         fn = os.path.join(install_dir, f)
         try:
