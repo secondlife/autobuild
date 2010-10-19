@@ -238,5 +238,6 @@ def _process_key_value_arguments(arguments):
 
 
 def listify_str(str):
-    return shlex.split(str, False, False)
-
+    list = str.split(',')
+    list = [p.strip() for p in list if p.strip()]
+    return list
