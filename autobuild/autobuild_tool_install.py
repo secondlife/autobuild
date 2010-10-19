@@ -22,8 +22,30 @@ Date   : 2010-04-19
 # *TODO: add support for an 'autobuild uninstall' command
 # *TODO: add an 'autobuild info' command to query config file contents
 
+# alain: twould be nice if you could add some logging to the install tool.
+# nat: What's the model? I had some test failures due to no such thing as common.log().
+# alain: most other commands are using the logging package.  See, e.g., package.
+# nat: Is that centrally constructed?
+# alain: common.log was removed.
+# nat: s/constructed/configured/
+# alain: you can look at the python package logging if you are interested.
+# alain: the usual metaphor is to use logging.getLogger('autobuild.<tool>')
+# nat: I've used it before. Will look at autobuild_tool_package.py.
+# alain: the 'autobuild' logger is configured from the main.
+# alain: sub loggers inherit.
+# nat: Aha, that's what I was asking, thanks.
+# alain: One thing I'd like to see is a message for each package installed at info level so when I use --verbose I can actually see what's getting installed.
+# alain: feel free to be profligate with debug logging if you so desire ;-)
+# alain: (I haven't really, if truth be told).
+# nat: So at what level would you like to see the individual files belonging to package tarballs?
+# alain: INFO should be the default for all things not warning or error.
+# alain: INFO only gets printed when --verbose is used.
+# nat: And --verbose setting log level INFO is part of the main configuration? Cool.
+# alain: at --quiet, only ERROR is printed.
+
 import os
 import sys
+import errno
 import pprint
 import common
 import configfile
@@ -161,7 +183,7 @@ def handle_query_args(options, config_file, installed_file):
 
     return False
 
-def get_packages_to_install(packages, config_file, installed_config, platform, as_source=[]):
+def get_packages_to_install(packages, config_file, installed_config, platform):
     """
     Given the (potentially empty) list of package archives on the command line, work out
     the set of packages that are out of date and require a new download/install. This will
@@ -174,24 +196,33 @@ def get_packages_to_install(packages, config_file, installed_config, platform, a
 
     # compile a subset of packages we actually need to install
     return [pname for pname in packages
-            if should_install(pname, config_file, installed_config, platform, as_source)]
+            if should_install(pname, config_file, installed_config, platform)]
 
-def should_install(package_name, config_file, installed_config, platform, as_source):
-
+def should_install(package_name, config_file, installed_config, platform):
     try:
         toinstall = config_file.installables[package_name]
     except KeyError:
         # raise error if named package doesn't exist in autobuild.xml
         raise InstallError('unknown package: %s' % package_name)
 
-    if package_name in as_source:
-        if not toinstall.source:
-            raise InstallError("no source url specified for %s" % package_name)
-        if not toinstall.sourcetype:
-            raise InstallError("no source repository type specified for %s" % package_name)
-
-        # Always update a source package
+    # Has this package ever been installed before?
+    try:
+        installed = installed_config.installables[package_name]
+    except KeyError:
+        # package hasn't yet been installed at all
         return True
+
+    # Here the package has already been installed. Need to update it?
+
+    # The --as_source command-line switch only affects the installation of new
+    # packages. When we first install a package, we remember whether it's
+    # --as_source. Every subsequent 'autobuild install' affecting that package
+    # must honor the original --as_source setting. After an initial
+    # --as_source install, it's HANDS OFF! The possibility of local source
+    # changes makes any further autobuild operations on that repository
+    # ill-advised.
+    if installed.as_source:
+        return False
 
     # Not a source package, but a reference to a binary archive. Check that we
     # have a platform-specific or common url to use.
@@ -203,12 +234,6 @@ def should_install(package_name, config_file, installed_config, platform, as_sou
                             (platform, package_name))
 
     # install this package if it is new or out of date
-    try:
-        installed = installed_config.installables[package_name]
-    except KeyError:
-        # package hasn't yet been installed at all
-        return True
-
     inst_platform = installed.get_platform(platform)
     if not inst_platform:
         # This package appears in installed_config, but with no entry for this
@@ -272,7 +297,20 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
     # Decide whether to check out (or update) source, or download a tarball
     for pname in packages:
         package = config_file.installables[pname]
-        if pname in as_source:
+        try:
+            installed = installed_file.installables[pname]
+        except KeyError:
+            # New install, so honor --as_source switch.
+            source_install = (pname in as_source)
+        else:
+            # Existing install. If pname was previously installed --as_source,
+            # do not mess with it now.
+            source_install = installed.as_source
+            if source_install:
+                continue
+
+        # Existing tarball install, or new package install of either kind
+        if source_install:
             _install_source(package, installed_file, config_file, dry_run)
         else:
             _install_binary(package, platform, config_file, install_dir, installed_file, dry_run)
@@ -283,32 +321,37 @@ def _install_source(package, installed_config, config_file, dry_run):
               (package.sourcetype, package.name, package.source)
         return
 
+    if not package.source:
+        raise InstallError("no source url specified for %s" % package.name)
+    if not package.sourcetype:
+        raise InstallError("no source repository type specified for %s" % package.name)
     if not package.source_directory:
-        raise InstallError("%s requested as_source, but no source_directory specified" %
-                           package.name)
+        raise InstallError("no source_directory specified for %s" % package.name)
+
     # Question: package.source_directory is specific to each
     # PackageDescription; do we need to further qualify the pathname with the
     # package.name?
     sourcepath = config_file.absolute_path(os.path.join(package.source_directory, package.name))
+    if os.path.isdir(sourcepath):
+        raise InstallError("trying to install %s --as_source over existing directory %s" %
+                           (package.name, sourcepath))
     if package.sourcetype == 'svn':
-        if os.path.isdir(sourcepath):
-            if subprocess.call(['svn', 'update', sourcepath]) != 0:
-                raise InstallError("error updating %s" % package.name)
-        else:
-            if subprocess.call(['svn', 'checkout', package.source, sourcepath]) != 0:
-                raise InstallError("error checking out %s" % package.name)
+        if subprocess.call(['svn', 'checkout', package.source, sourcepath]) != 0:
+            raise InstallError("error checking out %s" % package.name)
     elif package.sourcetype == 'hg':
-        if os.path.isdir(sourcepath):
-            if subprocess.call(['hg', "--repository", sourcepath, 'pull', "-u"]) != 0:
-                raise InstallError("error pulling %s" % package.name)
-        else:
-            if subprocess.call(['hg', 'clone', package.source, sourcepath]) != 0:
-                raise InstallError("error cloning %s" % package.name)
+        if subprocess.call(['hg', 'clone', package.source, sourcepath]) != 0:
+            raise InstallError("error cloning %s" % package.name)
     else:
         raise InstallError("unsupported repository type %s for %s" %
-                             (package.sourcetype, package.name))
+                           (package.sourcetype, package.name))
 
-    installed_config.set_package(package.name, package)
+    # Copy PackageDescription metadata from the autobuild.xml entry.
+    ipkg = package.copy()
+    # Set it as the installed package.
+    installed_config.installables[package.name] = ipkg
+    ipkg.as_source = True
+    # But clear platforms: we only use platforms for tarball installs.
+    ipkg.platforms.clear()
 
 def _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
     # find the url/md5 for the platform, or fallback to 'common'
@@ -333,28 +376,62 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
         print "Dry run mode: not installing %s" % package.name
         return
 
+    # If this package has already been installed, first uninstall the older
+    # version.
+    uninstall(package.name, installed_file, install_dir)
+
     # extract the files from the package
     files = common.extract_package(archive.url, install_dir)
 
-    # update the installed-packages.xml file
-    try:
-        ipkg = installed_file.installables[package.name]
-    except KeyError:
-        ipkg = package
-
-    try:
-        # Use direct lookup in the platforms dict instead of get_platform():
-        # even if we end up using the "common" specification in autobuild.xml,
-        # in installed-packages.xml we should say we've installed this package
-        # on THIS platform rather than on "common".
-        iplat = ipkg.platforms[platform]
-    except KeyError:
-        iplat = pf
-        ipkg.platforms[platform] = iplat
-    if not iplat.archive:
-        iplat.archive = archive
-    iplat.manifest = files
+    # Update the installed-packages.xml file. The above uninstall() call
+    # should have removed any existing entry in installed_file. Copy
+    # PackageDescription metadata from the autobuild.xml entry.
+    ipkg = package.copy()
+    # Set it as the installed package.
     installed_file.installables[package.name] = ipkg
+    ipkg.as_source = False
+    # But clear platforms: there should be exactly one.
+    ipkg.platforms.clear()
+
+    # Even if we end up using the "common" specification in autobuild.xml,
+    # in installed-packages.xml we should say we've installed this package
+    # on THIS platform rather than on "common".
+    iplat = pf.copy()
+    ipkg.platforms[platform] = iplat
+    iplat.manifest = files
+
+def uninstall(package_name, installed_config, install_dir):
+    """
+    Uninstall specified package_name: remove related files and delete
+    package_name from the installed_config ConfigurationDescription.
+
+    For a package_name installed with --as_source, simply remove the
+    PackageDescription from installed_config.
+
+    Saving the modified installed_config is the caller's responsibility.
+    """
+    try:
+        # Not only retrieve this package's installed PackageDescription, but
+        # remove it from installed_config at the same time.
+        package = installed_config.installables.pop(package_name)
+    except KeyError:
+        # If the package has never yet been installed, we're good.
+        return
+
+    if package.as_source:
+        # Only delete files for a tarball install.
+        return
+
+    # The platforms attribute should contain exactly one PlatformDescription.
+    # We don't especially care about its key name.
+    platform = package.platforms.popitem()[1]
+    for f in platform.manifest:
+        fn = os.path.join(install_dir, f)
+        try:
+            os.remove(fn)
+        except OSError, err:
+            if err.errno != errno.ENOENT:
+                raise
 
 def install_packages(options, args):
     # write packages into 'packages' subdir of build directory by default
@@ -375,8 +452,7 @@ def install_packages(options, args):
     config_file = configfile.ConfigurationDescription(options.install_filename)
 
     # get the list of packages to actually install
-    packages = get_packages_to_install(args, config_file, installed_file,
-        options.platform, as_source=options.as_source)
+    packages = get_packages_to_install(args, config_file, installed_file, options.platform)
 
     # handle any arguments to query for information
     if handle_query_args(options, config_file, installed_file):
