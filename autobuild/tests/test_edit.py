@@ -69,5 +69,25 @@ class TestEdit(unittest.TestCase, AutobuildBaselineCompare):
         self.cleanup_tmp_file()
 
 
+class TestEditCmdLine(unittest.TestCase, AutobuildBaselineCompare):
+    def setUp(self):
+        os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
+        self.tmp_file = self.get_tmp_file(0)
+
+    def test_autobuild_edit(self):
+        """
+        Verify that 'autobuild edit' can be run from the command line.
+        """
+        result = subprocess.call('autobuild edit --config-file=%s > /dev/null ' % \
+            self.tmp_file, shell=True)
+        assert result == 0
+        result = subprocess.call('autobuild edit --config-file=%s build name=foo cmd=buildme.py' % \
+            self.tmp_file, shell=True)
+        assert result == 0
+
+    def tearDown(self):
+        self.cleanup_tmp_file()
+
+
 if __name__ == '__main__':
     unittest.main()
