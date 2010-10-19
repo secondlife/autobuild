@@ -26,14 +26,6 @@ DEFAULT_BUILD_CMD=''
 
 class AutobuildTool(AutobuildBase):
 
-    _ARGUMENTS = {
-        'configure': ['name', 'platform', 'cmd', 'options', 'arguments'], 
-        'build': ['name', 'platform', 'cmd', 'options', 'arguments', 'default'], 
-        'platform': ['name', 'build_directory'],
-        'package': ['name', 'description', 'copyright', 'license', 'license_file', 'source', 
-                    'source_type', 'source_directory', 'version', ],
-        }
-
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
             description="Manage build and package configuration.")
@@ -45,7 +37,7 @@ class AutobuildTool(AutobuildBase):
             help="")
         parser.add_argument('command', nargs='?', default='print',
             help="commands: bootstrap, build, configure, package, or print")
-        parser.add_argument('argument', nargs='*', help=_arg_help_str(self._ARGUMENTS))
+        parser.add_argument('argument', nargs='*', help=_arg_help_str(self._get_arguments()))
 
     def run(self, args):
         config = configfile.ConfigurationDescription(args.config_file)
@@ -57,9 +49,9 @@ class AutobuildTool(AutobuildBase):
         cmd_instance = None
         if args.command == 'bootstrap':
             print "Entering interactive mode."
-            self.interactive_mode(Package(config))
-            self.interactive_mode(Configure(config))
-            self.interactive_mode(Build(config))
+            Package(config).interactive_mode()
+            Configure(config).interactive_mode()
+            Build(config).interactive_mode()
         elif args.command == 'build':
             cmd_instance = Build(config)
         elif args.command == 'configure':
@@ -76,13 +68,26 @@ class AutobuildTool(AutobuildBase):
         if cmd_instance:
             if interactive:
                 print "No args provided. Entering interactive mode..."
-                self.interactive_mode(cmd_instance)
+                cmd_instance.interactive_mode()
             else:
                 cmd_instance.run(**arg_dict)
 
         if not args.dry_run and args.command != 'print':
             config.save()
 
+    def _get_arguments(self):
+        """
+        Lazily create arguments dict.
+        """
+        try:
+            self.arguments
+        except AttributeError:
+            self.arguments = {
+                                'configure':    Configure.ARGUMENTS,
+                                'build':        Build.ARGUMENTS,
+                                'package':      Package.ARGUMENTS,
+                            }
+        return self.arguments
 
 def _arg_help_str(arg_dict):
     s = []
@@ -92,6 +97,8 @@ def _arg_help_str(arg_dict):
 
 
 class _config(InteractiveCommand):
+
+    ARGUMENTS = ['name', 'platform', 'cmd', 'options', 'arguments']
 
     def __init__(self, config):
         stream = StringIO()
@@ -161,6 +168,9 @@ class Configure(_config):
 
 
 class Platform(InteractiveCommand):
+
+    ARGUMENTS = ['name', 'build_directory']
+
     def __init__(self, config):
         stream = StringIO()
         stream.write("Current platform settings:\n")
@@ -186,6 +196,9 @@ class Platform(InteractiveCommand):
         
 
 class Package(InteractiveCommand):
+
+    ARGUMENTS = ['name', 'description', 'copyright', 'license', 'license_file', 'source',
+                 'source_type', 'source_directory', 'version', ] 
 
     def __init__(self, config):
         stream = StringIO()

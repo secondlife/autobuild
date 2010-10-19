@@ -48,4 +48,44 @@ class InteractiveCommand(object):
         """
         pass
     
+    def interactive_mode(self):
+        """
+        Utility to run a command in interactive mode.
+
+        Requires:
+            self to be a class describing the feature to be configured interactively.
+        """
+        try:
+            data = getattr(self, 'ARGUMENTS')
+        except AttributeError:
+            raise AutobuildError("Interactive mode not supported.")
+
+        command = '%s' % self.__class__.__name__
+        command = command.lower()
+        if getattr(self, 'description', ''):
+            print '\n%s' % self.description
+        print "\nUpdate %s details:" % command
+        if getattr(self, 'help', ''):
+            print self.help
+
+        input_values = {}
+        for argument in self.ARGUMENTS:
+            try:
+                i = raw_input("    %s> " % argument)
+                if i:
+                    input_values[argument] = i
+            except EOFError:
+                print ""
+                exit = 'y'
+                exit = raw_input("Do you really want to exit ([y]/n)? ")
+                if exit == 'y':
+                    sys.exit(0)
+
+        print "You input:"
+        print "%s" % input_values
+        save = raw_input("Save to config? ")
+        if save in ['y', 'Y', 'yes', 'Yes', 'YES']:
+            self.run(**input_values)
+    
+
 
