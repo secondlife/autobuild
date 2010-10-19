@@ -156,9 +156,12 @@ class Configure(_config):
 class Package(InteractiveCommand):
 
     def __init__(self, config):
-        _desc = ['Current package settings:',]
-        _desc.append('%s' % config.package_description)
-        self.description = '\n'.join(_desc)
+        stream = StringIO()
+        stream.write("Current package settings:\n")
+        configfile.pretty_print(config.package_description, stream)
+        self.description = stream.getvalue()
+        stream.close()
+
         self.config = config
 
     def create_or_update_package_desc(self, kwargs):
