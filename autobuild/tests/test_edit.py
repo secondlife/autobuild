@@ -33,7 +33,7 @@ class TestEdit(unittest.TestCase, AutobuildBaselineCompare):
 
     def test_build(self):
         """
-        Perform command-line configuration of build command.
+        Perform non-interactive configuration of build command.
         Check results.
         """
         args = ['build', 'name=newbuild', 'platform=windows', 'cmd=makethis', "--config-file=%s" % self.tmp_file]
@@ -43,7 +43,7 @@ class TestEdit(unittest.TestCase, AutobuildBaselineCompare):
            
     def test_configure(self):
         """
-        Perform command-line configuration of configure command.
+        Perform non-interactive configuration of configure command.
         Check results.
         """
         args = ['configure', 'name=newbuild', 'platform=windows', 'cmd=makethat', "--config-file=%s" % self.tmp_file]
