@@ -245,7 +245,7 @@ class PackageDescription(common.Serialized):
         self.version = None
         self.as_source = False
         if isinstance(arg, dict):
-            self.__init_from_dict(arg.copy())
+            self.__init_from_dict(dict(arg))
         else:
             self.name = arg
 
@@ -284,7 +284,7 @@ class PlatformDescription(common.Serialized):
         self.build_directory = None
         self.archive = None
         if dictionary is not None:
-            self.__init_from_dict(dictionary.copy())
+            self.__init_from_dict(dict(dictionary))
    
     def __init_from_dict(self, dictionary):
         configurations = dictionary.pop('configurations',{})
@@ -313,7 +313,7 @@ class BuildConfigurationDescription(common.Serialized):
         self.build = None
         self.default = False
         if dictionary is not None:
-            self.__init_from_dict(dictionary.copy())
+            self.__init_from_dict(dict(dictionary))
    
     def __init_from_dict(self, dictionary):
         [self.__extract_command(name, dictionary) for name in self.build_steps]

@@ -343,6 +343,13 @@ class Serialized(dict, object):
         else:
             self[name] = value
 
+    def copy(self):
+        """
+        Intercept attempts to copy like a dict, need to preserve leaf class
+        instead of letting dict.copy() return a simple dict.
+        """
+        return self.__class__(self)
+
 ######################################################################
 #
 #   Private module classes and functions below here.
