@@ -62,15 +62,23 @@ class AutobuildBase:
 
         input_values = {}
         for argument in self._ARGUMENTS[command]:
-            i = raw_input("    %s> " % argument)
-            if i:
-                input_values[argument] = i
+            try:
+                i = raw_input("    %s> " % argument)
+                if i:
+                    input_values[argument] = i
+            except EOFError:
+                print ""
+                exit = 'y'
+                exit = raw_input("Do you really want to exit ([y]/n)? ")
+                if exit == 'y':
+                    sys.exit(0)
 
         print "You input:"
         print "%s" % input_values
         save = raw_input("Save to config? ")
         if save in ['y', 'Y', 'yes', 'Yes', 'YES']:
             instance.run(**input_values)
+
 
 # Standalone functionality:
 
