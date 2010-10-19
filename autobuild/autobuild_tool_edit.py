@@ -182,7 +182,7 @@ def _process_key_value_arguments(arguments):
     dictionary = {}
     for argument in arguments:
         try:
-            key, value = argument.split('=')
+            key, value = argument.split('=', 1)
             dictionary[key] = value
         except ValueError:
             print >> sys.stderr, 'ignoring malformed argument', argument
