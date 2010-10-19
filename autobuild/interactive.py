@@ -12,6 +12,7 @@ You may find that you prefer to overload the class methods, rather than extend u
 See: autobuild_tool_edit.py for usage examples 
 """
 
+import sys
 from StringIO import StringIO
 import configfile
 
@@ -73,6 +74,8 @@ class InteractiveCommand(object):
             try:
                 i = raw_input("    %s> " % argument)
                 if i:
+                    if i.lower() == 'none':
+                        i = ''
                     input_values[argument] = i
             except EOFError:
                 print ""

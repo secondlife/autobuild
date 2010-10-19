@@ -238,5 +238,5 @@ def _process_key_value_arguments(arguments):
 
 
 def listify_str(str):
-    return shlex.split(str, False, False)
+    return shlex.split(str, False)
 
