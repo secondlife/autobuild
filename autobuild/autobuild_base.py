@@ -48,7 +48,7 @@ class AutobuildBase:
             instance to be a class describing the feature to be configured interactively.
         """
         try:
-            data = getattr(self, '_ARGUMENTS')
+            data = getattr(instance, 'ARGUMENTS')
         except AttributeError:
             raise AutobuildError("Interactive mode not supported.")
         
@@ -61,7 +61,7 @@ class AutobuildBase:
             print instance.help
 
         input_values = {}
-        for argument in self._ARGUMENTS[command]:
+        for argument in instance.ARGUMENTS:
             try:
                 i = raw_input("    %s> " % argument)
                 if i:
