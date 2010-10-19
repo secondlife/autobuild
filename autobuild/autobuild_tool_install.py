@@ -434,10 +434,12 @@ def uninstall(package_name, installed_config, install_dir):
                 raise
 
 def install_packages(options, args):
+    # load the list of packages to install
+    config_file = configfile.ConfigurationDescription(options.install_filename)
+
     # write packages into 'packages' subdir of build directory by default
     if not options.install_dir:
-        import configure
-        options.install_dir = configure.get_package_dir()
+        options.install_dir = os.path.join(config_file.make_build_directory(), 'packages')
 
     # get the absolute paths to the install dir and installed-packages.xml file
     install_dir = os.path.realpath(options.install_dir)
@@ -447,9 +449,6 @@ def install_packages(options, args):
 
     # load the list of already installed packages
     installed_file = configfile.ConfigurationDescription(installed_filename)
-
-    # load the list of packages to install
-    config_file = configfile.ConfigurationDescription(options.install_filename)
 
     # get the list of packages to actually install
     packages = get_packages_to_install(args, config_file, installed_file, options.platform)
