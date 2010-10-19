@@ -5,11 +5,14 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import logging
 
 import common
 import autobuild_base
 
 from llbase import llsd
+
+logger = logging.getLogger('autobuild.source_environment')
 
 # for the time being, we expect that we're checked out side-by-side with
 # parabuild buildscripts, so back up a level to find $helper.
@@ -26,7 +29,7 @@ if os.path.exists(helper):
 
     try:
         import get_params
-        print >>common.log(), "found get_params: '%s'" % get_params.__file__
+        logger.info("found get_params: '%s'" % get_params.__file__)
     except ImportError:
         pass
     # *TODO - restore original sys.path value

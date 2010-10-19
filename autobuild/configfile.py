@@ -208,12 +208,34 @@ class PackageDescription(common.Serialized):
         license
         license_file
         homepage
+        as_source
         source
         source_type
         source_directory
         version
         patches
         platforms
+
+    As of 2010-10-18, the as_source attribute is only used in
+    PackageDescription objects stored in INSTALLED_CONFIG_FILE. Certain
+    packages can be installed either by checking out source or by extracting a
+    tarball, so AUTOBUILD_CONFIG_FILE provides enough information for either.
+    It's up to the user to decide which approach to use. autobuild must store
+    that choice, though.
+
+    Usage of PackageDescription.platforms is also a little different for a
+    PackageDescription in INSTALLED_CONFIG_FILE's ConfigurationDescription
+    .installables. When a package isn't installed at all, it should have no
+    PackageDescription entry in INSTALLED_CONFIG_FILE. When it is installed:
+
+    - If PackageDescription.as_source is true, we expect its platforms
+      collection to be empty.
+
+    - If as_source is false, there should be exactly one platforms entry whose
+      key is the specific platform name (rather than 'common'). That
+      PlatformDescription describes the package actually installed on THIS
+      platform. For this use case, in effect a PackageDescription's lone
+      PlatformDescription simply extends the PackageDescription.
     """
     
     def __init__(self, arg):
@@ -221,8 +243,9 @@ class PackageDescription(common.Serialized):
         self.license = None
         self.license_file = None
         self.version = None
+        self.as_source = False
         if isinstance(arg, dict):
-            self.__init_from_dict(arg.copy())
+            self.__init_from_dict(dict(arg))
         else:
             self.name = arg
 
@@ -261,7 +284,7 @@ class PlatformDescription(common.Serialized):
         self.build_directory = None
         self.archive = None
         if dictionary is not None:
-            self.__init_from_dict(dictionary.copy())
+            self.__init_from_dict(dict(dictionary))
    
     def __init_from_dict(self, dictionary):
         configurations = dictionary.pop('configurations',{})
@@ -290,7 +313,7 @@ class BuildConfigurationDescription(common.Serialized):
         self.build = None
         self.default = False
         if dictionary is not None:
-            self.__init_from_dict(dictionary.copy())
+            self.__init_from_dict(dict(dictionary))
    
     def __init_from_dict(self, dictionary):
         [self.__extract_command(name, dictionary) for name in self.build_steps]
