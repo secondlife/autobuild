@@ -27,8 +27,9 @@ DEFAULT_BUILD_CMD=''
 class AutobuildTool(AutobuildBase):
 
     _ARGUMENTS = {
-        'configure':   ['name', 'platform', 'cmd', 'options', 'arguments'], 
-        'build':   ['name', 'platform', 'cmd', 'options', 'arguments'], 
+        'configure': ['name', 'platform', 'cmd', 'options', 'arguments'], 
+        'build': ['name', 'platform', 'cmd', 'options', 'arguments', 'default'], 
+        'platform': ['name', 'build_directory'],
         'package': ['name', 'description', 'copyright', 'license', 'license_file', 'source', 
                     'source_type', 'source_directory', 'version', ],
         }
@@ -56,13 +57,15 @@ class AutobuildTool(AutobuildBase):
         cmd_instance = None
         if args.command == 'bootstrap':
             print "Entering interactive mode."
-            self.interactive_mode(Build(config))
-            self.interactive_mode(Configure(config))
             self.interactive_mode(Package(config))
+            self.interactive_mode(Configure(config))
+            self.interactive_mode(Build(config))
         elif args.command == 'build':
             cmd_instance = Build(config)
         elif args.command == 'configure':
             cmd_instance = Configure(config)
+        elif args.command == 'platform':
+            cmd_instance = Platform(config)
         elif args.command == 'package':
             cmd_instance = Package(config)
         elif args.command == 'print':
@@ -106,17 +109,18 @@ class _config(InteractiveCommand):
         if not name:
             raise AutobuildError('build configuration name not given')
         
-        init_dict = dict({'build': build, 'configure': configure})
+        init_dict = dict({'build': build, 'configure': configure, 'name': name})
         build_config_desc = configfile.BuildConfigurationDescription(init_dict)
         try:
             platform_description = config.get_platform(platform)
         except configfile.ConfigurationError:
             platform_description = configfile.PlatformDescription()
+            platform_description.name = platform
         platform_description.configurations[name] = build_config_desc
         config.package_description.platforms[platform] = platform_description
         return build_config_desc
 
-    def create_or_update_build_config_desc(self, name, platform, build=None, configure=None):
+    def create_or_update_build_config_desc(self, name, platform, default=None, build=None, configure=None):
         # fetch existing value if there is one
         cmds = dict([tuple for tuple in [('build', build), ('configure', configure)] if tuple[1]])
         try:
@@ -125,20 +129,22 @@ class _config(InteractiveCommand):
                 build_config_desc.update(cmds)
         except configfile.ConfigurationError:
             build_config_desc = self._create_build_config_desc(self.config, name, platform, build, configure)
+        if default is not None:
+            build_config_desc.default = default
         return build_config_desc 
 
 
 class Build(_config):
 
     def run(self, platform=get_current_platform(), name=CONFIG_NAME_DEFAULT, 
-              cmd=DEFAULT_BUILD_CMD, options='', arguments=''):
+              cmd=DEFAULT_BUILD_CMD, options='', arguments='', default=None):
         """
         Updates the build command.
         """
         command = { 'command':cmd, 
                     'options':listify_str(options), 
                     'arguments':listify_str(arguments)}
-        build_config_desc = self.create_or_update_build_config_desc(name, platform, build=command) 
+        build_config_desc = self.create_or_update_build_config_desc(name, platform, default, build=command) 
 
 
 class Configure(_config):
@@ -153,6 +159,31 @@ class Configure(_config):
                     'arguments':listify_str(arguments)}
         build_config_desc = self.create_or_update_build_config_desc(name, platform, configure=command)
 
+
+class Platform(InteractiveCommand):
+    def __init__(self, config):
+        stream = StringIO()
+        stream.write("Current platform settings:\n")
+        configfile.pretty_print(config.get_all_platforms(), stream)
+        self.description = stream.getvalue()
+        stream.close()
+        self.config = config
+        
+    def _create_or_update_platform(self, name, build_directory):
+        try:
+            platform_description = self.config.get_platform(name)
+        except configfile.ConfigurationError:
+            platform_description = configfile.PlatformDescription({'name': name})
+            self.config.package_description.platforms[name] = platform_description
+        if build_directory is not None:
+            platform_description.build_directory = build_directory
+
+    def run(self, name, build_directory=None):
+        """
+        Configure basic platform details.
+        """
+        self._create_or_update_platform(name, build_directory)
+        
 
 class Package(InteractiveCommand):
 
