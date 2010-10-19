@@ -49,9 +49,9 @@ class AutobuildTool(AutobuildBase):
         cmd_instance = None
         if args.command == 'bootstrap':
             print "Entering interactive mode."
-            self.interactive_mode(Package(config))
-            self.interactive_mode(Configure(config))
-            self.interactive_mode(Build(config))
+            Package(config).interactive_mode()
+            Configure(config).interactive_mode()
+            Build(config).interactive_mode()
         elif args.command == 'build':
             cmd_instance = Build(config)
         elif args.command == 'configure':
@@ -68,7 +68,7 @@ class AutobuildTool(AutobuildBase):
         if cmd_instance:
             if interactive:
                 print "No args provided. Entering interactive mode..."
-                self.interactive_mode(cmd_instance)
+                cmd_instance.interactive_mode()
             else:
                 cmd_instance.run(**arg_dict)
 

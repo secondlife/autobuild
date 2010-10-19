@@ -40,46 +40,6 @@ class AutobuildBase:
     def run(self, args):
         pass
 
-    def interactive_mode(self, instance):
-        """
-        Utility to run a command in interactive mode.
-
-        Requires:
-            instance to be a class describing the feature to be configured interactively.
-        """
-        try:
-            data = getattr(instance, 'ARGUMENTS')
-        except AttributeError:
-            raise AutobuildError("Interactive mode not supported.")
-        
-        command = '%s' % instance.__class__.__name__
-        command = command.lower()
-        if getattr(instance, 'description', ''):
-            print '\n%s' % instance.description
-        print "\nUpdate %s details:" % command
-        if getattr(instance, 'help', ''):
-            print instance.help
-
-        input_values = {}
-        for argument in instance.ARGUMENTS:
-            try:
-                i = raw_input("    %s> " % argument)
-                if i:
-                    input_values[argument] = i
-            except EOFError:
-                print ""
-                exit = 'y'
-                exit = raw_input("Do you really want to exit ([y]/n)? ")
-                if exit == 'y':
-                    sys.exit(0)
-
-        print "You input:"
-        print "%s" % input_values
-        save = raw_input("Save to config? ")
-        if save in ['y', 'Y', 'yes', 'Yes', 'YES']:
-            instance.run(**input_values)
-
-
 # Standalone functionality:
 
     # not __init__ as we have to overload functions it calls
