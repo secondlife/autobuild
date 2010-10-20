@@ -26,6 +26,8 @@ class InteractiveCommand(object):
         run          method used to run this command. Must take fields as keyword args.
     """
 
+    HELP = ''
+
     def __init__(self, config):
         """
         This default __init__ for an interactive command has the following characteristics:
@@ -70,7 +72,7 @@ class InteractiveCommand(object):
             print self.help
 
         input_values = {}
-        for argument in self.ARGUMENTS:
+        for argument in self.ARGUMENTS.keys():
             try:
                 i = raw_input("    %s> " % argument)
                 if i:
@@ -90,5 +92,15 @@ class InteractiveCommand(object):
         if save in ['y', 'Y', 'yes', 'Yes', 'YES']:
             self.run(**input_values)
     
+    @classmethod
+    def run_cmd(klass, config, kwargs):
+        """
+        Method to be invoked by parser upon invocation of specific command.
+        """
+        self = klass(config)
+        if kwargs:
+            self.run(kwargs)
+        else:
+            self.interactive_mode()
 
 

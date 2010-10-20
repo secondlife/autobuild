@@ -15,6 +15,8 @@ Build configuration includes:
 import sys
 import shlex
 from StringIO import StringIO
+import argparse
+
 import configfile
 from autobuild_base import AutobuildBase
 from common import AutobuildError, get_current_platform
@@ -35,47 +37,33 @@ class AutobuildTool(AutobuildBase):
             dest='config_file',
             default=configfile.AUTOBUILD_CONFIG_FILE,
             help="")
-        parser.add_argument('command', nargs='?', default='print',
-            help="commands: bootstrap, build, configure, package, or print")
-        parser.add_argument('argument', nargs='*', help=_arg_help_str(self._get_arguments()))
+        parser.add_argument('--bootstrap',
+            action='store_true')
+        parser.add_argument('--delete',
+            action='store_true')
+        subparsers = parser.add_subparsers(title='subcommands', dest='subparser_name')
+        
+        for (cmd,callable) in self._get_command_callables().items():
+            parser = subparsers.add_parser(cmd, help=callable.HELP, formatter_class=argparse.RawTextHelpFormatter)
+            parser.add_argument('argument', nargs='*', 
+                                help=_arg_help_str(callable.ARGUMENTS))
+            parser.set_defaults(func=callable.run_cmd)
 
     def run(self, args):
         config = configfile.ConfigurationDescription(args.config_file)
-        arg_dict = _process_key_value_arguments(args.argument)
-        # if no parameters provided, default to interactive
-        interactive = False
-        if not arg_dict and args.command != 'print':  
-            interactive = True
-        cmd_instance = None
-        if args.command == 'bootstrap':
+        if args.bootstrap:
             print "Entering interactive mode."
             Package(config).interactive_mode()
             Configure(config).interactive_mode()
             Build(config).interactive_mode()
-        elif args.command == 'build':
-            cmd_instance = Build(config)
-        elif args.command == 'configure':
-            cmd_instance = Configure(config)
-        elif args.command == 'platform':
-            cmd_instance = Platform(config)
-        elif args.command == 'package':
-            cmd_instance = Package(config)
-        elif args.command == 'print':
-            configfile.pretty_print(config)
-        else:
-            raise AutobuildError('unknown command %s' % args.command)
+        
+        arg_dict = _process_key_value_arguments(args.argument)
+        args.func(config, arg_dict)
 
-        if cmd_instance:
-            if interactive:
-                print "No args provided. Entering interactive mode..."
-                cmd_instance.interactive_mode()
-            else:
-                cmd_instance.run(**arg_dict)
-
-        if not args.dry_run and args.command != 'print':
+        if not args.dry_run and args.subparser_name != 'print':
             config.save()
 
-    def _get_arguments(self):
+    def _get_command_callables(self):
         """
         Lazily create arguments dict.
         """
@@ -83,22 +71,29 @@ class AutobuildTool(AutobuildBase):
             self.arguments
         except AttributeError:
             self.arguments = {
-                                'configure':    Configure.ARGUMENTS,
-                                'build':        Build.ARGUMENTS,
-                                'package':      Package.ARGUMENTS,
+                                'configure':    Configure,
+                                'build':        Build,
+                                'package':      Package,
+                                'platform':     Platform,
                             }
         return self.arguments
+
 
 def _arg_help_str(arg_dict):
     s = []
     for (key, value) in arg_dict.items():
-        s.append('%s: %s' % (key, value))
+        s.append('%s%s' % (key.ljust(20), value['help']))
     return '\n'.join(s)
 
 
 class _config(InteractiveCommand):
 
-    ARGUMENTS = ['name', 'platform', 'cmd', 'options', 'arguments']
+    ARGUMENTS = {   'name':     {'help':'Name of config to edit'}, 
+                    'platform': {'help':'Platform of config'},
+                    'cmd':      {'help':'Command to execute'}, 
+                    'options':  {'help':'Options for command'},
+                    'arguments':{'help':'Arguments for command'},
+                }
 
     def __init__(self, config):
         stream = StringIO()
@@ -143,6 +138,8 @@ class _config(InteractiveCommand):
 
 class Build(_config):
 
+    HELP = "The build command 'autobuild build'"
+
     def run(self, platform=get_current_platform(), name=CONFIG_NAME_DEFAULT, 
               cmd=DEFAULT_BUILD_CMD, options='', arguments='', default=None):
         """
@@ -155,6 +152,8 @@ class Build(_config):
 
 
 class Configure(_config):
+
+    HELP = "The configure command 'autobuild configure'"
 
     def run(self, platform=get_current_platform(), name=CONFIG_NAME_DEFAULT, 
                   cmd=DEFAULT_CONFIG_CMD, options='', arguments=''):
@@ -169,7 +168,11 @@ class Configure(_config):
 
 class Platform(InteractiveCommand):
 
-    ARGUMENTS = ['name', 'build_directory']
+    ARGUMENTS = {   'name':             {'help':'Name of platform to edit'}, 
+                    'build_directory':  {'help':'Build directory'},
+                }
+
+    HELP = "Platform-specific configuration"
 
     def __init__(self, config):
         stream = StringIO()
@@ -197,8 +200,18 @@ class Platform(InteractiveCommand):
 
 class Package(InteractiveCommand):
 
-    ARGUMENTS = ['name', 'description', 'copyright', 'license', 'license_file', 'source',
-                 'source_type', 'source_directory', 'version', ] 
+    ARGUMENTS = {   'name':             {'help':'name of package'}, 
+                    'description':      {'help':'package description'},
+                    'copyright':        {'help':'copyright string'}, 
+                    'license':          {'help':'type of license'},
+                    'license_file':     {'help':'full path to license file'},
+                    'source':           {'help':''},
+                    'source_type':      {'help':''},
+                    'source_directory': {'help':'location of source directory'},
+                    'version':          {'help':''},
+                }
+
+    HELP = "Information about the package"
 
     def __init__(self, config):
         stream = StringIO()

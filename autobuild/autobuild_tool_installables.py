@@ -57,7 +57,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             help="installable command: add, remove, edit, or print")
         parser.add_argument('name', nargs='?', default=None,
             help="the name of the installable")
-        parser.add_argument('argument', nargs='*', help='a key=value pair specifying and attribute')
+        parser.add_argument('argument', nargs='*', help='a key=value pair specifying an attribute')
 
     def run(self, args):
         config = configfile.ConfigurationDescription(args.config_file)
