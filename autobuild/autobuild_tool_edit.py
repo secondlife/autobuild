@@ -46,7 +46,7 @@ class AutobuildTool(AutobuildBase):
         for (cmd,callable) in self._get_command_callables().items():
             parser = subparsers.add_parser(cmd, help=callable.HELP, formatter_class=argparse.RawTextHelpFormatter)
             parser.add_argument('argument', nargs='*', 
-                                help=_arg_help_str(callable.ARGUMENTS))
+                                help=_arg_help_str(callable.ARG_DICT))
             parser.set_defaults(func=callable.run_cmd)
 
     def run(self, args):
@@ -88,7 +88,9 @@ def _arg_help_str(arg_dict):
 
 class _config(InteractiveCommand):
 
-    ARGUMENTS = {   'name':     {'help':'Name of config to edit'}, 
+    ARGUMENTS = ['name', 'platform', 'cmd', 'options', 'arguments',]
+
+    ARG_DICT = {   'name':     {'help':'Name of config to edit or create'}, 
                     'platform': {'help':'Platform of config'},
                     'cmd':      {'help':'Command to execute'}, 
                     'options':  {'help':'Options for command'},
@@ -168,7 +170,9 @@ class Configure(_config):
 
 class Platform(InteractiveCommand):
 
-    ARGUMENTS = {   'name':             {'help':'Name of platform to edit'}, 
+    ARGUMENTS = ['name', 'build_directory',]
+
+    ARG_DICT = {   'name':             {'help':'Name of platform to edit'}, 
                     'build_directory':  {'help':'Build directory'},
                 }
 
@@ -200,15 +204,18 @@ class Platform(InteractiveCommand):
 
 class Package(InteractiveCommand):
 
-    ARGUMENTS = {   'name':             {'help':'name of package'}, 
-                    'description':      {'help':'package description'},
-                    'copyright':        {'help':'copyright string'}, 
-                    'license':          {'help':'type of license'},
-                    'license_file':     {'help':'full path to license file'},
-                    'source':           {'help':''},
-                    'source_type':      {'help':''},
-                    'source_directory': {'help':'location of source directory'},
-                    'version':          {'help':''},
+    ARGUMENTS = ['name', 'description', 'copyright', 'license', 'license_file', 
+                 'source', 'source_type', 'source_directory', 'version',]
+
+    ARG_DICT = {    'name':             {'help':'Name of package'}, 
+                    'description':      {'help':'Package description'},
+                    'copyright':        {'help':'Copyright string'}, 
+                    'license':          {'help':'Type of license'},
+                    'license_file':     {'help':'Full path to license file'},
+                    'source':           {'help':'Source'},
+                    'source_type':      {'help':'Source type'},
+                    'source_directory': {'help':'Location of source directory'},
+                    'version':          {'help':'Version'},
                 }
 
     HELP = "Information about the package"

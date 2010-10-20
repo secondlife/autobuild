@@ -59,7 +59,7 @@ class InteractiveCommand(object):
             self to be a class describing the feature to be configured interactively.
         """
         try:
-            data = getattr(self, 'ARGUMENTS')
+            getattr(self, 'ARGUMENTS')
         except AttributeError:
             raise AutobuildError("Interactive mode not supported.")
 
@@ -72,9 +72,10 @@ class InteractiveCommand(object):
             print self.help
 
         input_values = {}
-        for argument in self.ARGUMENTS.keys():
+        for argument in self.ARGUMENTS:
             try:
-                i = raw_input("    %s> " % argument)
+                helptext = self.ARG_DICT[argument]['help']
+                i = raw_input("    %s> " % helptext)
                 if i:
                     if i.lower() == 'none':
                         i = ''
