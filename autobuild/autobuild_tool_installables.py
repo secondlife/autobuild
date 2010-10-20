@@ -128,7 +128,7 @@ def edit(config, installable_name, installable_data):
             platform_description = package_description.platforms[platform_name]
         else:
             platform_description = configfile.PlatformDescription()
-            platform_description.name = installable_data.pop('platform')
+            platform_description.name = platform_name
             package_description.platforms[platform_description.name] = platform_description
         if platform_description.archive is not None:
             archive_description = platform_description.archive
