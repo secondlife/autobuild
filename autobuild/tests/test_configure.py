@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import unittest
-from autobuild import configure
 from baseline_compare import AutobuildBaselineCompare
 from autobuild import autobuild_tool_configure as configure
 import autobuild.configfile as configfile
