@@ -100,7 +100,7 @@ class InteractiveCommand(object):
         """
         self = klass(config)
         if kwargs:
-            self.run(kwargs)
+            self.run(**kwargs)
         else:
             self.interactive_mode()
 

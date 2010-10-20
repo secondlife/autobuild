@@ -46,7 +46,7 @@ class AutobuildTool(AutobuildBase):
         for (cmd,callable) in self._get_command_callables().items():
             parser = subparsers.add_parser(cmd, help=callable.HELP, formatter_class=argparse.RawTextHelpFormatter)
             parser.add_argument('argument', nargs='*', 
-                                help=_arg_help_str(callable.ARG_DICT))
+                                help=_arg_help_str(callable.ARGUMENTS, callable.ARG_DICT))
             parser.set_defaults(func=callable.run_cmd)
 
     def run(self, args):
@@ -79,10 +79,10 @@ class AutobuildTool(AutobuildBase):
         return self.arguments
 
 
-def _arg_help_str(arg_dict):
+def _arg_help_str(args, arg_dict):
     s = []
-    for (key, value) in arg_dict.items():
-        s.append('%s%s' % (key.ljust(20), value['help']))
+    for key in args: 
+        s.append('%s%s' % (key.ljust(20), arg_dict[key]['help']))
     return '\n'.join(s)
 
 
@@ -90,7 +90,7 @@ class _config(InteractiveCommand):
 
     ARGUMENTS = ['name', 'platform', 'cmd', 'options', 'arguments',]
 
-    ARG_DICT = {   'name':     {'help':'Name of config to edit or create'}, 
+    ARG_DICT = {   'name':     {'help':'Name of config to create or edit'}, 
                     'platform': {'help':'Platform of config'},
                     'cmd':      {'help':'Command to execute'}, 
                     'options':  {'help':'Options for command'},
@@ -150,7 +150,7 @@ class Build(_config):
         command = { 'command':cmd, 
                     'options':listify_str(options), 
                     'arguments':listify_str(arguments)}
-        build_config_desc = self.create_or_update_build_config_desc(name, platform, default, build=command) 
+        build_config_desc = self.create_or_update_build_config_desc(name, platform, default=default, build=command) 
 
 
 class Configure(_config):
@@ -158,14 +158,14 @@ class Configure(_config):
     HELP = "The configure command 'autobuild configure'"
 
     def run(self, platform=get_current_platform(), name=CONFIG_NAME_DEFAULT, 
-                  cmd=DEFAULT_CONFIG_CMD, options='', arguments=''):
+                  cmd=DEFAULT_CONFIG_CMD, options='', arguments='', default=None):
         """
         Updates the configure command.
         """
         command = { 'command':cmd, 
                     'options':listify_str(options), 
                     'arguments':listify_str(arguments)}
-        build_config_desc = self.create_or_update_build_config_desc(name, platform, configure=command)
+        build_config_desc = self.create_or_update_build_config_desc(name, platform, default=default, configure=command)
 
 
 class Platform(InteractiveCommand):
