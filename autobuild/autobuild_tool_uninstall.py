@@ -83,7 +83,6 @@ def uninstall_packages(options, args):
     installed_file = configfile.ConfigurationDescription(installed_filename)
 
     for package in args:
-        logging.info("uninstalling %s" % package)
         uninstall(package, installed_file, install_dir)
 
     # update the installed-packages.xml file
