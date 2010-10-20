@@ -36,7 +36,7 @@ class TestEdit(unittest.TestCase, AutobuildBaselineCompare):
         Perform non-interactive configuration of build command.
         Check results.
         """
-        args = ["--config-file=%s" % self.tmp_file, 'build', 'name=newbuild', 'platform=windows', 'command=makethis']
+        args = ['build', "--config-file=%s" % self.tmp_file, 'name=newbuild', 'platform=windows', 'command=makethis']
         expected_config = {'package_description': {'platforms': {'windows': {'name': 'windows', 'configurations': {'newbuild': {'build': {'command': 'makethis'}, 'name': 'newbuild'}}}}}, 'version': '1.2', 'type': 'autobuild'}
         built_config = self._try_cmd(args)
         assert (expected_config == built_config)
@@ -46,7 +46,7 @@ class TestEdit(unittest.TestCase, AutobuildBaselineCompare):
         Perform non-interactive configuration of configure command.
         Check results.
         """
-        args = ["--config-file=%s" % self.tmp_file, 'configure', 'name=newbuild', 'platform=windows', 'command=makethat']
+        args = ['configure', "--config-file=%s" % self.tmp_file, 'name=newbuild', 'platform=windows', 'command=makethat']
         expected_config = {'package_description': {'platforms': {'windows': {'name': 'windows', 'configurations': {'newbuild': {'configure': {'command': 'makethat'}, 'name': 'newbuild'}}}}}, 'version': '1.2', 'type': 'autobuild'}
         built_config = self._try_cmd(args)
         assert (expected_config == built_config)
@@ -56,17 +56,17 @@ class TestEdit(unittest.TestCase, AutobuildBaselineCompare):
         Perform two updates to the config file in series. 
         Check results after each iteration.
         """
-        args = ["--config-file=%s" % self.tmp_file, 'configure', 'name=newbuild', 'platform=windows', 'command=makethat']
+        args = ['configure', "--config-file=%s" % self.tmp_file, 'name=newbuild', 'platform=windows', 'command=makethat']
         built_config1 = self._try_cmd(args)
         expected_config1 = {'package_description': {'platforms': {'windows': {'name': 'windows', 'configurations': {'newbuild': {'configure': {'command': 'makethat'}, 'name': 'newbuild'}}}}}, 'version': '1.2', 'type': 'autobuild'}
         assert (expected_config1 == built_config1)
-        args = ["--config-file=%s" % self.tmp_file, 'build', 'name=newbuild', 'platform=windows', 'command=makethis']
+        args = ['build', "--config-file=%s" % self.tmp_file, 'name=newbuild', 'platform=windows', 'command=makethis']
         built_config2 = self._try_cmd(args)
         expected_config2 = {'package_description': {'platforms': {'windows': {'name': 'windows', 'configurations': {'newbuild': {'build': {'command': 'makethis'}, 'name': 'newbuild', 'configure': {'command': 'makethat'}}}}}}, 'version': '1.2', 'type': 'autobuild'}
         assert (expected_config2 == built_config2)
         
     def test_platform_configure(self):
-        args = ["--config-file=%s" % self.tmp_file, 'platform', 'name=windows', 'build_directory=foo/bar/baz']
+        args = ['platform', "--config-file=%s" % self.tmp_file, 'name=windows', 'build_directory=foo/bar/baz']
         built_config = self._try_cmd(args)
         assert built_config['package_description']['platforms']['windows']['build_directory'] == 'foo/bar/baz'
 
@@ -86,7 +86,7 @@ class TestEditCmdLine(unittest.TestCase, AutobuildBaselineCompare):
         result = subprocess.call('autobuild edit --config-file=%s --help > /dev/null ' % \
             self.tmp_file, shell=True)
         assert result == 0
-        result = subprocess.call('autobuild edit --config-file=%s build name=foo command=buildme.py' % \
+        result = subprocess.call('autobuild edit build --config-file=%s name=foo command=buildme.py' % \
             self.tmp_file, shell=True)
         assert result == 0
 

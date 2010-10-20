@@ -33,32 +33,26 @@ class AutobuildTool(AutobuildBase):
             description="Manage build and package configuration.")
      
     def register(self, parser):
-        parser.add_argument('--config-file',
-            dest='config_file',
-            default=configfile.AUTOBUILD_CONFIG_FILE,
-            help="")
-        parser.add_argument('--bootstrap',
-            action='store_true')
-        parser.add_argument('--delete',
-            action='store_true')
         subparsers = parser.add_subparsers(title='subcommands', dest='subparser_name')
         
         for (cmd,callable) in self._get_command_callables().items():
             parser = subparsers.add_parser(cmd, help=callable.HELP, formatter_class=argparse.RawTextHelpFormatter)
-            parser.add_argument('argument', nargs='*', 
-                                help=_arg_help_str(callable.ARGUMENTS, callable.ARG_DICT))
+            parser.add_argument('argument', 
+                nargs='*', 
+                help=_arg_help_str(callable.ARGUMENTS, callable.ARG_DICT))
+            parser.add_argument('--delete', 
+                action='store_true')
+            parser.add_argument('--config-file',
+                dest='config_file',
+                default=configfile.AUTOBUILD_CONFIG_FILE,
+                help="")
             parser.set_defaults(func=callable.run_cmd)
 
     def run(self, args):
         config = configfile.ConfigurationDescription(args.config_file)
-        if args.bootstrap:
-            print "Entering interactive mode."
-            Package(config).interactive_mode()
-            Configure(config).interactive_mode()
-            Build(config).interactive_mode()
-        
         arg_dict = _process_key_value_arguments(args.argument)
-        args.func(config, arg_dict)
+
+        args.func(config, arg_dict, args.delete)
 
         if not args.dry_run and args.subparser_name != 'print':
             config.save()
@@ -90,7 +84,7 @@ class _config(InteractiveCommand):
 
     ARGUMENTS = ['name', 'platform', 'command', 'options', 'arguments',]
 
-    ARG_DICT = {    'name':     {'help':'Name of config to create or edit'}, 
+    ARG_DICT = {    'name':     {'help':'Name of config'}, 
                     'platform': {'help':'Platform of config'},
                     'command':  {'help':'Command to execute'}, 
                     'options':  {'help':'Options for command'},
@@ -137,6 +131,19 @@ class _config(InteractiveCommand):
             build_config_desc.default = default
         return build_config_desc 
 
+    def delete(self, name='', platform='', **kwargs):
+        """
+        Delete the named config value.
+        """
+        if not name:
+            raise AutobuildError("Name argument must be provided with --delete option.")
+
+    def _get_configuration(self, name='', platform=''):
+        if not name or not platform:
+            raise AutobuildError("'name' and 'platform' arguments must both be provided with --delete option.")
+        platform_description = self.config.get_platform(platform)
+        configuration = platform_description.configurations.get(name)
+        return configuration
 
 class Build(_config):
 
@@ -151,6 +158,14 @@ class Build(_config):
                         'options':listify_str(options), 
                         'arguments':listify_str(arguments)}
         build_config_desc = self.create_or_update_build_config_desc(name, platform, default=default, build=new_command) 
+
+    def delete(self, name='', platform='', **kwargs):
+        """
+        Delete the named config value.
+        """
+        print "Deleting entry."
+        configuration = self._get_configuration(name, platform)
+        configuration.pop('build')
 
 
 class Configure(_config):
@@ -167,12 +182,20 @@ class Configure(_config):
                         'arguments':listify_str(arguments)}
         build_config_desc = self.create_or_update_build_config_desc(name, platform, default=default, configure=new_command)
 
+    def delete(self, name='', platform='', **kwargs):
+        """
+        Delete the named config value.
+        """
+        print "Deleting entry."
+        configuration = self._get_configuration(name, platform)
+        configuration.pop('configure')
+
 
 class Platform(InteractiveCommand):
 
     ARGUMENTS = ['name', 'build_directory',]
 
-    ARG_DICT = {   'name':             {'help':'Name of platform to edit'}, 
+    ARG_DICT = {    'name':             {'help':'Name of platform'}, 
                     'build_directory':  {'help':'Build directory'},
                 }
 
@@ -185,7 +208,7 @@ class Platform(InteractiveCommand):
         self.description = stream.getvalue()
         stream.close()
         self.config = config
-        
+
     def _create_or_update_platform(self, name, build_directory):
         try:
             platform_description = self.config.get_platform(name)
@@ -195,12 +218,21 @@ class Platform(InteractiveCommand):
         if build_directory is not None:
             platform_description.build_directory = build_directory
 
-    def run(self, name, build_directory=None):
+    def run(self, name='', build_directory=None):
         """
         Configure basic platform details.
         """
         self._create_or_update_platform(name, build_directory)
         
+    def delete(self, name='', **kwargs):
+        """
+        Delete the named config value.
+        """
+        if not name:
+            raise AutobuildError("'name' argument must be provided with --delete option.")
+        print "Deleting entry."
+        self.config.package_description.platforms.pop(name)
+
 
 class Package(InteractiveCommand):
 
@@ -229,6 +261,8 @@ class Package(InteractiveCommand):
 
         self.config = config
 
+        self.interactive_delete = False
+
     def create_or_update_package_desc(self, kwargs):
         # fetch existing value if there is one
         try:
@@ -244,6 +278,21 @@ class Package(InteractiveCommand):
         """
         pkg = self.create_or_update_package_desc(kwargs)
         self.config.package_description = pkg
+
+    def non_interactive_delete(self, **kwargs):
+        if self._confirm_delete():
+            self.delete(**kwargs)
+
+    def delete(self, name='', platform='', **kwargs):
+        """
+        Delete the named config value.
+        """
+        really_really_delete = raw_input("Do you really really want to delete this entry?\nThis will delete everything in the config file except the installables. (y/[n])> ")
+        if really_really_delete in ['y', 'Y', 'yes', 'Yes', 'YES']:
+            print "Deleting entry."
+            self.config.package_description = None
+            return
+        print "Cancelling delete."
 
 
 def _process_key_value_arguments(arguments):

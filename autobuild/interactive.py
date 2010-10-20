@@ -24,6 +24,7 @@ class InteractiveCommand(object):
         description  description for interactive mode
         help         additional help text for interactive mode
         run          method used to run this command. Must take fields as keyword args.
+        delete       method used to delete a config file entry.
     """
 
     HELP = ''
@@ -51,7 +52,7 @@ class InteractiveCommand(object):
         """
         pass
     
-    def interactive_mode(self):
+    def interactive_mode(self, delete=False):
         """
         Utility to run a command in interactive mode.
 
@@ -67,7 +68,11 @@ class InteractiveCommand(object):
         command = command.lower()
         if getattr(self, 'description', ''):
             print '\n%s' % self.description
-        print "\nUpdate %s details:" % command
+
+        action = "Create or update"
+        if delete:
+            action = "Delete"
+        print "\n%s %s details:" % (action, command)
         if getattr(self, 'help', ''):
             print self.help
 
@@ -89,19 +94,52 @@ class InteractiveCommand(object):
 
         print "You input:"
         print "%s" % input_values
-        save = raw_input("Save to config? ")
-        if save in ['y', 'Y', 'yes', 'Yes', 'YES']:
-            self.run(**input_values)
+        if delete:
+            if self._confirm_delete():
+                self.delete(**input_values)
+        else:
+            save = raw_input("Save to config? ")
+            if save in ['y', 'Y', 'yes', 'Yes', 'YES']:
+                self.run(**input_values)
+            else:
+                print "Not saved."
     
     @classmethod
-    def run_cmd(klass, config, kwargs):
+    def run_cmd(klass, config, kwargs, delete):
         """
         Method to be invoked by parser upon invocation of specific command.
         """
         self = klass(config)
+        
         if kwargs:
-            self.run(**kwargs)
+            if delete:
+                if self._confirm_delete():
+                    self.delete(**kwargs)
+            else:
+                self.run(**kwargs)
         else:
-            self.interactive_mode()
+            if delete and not getattr(self, 'interactive_delete', True):
+                # special method to handle this combination of options to avoid mistakes
+                self.non_interactive_delete(**kwargs)
+            else:
+                self.interactive_mode(delete)
+
+    def non_interactive_delete(**kwargs):
+        """
+        To be used in the case where 'self.interactive_delete' is False.
+        """
+        raise AutobuildError("Delete not yet implemented for this command.")
+
+    def delete(**kwargs):
+        """
+        Stub for the delete command.
+        """
+        raise AutobuildError("Delete not yet implemented for this command.")
+
+    def _confirm_delete(self):
+        really_delete = raw_input("Do you really want to delete this entry (y/[n])? ")
+        if really_delete in ['y', 'Y', 'yes', 'Yes', 'YES']:
+            return True
+        return False
 
 
