@@ -13,12 +13,15 @@ $/LicenseInfo$
 import glob
 import os
 import re
+import logging
 import subprocess
 import sys
 import urllib2
 
 import common
 import boto.s3.connection
+
+logger = logging.getLogger('autobuild.connection')
 
 AutobuildError = common.AutobuildError
 
@@ -80,7 +83,7 @@ class SCPConnection(Connection):
             print "Uploading to: %s" % self.scp_dest
             command = [common.get_default_scp_command()] + uploadables + [self.scp_dest]
             if dry_run:
-                print " ".join(command)
+                logger.warning(" ".join(command))
             else:
                 rc = subprocess.call(command) # interactive -- possible password req'd
                 if rc != 0:

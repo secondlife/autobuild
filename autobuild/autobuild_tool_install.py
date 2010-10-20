@@ -34,8 +34,9 @@ import subprocess
 import hash_algorithms
 
 logger = logging.getLogger('autobuild.install')
-# It's not yet completely clear at what log level we should produce --dry-run
-# output, so encapsulate that decision.
+# Emitting --dry-run messages at warning() level means they're displayed in a
+# default run (no log-level switches specified), but can still be suppressed
+# with --quiet if need be.
 dry_run_msg = logger.warning
 
 class InstallError(common.AutobuildError):

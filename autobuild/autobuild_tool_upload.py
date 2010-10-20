@@ -63,7 +63,7 @@ example .s3curl credentials file contents:
         # processing, it arrives as a list.
         upload(args.archive, args.upload_to_s3, args.dry_run)
         if args.dry_run:
-            print "This was only a dry-run."
+            logger.warning("This was only a dry-run.")
 
 
 # This function is intended for use by another Python script. It takes a
