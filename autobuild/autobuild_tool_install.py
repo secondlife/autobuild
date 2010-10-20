@@ -19,40 +19,24 @@ Date   : 2010-04-19
 # Proposed platform spec: OS[/arch[/compiler[/compiler_version]]]
 # e.g., windows/i686/vs/2005 or linux/x86_64/gcc/3.3
 #
-# *TODO: add support for an 'autobuild uninstall' command
 # *TODO: add an 'autobuild info' command to query config file contents
-
-# alain: twould be nice if you could add some logging to the install tool.
-# nat: What's the model? I had some test failures due to no such thing as common.log().
-# alain: most other commands are using the logging package.  See, e.g., package.
-# nat: Is that centrally constructed?
-# alain: common.log was removed.
-# nat: s/constructed/configured/
-# alain: you can look at the python package logging if you are interested.
-# alain: the usual metaphor is to use logging.getLogger('autobuild.<tool>')
-# nat: I've used it before. Will look at autobuild_tool_package.py.
-# alain: the 'autobuild' logger is configured from the main.
-# alain: sub loggers inherit.
-# nat: Aha, that's what I was asking, thanks.
-# alain: One thing I'd like to see is a message for each package installed at info level so when I use --verbose I can actually see what's getting installed.
-# alain: feel free to be profligate with debug logging if you so desire ;-)
-# alain: (I haven't really, if truth be told).
-# nat: So at what level would you like to see the individual files belonging to package tarballs?
-# alain: INFO should be the default for all things not warning or error.
-# alain: INFO only gets printed when --verbose is used.
-# nat: And --verbose setting log level INFO is part of the main configuration? Cool.
-# alain: at --quiet, only ERROR is printed.
 
 import os
 import sys
 import errno
 import pprint
+import logging
 import common
 import configfile
 import autobuild_base
 from llbase import llsd
 import subprocess
 import hash_algorithms
+
+logger = logging.getLogger('autobuild.install')
+# It's not yet completely clear at what log level we should produce --dry-run
+# output, so encapsulate that decision.
+dry_run_msg = logger.warning
 
 class InstallError(common.AutobuildError):
     pass
@@ -214,14 +198,15 @@ def should_install(package_name, config_file, installed_config, platform):
 
     # Here the package has already been installed. Need to update it?
 
-    # The --as_source command-line switch only affects the installation of new
+    # The --as-source command-line switch only affects the installation of new
     # packages. When we first install a package, we remember whether it's
-    # --as_source. Every subsequent 'autobuild install' affecting that package
-    # must honor the original --as_source setting. After an initial
-    # --as_source install, it's HANDS OFF! The possibility of local source
+    # --as-source. Every subsequent 'autobuild install' affecting that package
+    # must honor the original --as-source setting. After an initial
+    # --as-source install, it's HANDS OFF! The possibility of local source
     # changes makes any further autobuild operations on that repository
     # ill-advised.
     if installed.as_source:
+        logger.info("%s previously installed --as-source, not updating" % package_name)
         return False
 
     # Not a source package, but a reference to a binary archive. Check that we
@@ -231,7 +216,7 @@ def should_install(package_name, config_file, installed_config, platform):
        raise InstallError("no platform %s for %s" % (platform, package_name))
     if not req_platform.archive:
        raise InstallError("no archive specified for platform %s for %s" %
-                            (platform, package_name))
+                          (platform, package_name))
 
     # install this package if it is new or out of date
     inst_platform = installed.get_platform(platform)
@@ -246,7 +231,11 @@ def should_install(package_name, config_file, installed_config, platform):
     # installed).
     # Note the sense of the test: if the data does not match, then we
     # should_install(). If everything matches, there's no need.
-    return req_platform.archive != inst_platform.archive
+    if req_platform.archive != inst_platform.archive:
+        return True
+
+    logger.info("%s up to date" % package_name)
+    return False
 
 def pre_install_license_check(packages, config_file):
     """
@@ -258,7 +247,7 @@ def pre_install_license_check(packages, config_file):
         license = package.license
         if not license:
             raise InstallError("no license specified for %s. Aborting... "
-                                 "(you can use --skip-license-check)" % pname)
+                               "(you can use --skip-license-check)" % pname)
 
 def post_install_license_check(packages, config_file, install_dir):
     """
@@ -279,7 +268,7 @@ def post_install_license_check(packages, config_file, install_dir):
         # otherwise, assert that the license file is in the archive
         if not os.path.exists(os.path.join(install_dir, license_file)):
             raise InstallError("invalid or undefined license_file for %s: %s "
-                                 "(you can use --skip-license-check)" % (pname, license_file))
+                               "(you can use --skip-license-check)" % (pname, license_file))
 
 def do_install(packages, config_file, installed_file, platform, install_dir, dry_run, as_source=[]):
     """
@@ -292,6 +281,7 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
 
     # check that the install dir exists...
     if not os.path.exists(install_dir):
+        logger.info("creating " + install_dir)
         os.makedirs(install_dir)
 
     # Decide whether to check out (or update) source, or download a tarball
@@ -300,25 +290,28 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
         try:
             installed = installed_file.installables[pname]
         except KeyError:
-            # New install, so honor --as_source switch.
+            # New install, so honor --as-source switch.
             source_install = (pname in as_source)
         else:
-            # Existing install. If pname was previously installed --as_source,
+            # Existing install. If pname was previously installed --as-source,
             # do not mess with it now.
             source_install = installed.as_source
             if source_install:
+                logger.info("%s previously installed --as-source, not updating" % pname)
                 continue
 
         # Existing tarball install, or new package install of either kind
         if source_install:
+            logger.info("installing %s --as-source" % pname)
             _install_source(package, installed_file, config_file, dry_run)
         else:
+            logger.info("installing %s from archive" % pname)
             _install_binary(package, platform, config_file, install_dir, installed_file, dry_run)
 
 def _install_source(package, installed_config, config_file, dry_run):
     if dry_run:
-        print "Dry run mode: not installing %s source for %s from %s" % \
-              (package.sourcetype, package.name, package.source)
+        dry_run_msg("Dry run mode: not installing %s source for %s from %s" %
+                    (package.sourcetype, package.name, package.source))
         return
 
     if not package.source:
@@ -333,8 +326,9 @@ def _install_source(package, installed_config, config_file, dry_run):
     # package.name?
     sourcepath = config_file.absolute_path(os.path.join(package.source_directory, package.name))
     if os.path.isdir(sourcepath):
-        raise InstallError("trying to install %s --as_source over existing directory %s" %
+        raise InstallError("trying to install %s --as-source over existing directory %s" %
                            (package.name, sourcepath))
+    logger.info("checking out %s to %s" % (package.name, sourcepath))
     if package.sourcetype == 'svn':
         if subprocess.call(['svn', 'checkout', package.source, sourcepath]) != 0:
             raise InstallError("error checking out %s" % package.name)
@@ -360,7 +354,9 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     cachefile = common.get_package_in_cache(archive.url)
 
     # download the package, if it's not already in our cache
-    if not os.path.exists(cachefile):
+    if os.path.exists(cachefile):
+        logger.info("found in cache: " + cachefile)
+    else:
 
         # download the package to the cache
         if not common.download_package(archive.url):
@@ -373,7 +369,7 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
 
     # dry run mode = download but don't install packages
     if dry_run:
-        print "Dry run mode: not installing %s" % package.name
+        dry_run_msg("Dry run mode: not installing %s" % package.name)
         return
 
     # If this package has already been installed, first uninstall the older
@@ -382,6 +378,8 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
 
     # extract the files from the package
     files = common.extract_package(archive.url, install_dir)
+    for f in files:
+        logger.info("extracted: " + f)
 
     # Update the installed-packages.xml file. The above uninstall() call
     # should have removed any existing entry in installed_file. Copy
@@ -405,7 +403,7 @@ def uninstall(package_name, installed_config, install_dir):
     Uninstall specified package_name: remove related files and delete
     package_name from the installed_config ConfigurationDescription.
 
-    For a package_name installed with --as_source, simply remove the
+    For a package_name installed with --as-source, simply remove the
     PackageDescription from installed_config.
 
     Saving the modified installed_config is the caller's responsibility.
@@ -416,18 +414,22 @@ def uninstall(package_name, installed_config, install_dir):
         package = installed_config.installables.pop(package_name)
     except KeyError:
         # If the package has never yet been installed, we're good.
+        logger.info("%s never installed, no uninstall needed" % package_name)
         return
 
     if package.as_source:
         # Only delete files for a tarball install.
+        logger.warning("%s installed --as-source, not removing" % package_name)
         return
 
+    logger.info("uninstalling %s from %s" % (package_name, install_dir))
     # The platforms attribute should contain exactly one PlatformDescription.
     # We don't especially care about its key name.
     _, platform = package.platforms.popitem()
     for f in platform.manifest:
         fn = os.path.join(install_dir, f)
         try:
+            logger.info("    removing " + f)
             os.remove(fn)
         except OSError, err:
             if err.errno != errno.ENOENT:
@@ -435,11 +437,15 @@ def uninstall(package_name, installed_config, install_dir):
 
 def install_packages(options, args):
     # load the list of packages to install
+    logger.debug("loading " + options.install_filename)
     config_file = configfile.ConfigurationDescription(options.install_filename)
 
     # write packages into 'packages' subdir of build directory by default
-    if not options.install_dir:
+    if options.install_dir:
+        logger.info("specified install directory: " + options.install_dir)
+    else:
         options.install_dir = os.path.join(config_file.make_build_directory(), 'packages')
+        logger.info("default install directory: " + options.install_dir)
 
     # get the absolute paths to the install dir and installed-packages.xml file
     install_dir = os.path.realpath(options.install_dir)
@@ -448,6 +454,7 @@ def install_packages(options, args):
     installed_filename = os.path.join(install_dir, options.installed_filename)
 
     # load the list of already installed packages
+    logger.debug("loading " + installed_filename)
     installed_file = configfile.ConfigurationDescription(installed_filename)
 
     # get the list of packages to actually install
