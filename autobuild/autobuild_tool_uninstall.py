@@ -46,6 +46,11 @@ def add_arguments(parser):
         nargs='*',
         help='List of packages to consider for installation.')
     parser.add_argument(
+        '--config-file',
+        default=configfile.AUTOBUILD_CONFIG_FILE,
+        dest='install_filename',
+        help='The file used to describe what should be installed.')
+    parser.add_argument(
         '--installed-manifest',
         default=configfile.INSTALLED_CONFIG_FILE,
         dest='installed_filename',
@@ -58,9 +63,14 @@ def add_arguments(parser):
 
 def uninstall_packages(options, args):
     # write packages into 'packages' subdir of build directory by default
-    if not options.install_dir:
-        import configure
-        options.install_dir = configure.get_package_dir()
+    if options.install_dir:
+        logger.info("specified install directory: " + options.install_dir)
+    else:
+        # load config file to get default install_dir
+        logger.debug("loading " + options.install_filename)
+        config_file = configfile.ConfigurationDescription(options.install_filename)
+        options.install_dir = os.path.join(config_file.make_build_directory(), 'packages')
+        logger.info("default install directory: " + options.install_dir)
 
     # get the absolute paths to the install dir and installed-packages.xml file
     install_dir = os.path.realpath(options.install_dir)
@@ -69,10 +79,11 @@ def uninstall_packages(options, args):
     installed_filename = os.path.join(install_dir, options.installed_filename)
 
     # load the list of already installed packages
+    logger.debug("loading " + installed_filename)
     installed_file = configfile.ConfigurationDescription(installed_filename)
 
     for package in args:
-        logging.info("Uninstalling %s" % package)
+        logging.info("uninstalling %s" % package)
         uninstall(package, installed_file, install_dir)
 
     # update the installed-packages.xml file
