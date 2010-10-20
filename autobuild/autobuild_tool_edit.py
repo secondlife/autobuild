@@ -140,7 +140,7 @@ class _config(InteractiveCommand):
 
 class Build(_config):
 
-    HELP = "The build command 'autobuild build'"
+    HELP = "Configure 'autobuild build'"
 
     def run(self, platform=get_current_platform(), name=CONFIG_NAME_DEFAULT, 
               command=DEFAULT_BUILD_CMD, options='', arguments='', default=None):
@@ -155,7 +155,7 @@ class Build(_config):
 
 class Configure(_config):
 
-    HELP = "The configure command 'autobuild configure'"
+    HELP = "Configure 'autobuild configure'"
 
     def run(self, platform=get_current_platform(), name=CONFIG_NAME_DEFAULT, 
                   command=DEFAULT_CONFIG_CMD, options='', arguments='', default=None):
