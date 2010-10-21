@@ -15,6 +15,7 @@ See: autobuild_tool_edit.py for usage examples
 import sys
 from StringIO import StringIO
 import configfile
+from common import AutobuildError
 
 class InteractiveCommand(object):
     """
@@ -132,7 +133,7 @@ class InteractiveCommand(object):
         """
         raise AutobuildError("Delete not yet implemented for this command.")
 
-    def delete(**kwargs):
+    def delete(self, **kwargs):
         """
         Stub for the delete command.
         """

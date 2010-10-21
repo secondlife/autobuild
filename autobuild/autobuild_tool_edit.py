@@ -236,11 +236,6 @@ class Platform(InteractiveCommand):
 
 class _package(InteractiveCommand):
 
-    ARGUMENTS = ['name', 'description', 'copyright', 'license', 'license_file', 
-                 'source', 'source_type', 'source_directory', 'version',]
-
-    HELP = "Information about the package"
-
     def __init__(self, config):
         stream = StringIO()
         stream.write("Current package settings:\n")
@@ -269,19 +264,8 @@ class _package(InteractiveCommand):
         self.config.package_description = pkg
 
     def non_interactive_delete(self, **kwargs):
-        if self._confirm_delete():
-            self.delete(**kwargs)
+        self.delete(**kwargs)
 
-    def delete(self, name='', platform='', **kwargs):
-        """
-        Delete the named config value.
-        """
-        really_really_delete = raw_input("Do you really really want to delete this entry?\nThis will delete everything in the config file except the installables. (y/[n])> ")
-        if really_really_delete in ['y', 'Y', 'yes', 'Yes', 'YES']:
-            print "Deleting entry."
-            self.config.package_description = None
-            return
-        print "Cancelling delete."
 
 class Package(_package):
 
@@ -297,6 +281,18 @@ class Package(_package):
                 }
 
     HELP = "Information about the package"
+
+    def delete(self, name='', platform='', **kwargs):
+        """
+        Delete the named config value.
+        """
+        if self._confirm_delete():
+            really_really_delete = raw_input("Do you really really want to delete this entry?\nThis will delete everything in the config file except the installables. (y/[n])> ")
+            if really_really_delete in ['y', 'Y', 'yes', 'Yes', 'YES']:
+                print "Deleting entry."
+                self.config.package_description = None
+                return
+        print "Cancelling delete."
 
 
 class SourceInfo(_package):
