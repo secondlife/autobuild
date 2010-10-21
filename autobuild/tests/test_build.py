@@ -53,6 +53,34 @@ class TestBuild(unittest.TestCase, AutobuildBaselineCompare):
     def tearDown(self):
         self.cleanup_tmp_file()
 
+class TestEnvironment(unittest.TestCase, AutobuildBaselineCompare):
+    def setUp(self):
+        os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
+        self.tmp_file = self.get_tmp_file(0)
+        self.config = configfile.ConfigurationDescription(self.tmp_file)
+        package = configfile.PackageDescription('test')
+        platform = configfile.PlatformDescription()
+        platform.build_directory = "."
+        build_configuration = configfile.BuildConfigurationDescription()
+        build_configuration.build = Executable(command="envtest.py")
+        build_configuration.default = True
+        build_configuration.name = 'Release'
+        platform.configurations['Release'] = build_configuration
+        package.platforms[common.get_current_platform()] = platform
+        self.config.package_description = package
+        self.config.save()
+
+    def test_env(self):
+        """
+        verify that the AUTOBUILD env var is set to point to something executable
+        """
+
+        result = subprocess.call('autobuild build --no-configure --config-file=%s' % \
+            self.tmp_file, shell=True)
+        assert result == 0
+
+    def tearDown(self):
+        self.cleanup_tmp_file()
 
 if __name__ == '__main__':
     unittest.main()
