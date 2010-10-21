@@ -283,7 +283,7 @@ class _package(InteractiveCommand):
             return
         print "Cancelling delete."
 
-class Package(InteractiveCommand):
+class Package(_package):
 
     ARGUMENTS = ['name', 'description', 'copyright', 'license', 'license_file',
                  'version',]
