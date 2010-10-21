@@ -100,7 +100,7 @@ class InteractiveCommand(object):
             if self._confirm_delete():
                 self.delete(**input_values)
         else:
-            save = raw_input("Save to config? ")
+            save = raw_input("Save to config (y/[n])? ")
             if save in ['y', 'Y', 'yes', 'Yes', 'YES']:
                 self.run(**input_values)
             else:
