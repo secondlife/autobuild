@@ -92,7 +92,10 @@ def package(config, platform_name, archive_filename=None, check_license=True, dr
     platform_description = config.get_platform(platform_name)
     files = _get_file_list(platform_description, build_directory)
     if(platform_name != 'common'):
-        files.extend(_get_file_list(config.get_platform('common'), build_directory))
+        try:
+            files.extend(_get_file_list(config.get_platform('common'), build_directory))
+        except configfile.ConfigurationError:
+            pass # We don't have a common platform defined, that is ok.
     if check_license:
         _check_or_add_license(package_description, build_directory, files)
     config_directory = os.path.dirname(config.path)

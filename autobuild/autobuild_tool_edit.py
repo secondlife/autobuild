@@ -15,6 +15,8 @@ Build configuration includes:
 import sys
 import shlex
 from StringIO import StringIO
+import argparse
+
 import configfile
 from autobuild_base import AutobuildBase
 from common import AutobuildError, get_current_platform
@@ -31,51 +33,31 @@ class AutobuildTool(AutobuildBase):
             description="Manage build and package configuration.")
      
     def register(self, parser):
-        parser.add_argument('--config-file',
-            dest='config_file',
-            default=configfile.AUTOBUILD_CONFIG_FILE,
-            help="")
-        parser.add_argument('command', nargs='?', default='print',
-            help="commands: bootstrap, build, configure, package, or print")
-        parser.add_argument('argument', nargs='*', help=_arg_help_str(self._get_arguments()))
+        subparsers = parser.add_subparsers(title='subcommands', dest='subparser_name')
+        
+        for (cmd,callable) in self._get_command_callables().items():
+            parser = subparsers.add_parser(cmd, help=callable.HELP, formatter_class=argparse.RawTextHelpFormatter)
+            parser.add_argument('argument', 
+                nargs='*', 
+                help=_arg_help_str(callable.ARGUMENTS, callable.ARG_DICT))
+            parser.add_argument('--delete', 
+                action='store_true')
+            parser.add_argument('--config-file',
+                dest='config_file',
+                default=configfile.AUTOBUILD_CONFIG_FILE,
+                help="")
+            parser.set_defaults(func=callable.run_cmd)
 
     def run(self, args):
         config = configfile.ConfigurationDescription(args.config_file)
         arg_dict = _process_key_value_arguments(args.argument)
-        # if no parameters provided, default to interactive
-        interactive = False
-        if not arg_dict and args.command != 'print':  
-            interactive = True
-        cmd_instance = None
-        if args.command == 'bootstrap':
-            print "Entering interactive mode."
-            Package(config).interactive_mode()
-            Configure(config).interactive_mode()
-            Build(config).interactive_mode()
-        elif args.command == 'build':
-            cmd_instance = Build(config)
-        elif args.command == 'configure':
-            cmd_instance = Configure(config)
-        elif args.command == 'platform':
-            cmd_instance = Platform(config)
-        elif args.command == 'package':
-            cmd_instance = Package(config)
-        elif args.command == 'print':
-            configfile.pretty_print(config)
-        else:
-            raise AutobuildError('unknown command %s' % args.command)
 
-        if cmd_instance:
-            if interactive:
-                print "No args provided. Entering interactive mode..."
-                cmd_instance.interactive_mode()
-            else:
-                cmd_instance.run(**arg_dict)
+        args.func(config, arg_dict, args.delete)
 
-        if not args.dry_run and args.command != 'print':
+        if not args.dry_run and args.subparser_name != 'print':
             config.save()
 
-    def _get_arguments(self):
+    def _get_command_callables(self):
         """
         Lazily create arguments dict.
         """
@@ -83,22 +65,32 @@ class AutobuildTool(AutobuildBase):
             self.arguments
         except AttributeError:
             self.arguments = {
-                                'configure':    Configure.ARGUMENTS,
-                                'build':        Build.ARGUMENTS,
-                                'package':      Package.ARGUMENTS,
+                                'configure':    Configure,
+                                'build':        Build,
+                                'package':      Package,
+                                'platform':     Platform,
+                                'source-info':  SourceInfo,
                             }
         return self.arguments
 
-def _arg_help_str(arg_dict):
+
+def _arg_help_str(args, arg_dict):
     s = []
-    for (key, value) in arg_dict.items():
-        s.append('%s: %s' % (key, value))
+    for key in args: 
+        s.append('%s%s' % (key.ljust(20), arg_dict[key]['help']))
     return '\n'.join(s)
 
 
 class _config(InteractiveCommand):
 
-    ARGUMENTS = ['name', 'platform', 'cmd', 'options', 'arguments']
+    ARGUMENTS = ['name', 'platform', 'command', 'options', 'arguments',]
+
+    ARG_DICT = {    'name':     {'help':'Name of config'}, 
+                    'platform': {'help':'Platform of config'},
+                    'command':  {'help':'Command to execute'}, 
+                    'options':  {'help':'Options for command'},
+                    'arguments':{'help':'Arguments for command'},
+                }
 
     def __init__(self, config):
         stream = StringIO()
@@ -107,8 +99,7 @@ class _config(InteractiveCommand):
         self.description = stream.getvalue()
         stream.close()
         stream = StringIO()
-        stream.write("Enter name of existing configuration to modify, or new name to create a new configuration.")
-        stream.write("\nUse commas to speparate independent options and arguments.")
+        stream.write("Use commas to separate items in options and arguments fields")
         self.help = stream.getvalue()
         self.config = config
 
@@ -140,36 +131,75 @@ class _config(InteractiveCommand):
             build_config_desc.default = default
         return build_config_desc 
 
+    def delete(self, name='', platform='', **kwargs):
+        """
+        Delete the named config value.
+        """
+        if not name:
+            raise AutobuildError("Name argument must be provided with --delete option.")
+
+    def _get_configuration(self, name='', platform=''):
+        if not name or not platform:
+            raise AutobuildError("'name' and 'platform' arguments must both be provided with --delete option.")
+        platform_description = self.config.get_platform(platform)
+        configuration = platform_description.configurations.get(name)
+        return configuration
 
 class Build(_config):
 
+    HELP = "Configure 'autobuild build'"
+
     def run(self, platform=get_current_platform(), name=CONFIG_NAME_DEFAULT, 
-              cmd=DEFAULT_BUILD_CMD, options='', arguments='', default=None):
+              command=DEFAULT_BUILD_CMD, options='', arguments='', default=None):
         """
         Updates the build command.
         """
-        command = { 'command':cmd, 
-                    'options':listify_str(options), 
-                    'arguments':listify_str(arguments)}
-        build_config_desc = self.create_or_update_build_config_desc(name, platform, default, build=command) 
+        new_command = { 'command':command, 
+                        'options':listify_str(options), 
+                        'arguments':listify_str(arguments)}
+        build_config_desc = self.create_or_update_build_config_desc(name, platform, default=default, build=new_command) 
+
+    def delete(self, name='', platform='', **kwargs):
+        """
+        Delete the named config value.
+        """
+        print "Deleting entry."
+        configuration = self._get_configuration(name, platform)
+        configuration.pop('build')
 
 
 class Configure(_config):
 
+    HELP = "Configure 'autobuild configure'"
+
     def run(self, platform=get_current_platform(), name=CONFIG_NAME_DEFAULT, 
-                  cmd=DEFAULT_CONFIG_CMD, options='', arguments=''):
+                  command=DEFAULT_CONFIG_CMD, options='', arguments='', default=None):
         """
         Updates the configure command.
         """
-        command = { 'command':cmd, 
-                    'options':listify_str(options), 
-                    'arguments':listify_str(arguments)}
-        build_config_desc = self.create_or_update_build_config_desc(name, platform, configure=command)
+        new_command = { 'command':command, 
+                        'options':listify_str(options), 
+                        'arguments':listify_str(arguments)}
+        build_config_desc = self.create_or_update_build_config_desc(name, platform, default=default, configure=new_command)
+
+    def delete(self, name='', platform='', **kwargs):
+        """
+        Delete the named config value.
+        """
+        print "Deleting entry."
+        configuration = self._get_configuration(name, platform)
+        configuration.pop('configure')
 
 
 class Platform(InteractiveCommand):
 
-    ARGUMENTS = ['name', 'build_directory']
+    ARGUMENTS = ['name', 'build_directory',]
+
+    ARG_DICT = {    'name':             {'help':'Name of platform'}, 
+                    'build_directory':  {'help':'Build directory'},
+                }
+
+    HELP = "Platform-specific configuration"
 
     def __init__(self, config):
         stream = StringIO()
@@ -178,7 +208,7 @@ class Platform(InteractiveCommand):
         self.description = stream.getvalue()
         stream.close()
         self.config = config
-        
+
     def _create_or_update_platform(self, name, build_directory):
         try:
             platform_description = self.config.get_platform(name)
@@ -188,17 +218,23 @@ class Platform(InteractiveCommand):
         if build_directory is not None:
             platform_description.build_directory = build_directory
 
-    def run(self, name, build_directory=None):
+    def run(self, name='', build_directory=None):
         """
         Configure basic platform details.
         """
         self._create_or_update_platform(name, build_directory)
         
+    def delete(self, name='', **kwargs):
+        """
+        Delete the named config value.
+        """
+        if not name:
+            raise AutobuildError("'name' argument must be provided with --delete option.")
+        print "Deleting entry."
+        self.config.package_description.platforms.pop(name)
 
-class Package(InteractiveCommand):
 
-    ARGUMENTS = ['name', 'description', 'copyright', 'license', 'license_file', 'source',
-                 'source_type', 'source_directory', 'version', ] 
+class _package(InteractiveCommand):
 
     def __init__(self, config):
         stream = StringIO()
@@ -208,6 +244,8 @@ class Package(InteractiveCommand):
         stream.close()
 
         self.config = config
+
+        self.interactive_delete = False
 
     def create_or_update_package_desc(self, kwargs):
         # fetch existing value if there is one
@@ -224,6 +262,50 @@ class Package(InteractiveCommand):
         """
         pkg = self.create_or_update_package_desc(kwargs)
         self.config.package_description = pkg
+
+    def non_interactive_delete(self, **kwargs):
+        self.delete(**kwargs)
+
+
+class Package(_package):
+
+    ARGUMENTS = ['name', 'description', 'copyright', 'license', 'license_file',
+                 'version',]
+
+    ARG_DICT = {    'name':             {'help':'Name of package'},
+                    'description':      {'help':'Package description'},
+                    'copyright':        {'help':'Copyright string (as appropriate for your package)'},
+                    'license':          {'help':'Type of license (as appropriate for your package)'},
+                    'license_file':     {'help':'Path to license file relative to package root, if known'},
+                    'version':          {'help':'Version'},
+                }
+
+    HELP = "Information about the package"
+
+    def delete(self, name='', platform='', **kwargs):
+        """
+        Delete the named config value.
+        """
+        if self._confirm_delete():
+            really_really_delete = raw_input("Do you really really want to delete this entry?\nThis will delete everything in the config file except the installables. (y/[n])> ")
+            if really_really_delete in ['y', 'Y', 'yes', 'Yes', 'YES']:
+                print "Deleting entry."
+                self.config.package_description = None
+                return
+        print "Cancelling delete."
+
+
+class SourceInfo(_package):
+
+    ARGUMENTS = ['source', 'source_type', 'source_directory',]
+
+    ARG_DICT = {    
+                    'source':           {'help':'Source URL for code repository'},
+                    'source_type':      {'help':'Repository type (hg, svn, etc.)'},
+                    'source_directory': {'help':'Location to which source should be installed, relative to autobuild.xml'},
+                }
+
+    HELP = "Information about the package source, for installation as source by other packages."
 
 
 def _process_key_value_arguments(arguments):
