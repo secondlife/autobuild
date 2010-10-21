@@ -75,6 +75,8 @@ class InteractiveCommand(object):
         print "\n%s %s details:" % (action, command)
         if getattr(self, 'help', ''):
             print self.help
+        print "Any fields left blank will remain unchanged."
+        print "Any fields entered as 'none' will clear the existing value."
 
         input_values = {}
         for argument in self.ARGUMENTS:
@@ -92,7 +94,7 @@ class InteractiveCommand(object):
                 if exit == 'y':
                     sys.exit(0)
 
-        print "You input:"
+        print "These fields will be changed:"
         print "%s" % input_values
         if delete:
             if self._confirm_delete():
