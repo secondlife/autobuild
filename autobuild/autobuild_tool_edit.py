@@ -241,12 +241,12 @@ class Package(InteractiveCommand):
 
     ARG_DICT = {    'name':             {'help':'Name of package'}, 
                     'description':      {'help':'Package description'},
-                    'copyright':        {'help':'Copyright string'}, 
-                    'license':          {'help':'Type of license'},
-                    'license_file':     {'help':'Full path to license file'},
-                    'source':           {'help':'Source'},
-                    'source_type':      {'help':'Source type'},
-                    'source_directory': {'help':'Location of source directory'},
+                    'copyright':        {'help':'Copyright string (as appropriate for your package)'}, 
+                    'license':          {'help':'Type of license (as appropriate for your package. mit, gpl, etc.)'},
+                    'license_file':     {'help':'Path to license file relative to package root, if known'},
+                    'source':           {'help':'Source URL for code repository, if there is one'},
+                    'source_type':      {'help':'Source repository type (hg, svn, etc.)'},
+                    'source_directory': {'help':'Location to which source should be installed, relative to autobuild.xml file.'},
                     'version':          {'help':'Version'},
                 }
 
