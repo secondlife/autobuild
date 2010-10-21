@@ -9,18 +9,17 @@ Author : Alan Linden
 Date   : 2010-09-29
 """
 
-from common import AutobuildError
-from common import Serialized
 import os
 import sys
 import subprocess
 
+import common
 
-class ExecutableError(AutobuildError):
+class ExecutableError(common.AutobuildError):
     pass
 
 
-class Executable(Serialized):
+class Executable(common.Serialized):
     """
     An executable object which invokes a provided command as subprocess.
     
@@ -56,7 +55,11 @@ class Executable(Serialized):
         all_arguments.extend(self.get_options())
         all_arguments.extend(options)
         all_arguments.extend(self.get_arguments())
-        return subprocess.call(' '.join(all_arguments), shell=True)
+
+        # *TODO - be careful here, we probably want to 
+        autobuild_env = dict(os.environ, AUTOBUILD=common.get_autobuild_executable_path())
+
+        return subprocess.call(' '.join(all_arguments), shell=True, env=autobuild_env)
    
     def __str__(self):
         all_arguments = [self.get_command()]
