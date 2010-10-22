@@ -56,7 +56,8 @@ class Executable(common.Serialized):
         all_arguments.extend(options)
         all_arguments.extend(self.get_arguments())
 
-        # *TODO - be careful here, we probably want to 
+        # *TODO - we probably want to write a real spec for what environment we
+        # should pass to child processes. for now they at least get AUTOBUILD set
         autobuild_env = dict(os.environ, AUTOBUILD=common.get_autobuild_executable_path())
 
         return subprocess.call(' '.join(all_arguments), shell=True, env=autobuild_env)
