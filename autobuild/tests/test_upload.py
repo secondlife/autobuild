@@ -240,8 +240,10 @@ class TestWithConfigFile(object):
 
     def testYes(self):
         # Want to change the state of both servers.
-        assert not self.scpconn.SCPFileExists(self.upyes_archive)
-        assert not self.s3conn.S3FileExists(self.upyes_archive)
+        assert not self.scpconn.SCPFileExists(self.upyes_archive), \
+            "file already exists on install-packages %s" % self.upyes_archive
+        assert not self.s3conn.S3FileExists(self.upyes_archive), \
+            "file already exists on s3 %r" % self.s3conn._get_key(self.upyes_archive)
         # Let dry_run default to False
         uploaded = upload([self.upyes_archive], True)
         # One file, two servers, should get two URLs back

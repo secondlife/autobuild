@@ -15,6 +15,7 @@ See: autobuild_tool_edit.py for usage examples
 import sys
 from StringIO import StringIO
 import configfile
+from common import AutobuildError
 
 class InteractiveCommand(object):
     """
@@ -24,7 +25,10 @@ class InteractiveCommand(object):
         description  description for interactive mode
         help         additional help text for interactive mode
         run          method used to run this command. Must take fields as keyword args.
+        delete       method used to delete a config file entry.
     """
+
+    HELP = ''
 
     def __init__(self, config):
         """
@@ -49,7 +53,7 @@ class InteractiveCommand(object):
         """
         pass
     
-    def interactive_mode(self):
+    def interactive_mode(self, delete=False):
         """
         Utility to run a command in interactive mode.
 
@@ -57,7 +61,7 @@ class InteractiveCommand(object):
             self to be a class describing the feature to be configured interactively.
         """
         try:
-            data = getattr(self, 'ARGUMENTS')
+            getattr(self, 'ARGUMENTS')
         except AttributeError:
             raise AutobuildError("Interactive mode not supported.")
 
@@ -65,14 +69,21 @@ class InteractiveCommand(object):
         command = command.lower()
         if getattr(self, 'description', ''):
             print '\n%s' % self.description
-        print "\nUpdate %s details:" % command
+
+        action = "Create or update"
+        if delete:
+            action = "Delete"
+        print "\n%s %s details:" % (action, command)
         if getattr(self, 'help', ''):
             print self.help
+        print "Any fields left blank will remain unchanged."
+        print "Any fields entered as 'none' will clear the existing value."
 
         input_values = {}
         for argument in self.ARGUMENTS:
             try:
-                i = raw_input("    %s> " % argument)
+                helptext = self.ARG_DICT[argument]['help']
+                i = raw_input("    %s> " % helptext)
                 if i:
                     if i.lower() == 'none':
                         i = ''
@@ -84,11 +95,54 @@ class InteractiveCommand(object):
                 if exit == 'y':
                     sys.exit(0)
 
-        print "You input:"
+        print "These fields will be changed:"
         print "%s" % input_values
-        save = raw_input("Save to config? ")
-        if save in ['y', 'Y', 'yes', 'Yes', 'YES']:
-            self.run(**input_values)
+        if delete:
+            if self._confirm_delete():
+                self.delete(**input_values)
+        else:
+            save = raw_input("Save to config (y/[n])? ")
+            if save in ['y', 'Y', 'yes', 'Yes', 'YES']:
+                self.run(**input_values)
+            else:
+                print "Not saved."
     
+    @classmethod
+    def run_cmd(klass, config, kwargs, delete):
+        """
+        Method to be invoked by parser upon invocation of specific command.
+        """
+        self = klass(config)
+        
+        if kwargs:
+            if delete:
+                if self._confirm_delete():
+                    self.delete(**kwargs)
+            else:
+                self.run(**kwargs)
+        else:
+            if delete and not getattr(self, 'interactive_delete', True):
+                # special method to handle this combination of options to avoid mistakes
+                self.non_interactive_delete(**kwargs)
+            else:
+                self.interactive_mode(delete)
+
+    def non_interactive_delete(**kwargs):
+        """
+        To be used in the case where 'self.interactive_delete' is False.
+        """
+        raise AutobuildError("Delete not yet implemented for this command.")
+
+    def delete(self, **kwargs):
+        """
+        Stub for the delete command.
+        """
+        raise AutobuildError("Delete not yet implemented for this command.")
+
+    def _confirm_delete(self):
+        really_delete = raw_input("Do you really want to delete this entry (y/[n])? ")
+        if really_delete in ['y', 'Y', 'yes', 'Yes', 'YES']:
+            return True
+        return False
 
 

@@ -415,7 +415,7 @@ def uninstall(package_name, installed_config, install_dir):
         package = installed_config.installables.pop(package_name)
     except KeyError:
         # If the package has never yet been installed, we're good.
-        logger.info("%s never installed, no uninstall needed" % package_name)
+        logger.info("%s not installed, no uninstall needed" % package_name)
         return
 
     if package.as_source:
@@ -427,13 +427,47 @@ def uninstall(package_name, installed_config, install_dir):
     # The platforms attribute should contain exactly one PlatformDescription.
     # We don't especially care about its key name.
     _, platform = package.platforms.popitem()
-    for f in platform.manifest:
+    # Tarballs that name directories name them before the files they contain,
+    # so the unpacker will create the directory before creating files in it.
+    # For exactly that reason, we must remove things in reverse order.
+    for f in reversed(platform.manifest):
         fn = os.path.join(install_dir, f)
         try:
-            logger.info("    removing " + f)
             os.remove(fn)
+            # We used to print "removing f" before the call above, the
+            # assumption being that we'd either succeed or produce a
+            # traceback. But there are a couple different ways we could get
+            # through this logic without actually deleting. So produce a
+            # message only when we're sure we've actually deleted something.
+            logger.info("    removed " + f)
         except OSError, err:
-            if err.errno != errno.ENOENT:
+            if err.errno == errno.ENOENT:
+                # this file has already been deleted for some reason -- fine
+                pass
+            elif err.errno == errno.EPERM:
+                # This can happen if we're trying to remove a directory. While
+                # we could perform this test beforehand, we expect directory
+                # names to pop up only a small fraction of the time, and doing
+                # it reactively improves usual-case performance.
+                if not os.path.isdir(fn):
+                    # whoops, permission error trying to remove a file?!
+                    raise
+                # Okay, it's a directory, remove it with rmdir().
+                try:
+                    os.rmdir(fn)
+                    logger.info("    removed " + f)
+                except OSError, err:
+                    # We try to remove directories named in the install
+                    # archive in case these directories were created solely
+                    # for this package. But the package can't know whether a
+                    # given target directory is shared with other packages, so
+                    # the attempt to remove the dir may fail because it still
+                    # contains files.
+                    if err.errno != errno.ENOTEMPTY:
+                        raise
+                    logger.info("    leaving " + f)
+            else:
+                # no idea what this exception is, better let it propagate
                 raise
 
 def install_packages(options, args):

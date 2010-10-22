@@ -68,17 +68,6 @@ class ConfigurationDescription(common.Serialized):
         """
         return self.get_platform(platform_name).configurations.values()
     
-    def get_really_all_build_configurations(self):
-        """
-        Returns all build configurations for all platforms.
-        """
-        # REVIEW: this returns a constructed object, for display purposes. 
-        # However, it does not reflect the true datastructure. An issue?
-        platform_dict = {}
-        for platform_name in self.get_all_platforms():
-            platform_dict[platform_name] =(self.get_platform(platform_name).configurations.values())
-        return platform_dict
-    
     def get_build_configuration(self, build_configuration_name, platform_name=get_current_platform()):
         """
         Returns the named build configuration for the platform. 
