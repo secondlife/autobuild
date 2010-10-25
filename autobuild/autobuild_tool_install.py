@@ -369,6 +369,8 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     else:
         # download the package to the cache
         if not common.download_package(archive.url):
+            # Download failure has been observed to leave a zero-length file.
+            common.remove_package(archive.url)
             raise InstallError("failed to download %s" % archive.url)
 
     # error out if MD5 doesn't match
@@ -443,7 +445,9 @@ def uninstall(package_name, installed_config):
     # so the unpacker will create the directory before creating files in it.
     # For exactly that reason, we must remove things in reverse order.
     for f in reversed(platform.manifest):
-        fn = os.path.join(package.install_dir, f)
+        # Some tarballs contain funky directory name entries (".//"). Use
+        # realpath() to dewackify them.
+        fn = os.path.realpath(os.path.join(package.install_dir, f))
         try:
             os.remove(fn)
             # We used to print "removing f" before the call above, the
