@@ -465,11 +465,15 @@ def uninstall(package_name, installed_config):
             if err.errno == errno.ENOENT:
                 # this file has already been deleted for some reason -- fine
                 pass
-            elif err.errno == errno.EPERM:
-                # This can happen if we're trying to remove a directory. While
-                # we could perform this test beforehand, we expect directory
-                # names to pop up only a small fraction of the time, and doing
-                # it reactively improves usual-case performance.
+            elif err.errno == dict(win32=errno.EACCES,
+                                   darwin=errno.EPERM,
+                                   linux2=errno.EISDIR).get(sys.platform):
+                # This can happen if we're trying to remove a directory.
+                # Obnoxiously, the specific errno for this error varies by
+                # platform. While we could call isdir(fn) beforehand, we
+                # expect directory names to pop up only a small fraction of
+                # the time, and doing it reactively improves usual-case
+                # performance.
                 if not os.path.isdir(fn):
                     # whoops, permission error trying to remove a file?!
                     raise
