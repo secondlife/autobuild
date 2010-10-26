@@ -174,7 +174,11 @@ def pre_install_license_check(packages, config_file):
     license property set.
     """
     for pname in packages:
-        package = config_file.installables[pname]
+        # We already cover the nonexistent-package case elsewhere. Just avoid
+        # crashing if we reach this code first.
+        package = config_file.installables.get(pname)
+        if not package:
+            continue
         license = package.license
         if not license:
             raise InstallError("no license specified for %s. Aborting... "
