@@ -168,76 +168,6 @@ def handle_query_args(options, config_file, installed_file):
 
     return False
 
-def get_packages_to_install(packages, config_file, installed_config, platform):
-    """
-    Given the (potentially empty) list of package archives on the command line, work out
-    the set of packages that are out of date and require a new download/install. This will
-    return [] if all packages are up to date.
-    """
-
-    # if no packages specified, consider all
-    if not packages:
-        packages = config_file.installables.keys()
-
-    # compile a subset of packages we actually need to install
-    return [pname for pname in packages
-            if should_install(pname, config_file, installed_config, platform)]
-
-def should_install(package_name, config_file, installed_config, platform):
-    try:
-        toinstall = config_file.installables[package_name]
-    except KeyError:
-        # raise error if named package doesn't exist in autobuild.xml
-        raise InstallError('unknown package: %s' % package_name)
-
-    # Has this package ever been installed before?
-    try:
-        installed = installed_config.installables[package_name]
-    except KeyError:
-        # package hasn't yet been installed at all
-        return True
-
-    # Here the package has already been installed. Need to update it?
-
-    # The --as-source command-line switch only affects the installation of new
-    # packages. When we first install a package, we remember whether it's
-    # --as-source. Every subsequent 'autobuild install' affecting that package
-    # must honor the original --as-source setting. After an initial
-    # --as-source install, it's HANDS OFF! The possibility of local source
-    # changes makes any further autobuild operations on that repository
-    # ill-advised.
-    if installed.as_source:
-        logger.info("%s previously installed --as-source, not updating" % package_name)
-        return False
-
-    # Not a source package, but a reference to a binary archive. Check that we
-    # have a platform-specific or common url to use.
-    req_platform = toinstall.get_platform(platform)
-    if not req_platform:
-       raise InstallError("no platform %s for %s" % (platform, package_name))
-    if not req_platform.archive:
-       raise InstallError("no archive specified for platform %s for %s" %
-                          (platform, package_name))
-
-    # install this package if it is new or out of date
-    inst_platform = installed.get_platform(platform)
-    if not inst_platform:
-        # This package appears in installed_config, but with no entry for this
-        # platform, so can't be installed yet for this platform.
-        return True
-
-    # Rely on ArchiveDescription's equality-comparison method to discover
-    # whether the installed ArchiveDescription matches the requested one. This
-    # test also handles the case when inst_platform.archive is None (not yet
-    # installed).
-    # Note the sense of the test: if the data does not match, then we
-    # should_install(). If everything matches, there's no need.
-    if req_platform.archive != inst_platform.archive:
-        return True
-
-    logger.info("%s up to date" % package_name)
-    return False
-
 def pre_install_license_check(packages, config_file):
     """
     Raises a runtime exception if any of the specified packages do not have a
@@ -280,15 +210,22 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
     listed in the optional 'as_source' list, the source will be downloaded in place
     of the prebuilt binary.
     """
-
-    # check that the install dir exists...
-    if not os.path.exists(install_dir):
-        logger.info("creating " + install_dir)
-        os.makedirs(install_dir)
-
     # Decide whether to check out (or update) source, or download a tarball
+    installed_pkgs = []
     for pname in packages:
-        package = config_file.installables[pname]
+        try:
+            package = config_file.installables[pname]
+        except KeyError:
+            # raise error if named package doesn't exist in autobuild.xml
+            raise InstallError('unknown package: %s' % pname)
+
+        # The --as-source command-line switch only affects the installation of
+        # new packages. When we first install a package, we remember whether
+        # it's --as-source. Every subsequent 'autobuild install' affecting
+        # that package must honor the original --as-source setting. After an
+        # initial --as-source install, it's HANDS OFF! The possibility of
+        # local source changes makes any further autobuild operations on that
+        # repository ill-advised.
         try:
             installed = installed_file.installables[pname]
         except KeyError:
@@ -305,16 +242,19 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
         # Existing tarball install, or new package install of either kind
         if source_install:
             logger.info("installing %s --as-source" % pname)
-            _install_source(package, installed_file, config_file, dry_run)
+            if _install_source(package, installed_file, config_file, dry_run):
+                installed_pkgs.append(pname)
         else:
             logger.info("installing %s from archive" % pname)
-            _install_binary(package, platform, config_file, install_dir, installed_file, dry_run)
+            if _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
+                installed_pkgs.append(pname)
+    return installed_pkgs
 
 def _install_source(package, installed_config, config_file, dry_run):
     if dry_run:
         dry_run_msg("Dry run mode: not installing %s source for %s from %s" %
                     (package.sourcetype, package.name, package.source))
-        return
+        return False
 
     for attr, desc in (("source", "source url"),
                        ("sourcetype", "source repository type"),
@@ -354,18 +294,38 @@ def _install_source(package, installed_config, config_file, dry_run):
                            (package.sourcetype, package.name))
 
     # Copy PackageDescription metadata from the autobuild.xml entry.
-    ipkg = package.copy()
+    inst_pkg = package.copy()
     # Set it as the installed package.
-    installed_config.installables[package.name] = ipkg
-    ipkg.as_source = True
-    ipkg.install_dir = sourcepath
+    installed_config.installables[package.name] = inst_pkg
+    inst_pkg.as_source = True
+    inst_pkg.install_dir = sourcepath
     # But clear platforms: we only use platforms for tarball installs.
-    ipkg.platforms.clear()
+    inst_pkg.platforms.clear()
+    return True
 
 def _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
-    # find the url/md5 for the platform, or fallback to 'common'
-    pf = package.get_platform(platform)
-    archive = pf.archive
+    # Check that we have a platform-specific or common url to use.
+    req_plat = package.get_platform(platform)
+    if not req_plat:
+        raise InstallError("no platform %s for %s" % (platform, package.name))
+    archive = req_plat.archive
+    if not archive:
+        raise InstallError("no archive specified for %s for platform %s" %
+                           (package.name, platform))
+    if not archive.url:
+        raise InstallError("no url specified for %s for platform %s" % (package.name, platform))
+    # Is this package already installed?
+    installed = installed_file.installables.get(package.name)
+    inst_plat = installed and installed.get_platform(platform)
+    inst_archive = inst_plat and inst_plat.archive
+    # Rely on ArchiveDescription's equality-comparison method to discover
+    # whether the installed ArchiveDescription matches the requested one. This
+    # test also handles the case when inst_plat.archive is None (not yet
+    # installed).
+    if archive == inst_archive:
+        logger.info("%s up to date" % package.name)
+        return False
+
     cachefile = common.get_package_in_cache(archive.url)
 
     # download the package, if it's not already in our cache
@@ -386,11 +346,16 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     # dry run mode = download but don't install packages
     if dry_run:
         dry_run_msg("Dry run mode: not installing %s" % package.name)
-        return
+        return False
 
     # If this package has already been installed, first uninstall the older
     # version.
     uninstall(package.name, installed_file)
+
+    # check that the install dir exists...
+    if not os.path.exists(install_dir):
+        logger.info("creating " + install_dir)
+        os.makedirs(install_dir)
 
     # extract the files from the package
     files = common.extract_package(archive.url, install_dir)
@@ -400,23 +365,24 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     # Update the installed-packages.xml file. The above uninstall() call
     # should have removed any existing entry in installed_file. Copy
     # PackageDescription metadata from the autobuild.xml entry.
-    ipkg = package.copy()
+    inst_pkg = package.copy()
     # Set it as the installed package.
-    installed_file.installables[package.name] = ipkg
-    ipkg.as_source = False
+    installed_file.installables[package.name] = inst_pkg
+    inst_pkg.as_source = False
     # Record the install_dir as of THIS run, so that even if user passes a
     # different --install-dir on a later run, we can still successfully
     # uninstall this package.
-    ipkg.install_dir = install_dir
+    inst_pkg.install_dir = install_dir
     # Clear platforms: there should be exactly one.
-    ipkg.platforms.clear()
+    inst_pkg.platforms.clear()
 
     # Even if we end up using the "common" specification in autobuild.xml,
     # in installed-packages.xml we should say we've installed this package
     # on THIS platform rather than on "common".
-    iplat = pf.copy()
-    ipkg.platforms[platform] = iplat
-    iplat.manifest = files
+    inst_plat = req_plat.copy()
+    inst_pkg.platforms[platform] = inst_plat
+    inst_plat.manifest = files
+    return True
 
 def uninstall(package_name, installed_config):
     """
@@ -517,26 +483,33 @@ def install_packages(options, args):
     logger.debug("loading " + installed_filename)
     installed_file = configfile.ConfigurationDescription(installed_filename)
 
-    # get the list of packages to actually install
-    packages = get_packages_to_install(args, config_file, installed_file, options.platform)
-
     # handle any arguments to query for information
     if handle_query_args(options, config_file, installed_file):
         return 0
+
+    # get the list of packages to install -- if none specified, consider all.
+    packages = args or config_file.installables.keys()
 
     # check the license properties for the packages to install
     if options.check_license:
         pre_install_license_check(packages, config_file)
 
     # do the actual install of the new/updated packages
-    do_install(packages, config_file, installed_file, options.platform, install_dir,
-               options.dry_run, as_source=options.as_source)
+    packages = do_install(packages, config_file, installed_file, options.platform, install_dir,
+                          options.dry_run, as_source=options.as_source)
 
-    # check the license_file properties for the newly installed packages
+    # check the license_file properties for actually-installed packages
     if options.check_license and not options.dry_run:
         post_install_license_check(packages, config_file, installed_file)
 
     # update the installed-packages.xml file
+    try:
+        # in case we got this far without ever having created installed_file's
+        # parent directory
+        os.makedirs(os.path.dirname(installed_file.path))
+    except OSError, err:
+        if err.errno != errno.EEXIST:
+            raise
     installed_file.save()
     return 0
 

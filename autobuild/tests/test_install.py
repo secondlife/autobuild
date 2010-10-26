@@ -452,6 +452,42 @@ class TestInstallArchive(BaseTest):
         assert os.path.exists(os.path.join(self.options.install_dir, "lib", "bogus.lib"))
         assert os.path.exists(os.path.join(self.options.install_dir, "include", "bogus.h"))
 
+    def test_common_platform(self):
+        # Move the PlatformDescription from "darwin" to "common"
+        self.config.installables[self.pkg].platforms["common"] = \
+            self.config.installables[self.pkg].platforms.pop("darwin")
+        self.config.save()
+        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        assert os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
+        assert os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
+
+    def test_no_platform(self):
+        del self.config.installables[self.pkg].platforms["darwin"]
+        self.config.save()
+        try:
+            autobuild_tool_install.install_packages(self.options, [self.pkg])
+        except autobuild_tool_install.InstallError, err:
+            assert_in("no platform", str(err))
+        else:
+            assert False, "Expected InstallError for missing platform config"
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
+
+##     def test_dry_run(self):
+##         dry_opts = self.options.copy()
+##         dry_opts.dry_run = True
+##         autobuild_tool_install.install_packages(dry_opts, [self.pkg])
+##         assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
+##         assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
+
+    # - have get_packages_to_install() reject packages for each reason
+    #   - unknown package
+    #   - no archive for platform entry
+    #   - no url for archive
+    # - fail pre_install_license_check()
+    #   - no license entry
+    #   - specify --skip-license-check -- should succeed
+
 # -------------------------------------  -------------------------------------
 class TestInstallCachedArchive(BaseTest):
     def setup(self):
@@ -667,19 +703,11 @@ class MockSubprocess(object):
         return 2
 
     # Tests to add:
-    # - have get_packages_to_install() reject packages for each reason
-    #   - unknown package
-    #   - no platform entry for this platform
-    #   - no platform entry, but "common" -- should succeed
-    #   - no archive for platform entry
     # - test each handle_query_args() argument:
     #   - list-installed
     #   - list-archives
     #   - list-licenses
     #   - export-manifest <- visibility into modified installed-packages.xml
-    # - fail pre_install_license_check()
-    #   - no license entry
-    #   - specify --skip-license-check -- should succeed
 
     # uninstall tests to add:
     # - uninstall not-installed
