@@ -620,6 +620,9 @@ class TestInstallRepository(BaseTest):
         # independent tests, all of which are very similar. This generator
         # approach is shorthand for writing individual named test methods,
         # each of whose bodies consists solely of a call to bad_source_attr().
+        # Too much trouble to figure out how to silence child hg process
+        # called by module under test, just assure user that it's okay.
+        print >>sys.stderr, "\nexpected abort message for nonexistent repository:"
         yield self.bad_source_attr, "nonexistent source repository", \
               "source", os.path.join(STAGING_DIR, "nonexistent"), "cloning"
         yield self.bad_source_attr, "missing source URL", "source", None, "url"
