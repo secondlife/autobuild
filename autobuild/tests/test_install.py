@@ -31,7 +31,11 @@ from autobuild import autobuild_tool_install, autobuild_tool_uninstall, configfi
 #   - export-manifest <- visibility into modified installed-packages.xml
 
 # uninstall tests to add:
-# - validate changes to installed-packages.xml, especially files manifest
+# - validate changes to export-manifest
+
+# NOTE: avoid directly reading installed-packages.xml; we're trying to test
+# user-level behaviors and effects. Digging into implementation details means
+# the test must change when we tweak the implementation.
 
 mydir = os.path.dirname(__file__)
 HOST = '127.0.0.1'                      # localhost server
