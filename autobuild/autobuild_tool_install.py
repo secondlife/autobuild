@@ -316,12 +316,13 @@ def _install_source(package, installed_config, config_file, dry_run):
                     (package.sourcetype, package.name, package.source))
         return
 
-    if not package.source:
-        raise InstallError("no source url specified for %s" % package.name)
-    if not package.sourcetype:
-        raise InstallError("no source repository type specified for %s" % package.name)
-    if not package.source_directory:
-        raise InstallError("no source_directory specified for %s" % package.name)
+    for attr, desc in (("source", "source url"),
+                       ("sourcetype", "source repository type"),
+                       ("source_directory", "source_directory")):
+        # Never mind being None -- these attributes might not even exist for a
+        # given package!
+        if not getattr(package, attr, None):
+            raise InstallError("no %s specified for %s" % (desc, package.name))
 
     # Question: package.source_directory is specific to each
     # PackageDescription; do we need to further qualify the pathname with the
@@ -337,12 +338,16 @@ def _install_source(package, installed_config, config_file, dry_run):
     except OSError, err:
         if err.errno != errno.EEXIST:
             raise
-    logger.info("checking out %s to %s" % (package.name, sourcepath))
+    logger.info("checking out %s from %s to %s" % (package.name, package.source, sourcepath))
     if package.sourcetype == 'svn':
-        if subprocess.call(['svn', 'checkout', package.source, sourcepath]) != 0:
+        command = ['svn', 'checkout', package.source, sourcepath]
+        logger.debug(' '.join(command))
+        if subprocess.call(command) != 0:
             raise InstallError("error checking out %s" % package.name)
     elif package.sourcetype == 'hg':
-        if subprocess.call(['hg', 'clone', '-q', package.source, sourcepath]) != 0:
+        command = ['hg', 'clone', '-q', package.source, sourcepath]
+        logger.debug(' '.join(command))
+        if subprocess.call(command) != 0:
             raise InstallError("error cloning %s" % package.name)
     else:
         raise InstallError("unsupported repository type %s for %s" %
