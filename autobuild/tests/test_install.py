@@ -681,6 +681,13 @@ class MockSubprocess(object):
     #   - no license entry
     #   - specify --skip-license-check -- should succeed
 
+    # uninstall tests to add:
+    # - uninstall not-installed
+    # - uninstall previous --as-source
+    # - uninstall successfully (verify)
+    # - uninstall tarball that names subdirs
+    # - validate changes to installed-packages.xml, especially files manifest
+
 # -------------------------------------  -------------------------------------
 class TestInstall(unittest.TestCase):
     def test_0(self):
