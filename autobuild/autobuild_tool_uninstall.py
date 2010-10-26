@@ -44,7 +44,9 @@ def add_arguments(parser):
     parser.add_argument(
         'package',
         nargs='*',
-        help='List of packages to consider for installation.')
+        help='List of packages to uninstall.')
+    # Sigh, the ONLY reason we need to read the autobuild.xml file is to
+    # find the default --install-dir.
     parser.add_argument(
         '--config-file',
         default=configfile.AUTOBUILD_CONFIG_FILE,
@@ -55,35 +57,40 @@ def add_arguments(parser):
         default=configfile.INSTALLED_CONFIG_FILE,
         dest='installed_filename',
         help='The file used to record what is installed.')
+    # The only reason we need to know --install-dir is because the default
+    # --installed-manifest is relative.
     parser.add_argument(
         '--install-dir',
         default=None,
         dest='install_dir',
-        help='Where to find the previously-installed files.')
+        help='Where to find the default --installed-manifest file.')
 
 def uninstall_packages(options, args):
-    # write packages into 'packages' subdir of build directory by default
-    if options.install_dir:
-        logger.info("specified install directory: " + options.install_dir)
-    else:
-        # load config file to get default install_dir
-        logger.debug("loading " + options.install_filename)
-        config_file = configfile.ConfigurationDescription(options.install_filename)
-        options.install_dir = os.path.join(config_file.make_build_directory(), 'packages')
-        logger.info("default install directory: " + options.install_dir)
+    installed_filename = options.installed_filename
+    if not os.path.isabs(installed_filename):
+        # Give user the opportunity to avoid reading AUTOBUILD_CONFIG_FILE by
+        # specifying a full pathname for --installed-manifest. This logic
+        # handles the (usual) case when installed_filename is relative to
+        # install_dir. Therefore we must figure out install_dir.
+        install_dir = options.install_dir
+        if install_dir:
+            logger.info("specified install directory: " + install_dir)
+        else:
+            # load config file to get default install_dir
+            logger.debug("loading " + options.install_filename)
+            config_file = configfile.ConfigurationDescription(options.install_filename)
+            install_dir = os.path.join(config_file.make_build_directory(), 'packages')
+            logger.info("default install directory: " + install_dir)
 
-    # get the absolute paths to the install dir and installed-packages.xml file
-    install_dir = os.path.realpath(options.install_dir)
-    # If installed_filename is already an absolute pathname, join() is smart
-    # enough to leave it alone. Therefore we can do this unconditionally.
-    installed_filename = os.path.join(install_dir, options.installed_filename)
+        # get the absolute path to the installed-packages.xml file
+        installed_filename = os.path.realpath(os.path.join(install_dir, installed_filename))
 
     # load the list of already installed packages
     logger.debug("loading " + installed_filename)
     installed_file = configfile.ConfigurationDescription(installed_filename)
 
     for package in args:
-        uninstall(package, installed_file, install_dir)
+        uninstall(package, installed_file)
 
     # update the installed-packages.xml file
     installed_file.save()

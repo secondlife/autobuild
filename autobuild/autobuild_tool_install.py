@@ -250,7 +250,7 @@ def pre_install_license_check(packages, config_file):
             raise InstallError("no license specified for %s. Aborting... "
                                "(you can use --skip-license-check)" % pname)
 
-def post_install_license_check(packages, config_file, install_dir):
+def post_install_license_check(packages, config_file, installed_file):
     """
     Raises a runtime exception if the license_file property for any of
     the specified packages does not refer to a valid file in the
@@ -267,8 +267,9 @@ def post_install_license_check(packages, config_file, install_dir):
         if license_file.startswith('http://'):
             continue
         # otherwise, assert that the license file is in the archive
-        if not os.path.exists(os.path.join(install_dir, license_file)):
-            raise InstallError("invalid or undefined license_file for %s: %s "
+        if not os.path.exists(os.path.join(installed_file.installables[package.name].install_dir,
+                                           license_file)):
+            raise InstallError("nonexistent license_file for %s: %s "
                                "(you can use --skip-license-check)" % (pname, license_file))
 
 def do_install(packages, config_file, installed_file, platform, install_dir, dry_run, as_source=[]):
@@ -315,12 +316,13 @@ def _install_source(package, installed_config, config_file, dry_run):
                     (package.sourcetype, package.name, package.source))
         return
 
-    if not package.source:
-        raise InstallError("no source url specified for %s" % package.name)
-    if not package.sourcetype:
-        raise InstallError("no source repository type specified for %s" % package.name)
-    if not package.source_directory:
-        raise InstallError("no source_directory specified for %s" % package.name)
+    for attr, desc in (("source", "source url"),
+                       ("sourcetype", "source repository type"),
+                       ("source_directory", "source_directory")):
+        # Never mind being None -- these attributes might not even exist for a
+        # given package!
+        if not getattr(package, attr, None):
+            raise InstallError("no %s specified for %s" % (desc, package.name))
 
     # Question: package.source_directory is specific to each
     # PackageDescription; do we need to further qualify the pathname with the
@@ -329,12 +331,23 @@ def _install_source(package, installed_config, config_file, dry_run):
     if os.path.isdir(sourcepath):
         raise InstallError("trying to install %s --as-source over existing directory %s" %
                            (package.name, sourcepath))
-    logger.info("checking out %s to %s" % (package.name, sourcepath))
+    # But make sure parent directory exists...
+    parent = os.path.dirname(sourcepath)
+    try:
+        os.makedirs(parent)
+    except OSError, err:
+        if err.errno != errno.EEXIST:
+            raise
+    logger.info("checking out %s from %s to %s" % (package.name, package.source, sourcepath))
     if package.sourcetype == 'svn':
-        if subprocess.call(['svn', 'checkout', package.source, sourcepath]) != 0:
+        command = ['svn', 'checkout', package.source, sourcepath]
+        logger.debug(' '.join(command))
+        if subprocess.call(command) != 0:
             raise InstallError("error checking out %s" % package.name)
     elif package.sourcetype == 'hg':
-        if subprocess.call(['hg', 'clone', package.source, sourcepath]) != 0:
+        command = ['hg', 'clone', '-q', package.source, sourcepath]
+        logger.debug(' '.join(command))
+        if subprocess.call(command) != 0:
             raise InstallError("error cloning %s" % package.name)
     else:
         raise InstallError("unsupported repository type %s for %s" %
@@ -345,6 +358,7 @@ def _install_source(package, installed_config, config_file, dry_run):
     # Set it as the installed package.
     installed_config.installables[package.name] = ipkg
     ipkg.as_source = True
+    ipkg.install_dir = sourcepath
     # But clear platforms: we only use platforms for tarball installs.
     ipkg.platforms.clear()
 
@@ -358,15 +372,16 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     if os.path.exists(cachefile):
         logger.info("found in cache: " + cachefile)
     else:
-
         # download the package to the cache
         if not common.download_package(archive.url):
+            # Download failure has been observed to leave a zero-length file.
+            common.remove_package(archive.url)
             raise InstallError("failed to download %s" % archive.url)
 
-        # error out if MD5 doesn't match
-        if not hash_algorithms.verify_hash(archive.hash_algorithm, cachefile, archive.hash):
-            common.remove_package(archive.url)
-            raise InstallError("%s mismatch for %s" % (archive.hash_algorithm, cachefile))
+    # error out if MD5 doesn't match
+    if not hash_algorithms.verify_hash(archive.hash_algorithm, cachefile, archive.hash):
+        common.remove_package(archive.url)
+        raise InstallError("%s mismatch for %s" % (archive.hash_algorithm, cachefile))
 
     # dry run mode = download but don't install packages
     if dry_run:
@@ -375,7 +390,7 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
 
     # If this package has already been installed, first uninstall the older
     # version.
-    uninstall(package.name, installed_file, install_dir)
+    uninstall(package.name, installed_file)
 
     # extract the files from the package
     files = common.extract_package(archive.url, install_dir)
@@ -389,7 +404,11 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     # Set it as the installed package.
     installed_file.installables[package.name] = ipkg
     ipkg.as_source = False
-    # But clear platforms: there should be exactly one.
+    # Record the install_dir as of THIS run, so that even if user passes a
+    # different --install-dir on a later run, we can still successfully
+    # uninstall this package.
+    ipkg.install_dir = install_dir
+    # Clear platforms: there should be exactly one.
     ipkg.platforms.clear()
 
     # Even if we end up using the "common" specification in autobuild.xml,
@@ -399,7 +418,7 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     ipkg.platforms[platform] = iplat
     iplat.manifest = files
 
-def uninstall(package_name, installed_config, install_dir):
+def uninstall(package_name, installed_config):
     """
     Uninstall specified package_name: remove related files and delete
     package_name from the installed_config ConfigurationDescription.
@@ -423,7 +442,7 @@ def uninstall(package_name, installed_config, install_dir):
         logger.warning("%s installed --as-source, not removing" % package_name)
         return
 
-    logger.info("uninstalling %s from %s" % (package_name, install_dir))
+    logger.info("uninstalling %s from %s" % (package_name, package.install_dir))
     # The platforms attribute should contain exactly one PlatformDescription.
     # We don't especially care about its key name.
     _, platform = package.platforms.popitem()
@@ -431,7 +450,9 @@ def uninstall(package_name, installed_config, install_dir):
     # so the unpacker will create the directory before creating files in it.
     # For exactly that reason, we must remove things in reverse order.
     for f in reversed(platform.manifest):
-        fn = os.path.join(install_dir, f)
+        # Some tarballs contain funky directory name entries (".//"). Use
+        # realpath() to dewackify them.
+        fn = os.path.realpath(os.path.join(package.install_dir, f))
         try:
             os.remove(fn)
             # We used to print "removing f" before the call above, the
@@ -509,7 +530,7 @@ def install_packages(options, args):
 
     # check the license_file properties for the newly installed packages
     if options.check_license and not options.dry_run:
-        post_install_license_check(packages, config_file, install_dir)
+        post_install_license_check(packages, config_file, installed_file)
 
     # update the installed-packages.xml file
     installed_file.save()

@@ -197,22 +197,25 @@ class PackageDescription(common.Serialized):
         license
         license_file
         homepage
-        as_source
         source
         source_type
         source_directory
         version
         patches
-        platforms
+        platforms**
+        as_source*
+        install_dir*
 
-    As of 2010-10-18, the as_source attribute is only used in
-    PackageDescription objects stored in INSTALLED_CONFIG_FILE. Certain
+    *As of 2010-10-18, the as_source and install_dir attributes are only used
+    in PackageDescription objects stored in INSTALLED_CONFIG_FILE. Certain
     packages can be installed either by checking out source or by extracting a
     tarball, so AUTOBUILD_CONFIG_FILE provides enough information for either.
     It's up to the user to decide which approach to use. autobuild must store
-    that choice, though.
+    that choice, though. Since a user can specify a different --install-dir
+    for different runs, INSTALLED_CONFIG_FILE also records the actual base
+    directory into which that package is installed.
 
-    Usage of PackageDescription.platforms is also a little different for a
+    **Usage of PackageDescription.platforms is also a little different for a
     PackageDescription in INSTALLED_CONFIG_FILE's ConfigurationDescription
     .installables. When a package isn't installed at all, it should have no
     PackageDescription entry in INSTALLED_CONFIG_FILE. When it is installed:
@@ -233,6 +236,7 @@ class PackageDescription(common.Serialized):
         self.license_file = None
         self.version = None
         self.as_source = False
+        self.install_dir = None
         if isinstance(arg, dict):
             self.__init_from_dict(dict(arg))
         else:
