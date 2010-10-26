@@ -3,6 +3,8 @@
 # Integration test to exercise archive installation
 #
 
+from __future__ import with_statement
+
 import os
 import sys
 import errno
@@ -20,6 +22,16 @@ from threading import Thread
 from BaseHTTPServer import HTTPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 from autobuild import autobuild_tool_install, autobuild_tool_uninstall, configfile, common
+
+# Tests to add:
+# - test each handle_query_args() argument:
+#   - list-installed
+#   - list-archives
+#   - list-licenses
+#   - export-manifest <- visibility into modified installed-packages.xml
+
+# uninstall tests to add:
+# - validate changes to installed-packages.xml, especially files manifest
 
 mydir = os.path.dirname(__file__)
 HOST = '127.0.0.1'                      # localhost server
@@ -76,6 +88,28 @@ def assert_in(item, container):
 
 def assert_not_in(item, container):
     assert item not in container, "%r should not be in %r" % (item, container)
+
+class ExpectError(object):
+    def __init__(self, errfrag, expectation, exception=autobuild_tool_install.InstallError):
+        self.errfrag = errfrag
+        self.expectation = expectation
+        self.exception = exception
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, tb):
+        # We expect an exception. If we get here without one, it's a problem.
+        if not any((type, value, tb)):
+            assert False, self.expectation
+        # Okay, it's an exception; is it the type we want?
+        if not isinstance(value, self.exception):
+            return False                # let exception propagate
+        # We reached here with an exception of the right type. Does it contain
+        # the message fragment we're expecting?
+        assert_in(self.errfrag, str(value))
+        # If all the above is true, then swallow the exception and proceed.
+        return True
 
 # ****************************************************************************
 #   module setup() and teardown()
@@ -416,14 +450,11 @@ class TestInstallArchive(BaseTest):
         self.copyto(fixture.pathname, SERVER_DIR)
         # Modify config file with updated package description.
         self.set_package(fixture.package)
-        try:
-            autobuild_tool_install.install_packages(self.options, [self.pkg])
-        except autobuild_tool_install.InstallError, err:
+        with ExpectError("license-check",
+                         "bogus-0.2 install failed to completely uninstall bogus-0.1"):
             # bogus-0.2 has no license file. We expect to fail
             # post_install_license_check().
-            assert_in("license-check", str(err))
-        else:
-            assert False, "bogus-0.2 install failed to completely uninstall bogus-0.1"
+            autobuild_tool_install.install_packages(self.options, [self.pkg])
         # okay, if we got this far, turn off license check
         self.options.check_license = False
         autobuild_tool_install.install_packages(self.options, [self.pkg])
@@ -461,32 +492,43 @@ class TestInstallArchive(BaseTest):
         assert os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
 
-    def test_no_platform(self):
-        del self.config.installables[self.pkg].platforms["darwin"]
-        self.config.save()
-        try:
-            autobuild_tool_install.install_packages(self.options, [self.pkg])
-        except autobuild_tool_install.InstallError, err:
-            assert_in("no platform", str(err))
-        else:
-            assert False, "Expected InstallError for missing platform config"
+    def test_unknown(self):
+        with ExpectError("unknown", "Expected InstallError for unknown package name"):
+            autobuild_tool_install.install_packages(self.options, ["no_such_package"])
         assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
 
-##     def test_dry_run(self):
-##         dry_opts = self.options.copy()
-##         dry_opts.dry_run = True
-##         autobuild_tool_install.install_packages(dry_opts, [self.pkg])
-##         assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
-##         assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
+    def test_no_platform(self):
+        del self.config.installables[self.pkg].platforms["darwin"]
+        self.config.save()
+        with ExpectError("no platform", "Expected InstallError for missing platform config"):
+            autobuild_tool_install.install_packages(self.options, [self.pkg])
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
 
-    # - have get_packages_to_install() reject packages for each reason
-    #   - unknown package
-    #   - no archive for platform entry
-    #   - no url for archive
-    # - fail pre_install_license_check()
-    #   - no license entry
-    #   - specify --skip-license-check -- should succeed
+    def test_no_archive(self):
+        self.config.installables[self.pkg].platforms["darwin"].archive = None
+        self.config.save()
+        with ExpectError("no archive", "Expected InstallError for missing ArchiveDescription"):
+            autobuild_tool_install.install_packages(self.options, [self.pkg])
+
+    def test_no_url(self):
+        self.config.installables[self.pkg].platforms["darwin"].archive.url = None
+        self.config.save()
+        with ExpectError("no url", "Expected InstallError for missing archive url"):
+            autobuild_tool_install.install_packages(self.options, [self.pkg])
+
+    def test_no_license(self):
+        self.config.installables[self.pkg].license = None
+        self.config.save()
+        with ExpectError("no license", "Expected InstallError for missing license"):
+            autobuild_tool_install.install_packages(self.options, [self.pkg])
+
+    def test_skip_license(self):
+        self.config.installables[self.pkg].license = None
+        self.config.save()
+        self.options.check_license = False
+        autobuild_tool_install.install_packages(self.options, [self.pkg])
 
 # -------------------------------------  -------------------------------------
 class TestInstallCachedArchive(BaseTest):
@@ -522,13 +564,9 @@ class TestDownloadFail(BaseTest):
         self.new_package(fixture.package)
 
     def test_bad(self):
-        try:
+        with ExpectError("download", "expected InstallError for download failure"):
             autobuild_tool_install.install_packages(self.options, [self.pkg])
-        except autobuild_tool_install.InstallError, err:
-            assert_in("download", str(err))
-            assert not os.path.exists(self.cache_name)
-        else:
-            assert False, "expected InstallError for download failure"
+        assert not os.path.exists(self.cache_name)
 
 # -------------------------------------  -------------------------------------
 class TestGarbledDownload(BaseTest):
@@ -549,13 +587,9 @@ class TestGarbledDownload(BaseTest):
         self.new_package(badpkg)
 
     def test_bad(self):
-        try:
+        with ExpectError("md5", "expected InstallError for md5 mismatch"):
             autobuild_tool_install.install_packages(self.options, [self.pkg])
-        except autobuild_tool_install.InstallError, err:
-            assert_in("md5", str(err))
-            assert not os.path.exists(self.cache_name)
-        else:
-            assert False, "expected InstallError for md5 mismatch"
+        assert not os.path.exists(self.cache_name)
 
 # -------------------------------------  -------------------------------------
 class TestInstallRepository(BaseTest):
@@ -599,14 +633,10 @@ class TestInstallRepository(BaseTest):
         setattr(self.config.installables[self.pkg], attr, value)
         # Save the resulting config file, without which the above is pointless.
         self.config.save()
-        try:
+        with ExpectError(errfrag, "expected InstallError for %s %s" % (desc, value)):
             # Try to install --as-source with the specified value.
-            autobuild_tool_install.install_packages(self.options, [self.pkg])
-        except autobuild_tool_install.InstallError, err:
             # Verify the expected error fragment.
-            assert_in(errfrag, str(err))
-        else:
-            assert False, "expected InstallError for %s %s" % (desc, value)
+            autobuild_tool_install.install_packages(self.options, [self.pkg])
 
     def test_reinstall_no_as_source(self):
         # First make a temp clone of this repository because, in this test, we
@@ -658,12 +688,9 @@ class TestInstallRepository(BaseTest):
         assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.h"))
         # but now we no longer remember the previous install, so will try to
         # install over existing directory, which will blow up.
-        try:
+        with ExpectError("existing",
+                         "Expecting InstallError from reinstall --as-source over existing dir"):
             autobuild_tool_install.install_packages(self.options, [self.pkg])
-        except autobuild_tool_install.InstallError, err:
-            assert_in("existing", str(err))
-        else:
-            assert False, "Expecting InstallError from reinstall --as-source over existing dir"
 
 # -------------------------------------  -------------------------------------
 class TestMockSubversion(BaseTest):
@@ -681,12 +708,8 @@ class TestMockSubversion(BaseTest):
         mock_subprocess = MockSubprocess()
         autobuild_tool_install.subprocess = mock_subprocess
         try:
-            try:
+            with ExpectError("checking out", "Expected InstallError from mock svn checkout"):
                 autobuild_tool_install.install_packages(self.options, [self.pkg])
-            except autobuild_tool_install.InstallError, err:
-                assert_in("checking out", str(err))
-            else:
-                assert False, "Expected InstallError from mock svn checkout"
         finally:
             autobuild_tool_install.subprocess = real_subprocess
         assert_equals(len(mock_subprocess.commands), 1)
@@ -702,19 +725,64 @@ class MockSubprocess(object):
         # Fake that we fail the checkout
         return 2
 
-    # Tests to add:
-    # - test each handle_query_args() argument:
-    #   - list-installed
-    #   - list-archives
-    #   - list-licenses
-    #   - export-manifest <- visibility into modified installed-packages.xml
+# -------------------------------------  -------------------------------------
+class TestUninstallArchive(BaseTest):
+    def setup(self):
+        BaseTest.setup(self)
+        # Preliminary setup just like TestInstallArchive
+        self.pkg = "bogus"
+        fixture = FIXTURES[self.pkg + "-0.1"]
+        self.copyto(fixture.pathname, SERVER_DIR)
+        self.new_package(fixture.package)
+        # but for uninstall testing, part of setup() is to install.
+        # TestInstallArchive verifies that this part works.
+        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        assert os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
+        assert os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
 
-    # uninstall tests to add:
-    # - uninstall not-installed
-    # - uninstall previous --as-source
-    # - uninstall successfully (verify)
-    # - uninstall tarball that names subdirs
-    # - validate changes to installed-packages.xml, especially files manifest
+    def test_success(self):
+        autobuild_tool_uninstall.uninstall_packages(self.options, [self.pkg])
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "LICENSES", "bogus.txt"))
+        # Did the uninstall in fact clean up the subdirectories?
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "lib"))
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "include"))
+
+        # Trying to uninstall a not-installed package is a no-op.
+        autobuild_tool_uninstall.uninstall_packages(self.options, [self.pkg])
+
+    def test_unknown(self):
+        # Trying to uninstall an unknown package is a no-op. uninstall() only
+        # checks installed-packages.xml; it doesn't even use autobuild.xml.
+        autobuild_tool_uninstall.uninstall_packages(self.options, ["no_such_package"])
+
+# -------------------------------------  -------------------------------------
+class TestUninstallRepository(BaseTest):
+    def setup(self):
+        BaseTest.setup(self)
+        # Preliminary setup just like TestInstallRepository
+        self.pkg = "sourcepkg"
+        fixture = FIXTURES[self.pkg]
+        self.new_package(fixture.package)
+        self.options.as_source.append(fixture.package.name)
+        self.install_dir = os.path.join(os.path.dirname(self.options.install_filename),
+                                        fixture.package.source_directory, self.pkg)
+        self.tempdirs.append(self.install_dir)
+        # but for uninstall testing, part of setup() is to install.
+        # TestInstallRepository verifies that this part works.
+        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.cpp"))
+        assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.h"))
+        # Don't also specify --as-source to uninstall
+        self.options.as_source.remove(fixture.package.name)
+
+    def test_uninstall_source(self):
+        autobuild_tool_uninstall.uninstall_packages(self.options, [self.pkg])
+        # Attempting to uninstall an --as-source package should have NO EFFECT
+        # on its files.
+        assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.cpp"))
+        assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.h"))
 
 # -------------------------------------  -------------------------------------
 class TestInstall(unittest.TestCase):
