@@ -161,7 +161,7 @@ def query_manifest(options=None):
     raw = stream.getvalue()
     if not raw.strip():
         # If output is completely empty, eval() would barf -- but that's okay,
-        # it's an empty sequence.
+        # that means an empty sequence.
         sequence = ()
     else:
         # Output isn't empty: should be Python-parseable.
@@ -488,6 +488,7 @@ class TestInstallArchive(BaseTest):
         dry_opts = self.options.copy()
         dry_opts.dry_run = True
         autobuild_tool_install.install_packages(dry_opts, [self.pkg])
+        assert_not_in(self.pkg, query_manifest(self.options))
         assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
 
@@ -689,6 +690,7 @@ class TestInstallRepository(BaseTest):
         dry_opts = self.options.copy()
         dry_opts.dry_run = True
         autobuild_tool_install.install_packages(dry_opts, [self.pkg])
+        assert_not_in(self.pkg, query_manifest(self.options))
         assert not os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.cpp"))
         assert not os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.h"))
 
