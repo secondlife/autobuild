@@ -163,7 +163,8 @@ def handle_query_args(options, config_file, installed_file):
 
     if options.export_manifest:
         for package in installed_file.installables.itervalues():
-            pprint.pprint(package)
+            item = pprint.pformat(package).rstrip() # trim final newline
+            sys.stdout.writelines((item, ",\n")) # permit parsing -- bad syntax otherwise
         return True
 
     return False
