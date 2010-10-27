@@ -18,24 +18,11 @@ import urllib
 import urlparse
 import posixpath
 import subprocess
+from cStringIO import StringIO
 from threading import Thread
 from BaseHTTPServer import HTTPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 from autobuild import autobuild_tool_install, autobuild_tool_uninstall, configfile, common
-
-# Tests to add:
-# - test each handle_query_args() argument:
-#   - list-installed
-#   - list-archives
-#   - list-licenses
-#   - export-manifest <- visibility into modified installed-packages.xml
-
-# uninstall tests to add:
-# - validate changes to export-manifest
-
-# NOTE: avoid directly reading installed-packages.xml; we're trying to test
-# user-level behaviors and effects. Digging into implementation details means
-# the test must change when we tweak the implementation.
 
 mydir = os.path.dirname(__file__)
 HOST = '127.0.0.1'                      # localhost server
@@ -94,6 +81,21 @@ def assert_not_in(item, container):
     assert item not in container, "%r should not be in %r" % (item, container)
 
 class ExpectError(object):
+    """
+    Usage:
+
+    with ExpectError("unknown", "Expected InstallError for unknown package name"):
+        autobuild_tool_install.install_packages(self.options, ["no_such_package"])
+
+    replaces:
+
+    try:
+        autobuild_tool_install.install_packages(self.options, ["no_such_package"])
+    except autobuild_tool_install.InstallError, err:
+        assert_in("unknown", str(err))
+    else:
+        assert False, "Expected InstallError for unknown package name"
+    """
     def __init__(self, errfrag, expectation, exception=autobuild_tool_install.InstallError):
         self.errfrag = errfrag
         self.expectation = expectation
@@ -114,6 +116,63 @@ class ExpectError(object):
         assert_in(self.errfrag, str(value))
         # If all the above is true, then swallow the exception and proceed.
         return True
+
+class CaptureStdout(object):
+    """
+    Usage:
+
+    with CaptureStdout() as stream:
+        print "something"
+        print "something else"
+    assert stream.getvalue() == "something\n" "something else\n"
+    print "This will display on console, as before."
+
+    Note that this does NOT capture output emitted by a child process -- only
+    data written to sys.stdout.
+    """
+    def __enter__(self):
+        self.stdout = sys.stdout
+        sys.stdout = StringIO()
+        return sys.stdout
+
+    def __exit__(self, *exc_info):
+        sys.stdout = self.stdout
+
+def set_from_stream(stream):
+    """
+    For stream.getvalue() containing something like:
+
+    Prefix: a, b, c\n
+
+    return set(("a", "b", "c"))
+    """
+    # We expect output like: Packages: argparse, tut_test, bogus\n
+    # Split off the initial 'Packages:' by splitting on the first ':' and
+    # taking only what's to the right of it; strip whitespace off both
+    # ends of that; split on comma-space; load into a set for order-
+    # independent equality comparison.
+    return set(stream.getvalue().split(':', 1)[1].strip().split(", "))
+
+def query_manifest(options=None):
+    options = options.copy() if options else FakeOptions()
+    options.export_manifest = True
+    with CaptureStdout() as stream:
+        autobuild_tool_install.install_packages(options, [])
+    raw = stream.getvalue()
+    if not raw.strip():
+        # If output is completely empty, eval() would barf -- but that's okay,
+        # it's an empty sequence.
+        sequence = ()
+    else:
+        # Output isn't empty: should be Python-parseable.
+        try:
+            sequence = eval(raw)
+        except Exception, err:
+            logger.error("couldn't parse --export-manifest output:\n" + raw)
+            raise
+    logger.debug("--export-manifest output:\n" + raw)
+    # Convert sequence of dicts to dict of dicts -- much more useful
+    return dict((item.get("name"), item) for item in sequence)
 
 # ****************************************************************************
 #   module setup() and teardown()
@@ -419,9 +478,11 @@ class TestInstallArchive(BaseTest):
         self.new_package(fixture.package)
 
     def test_success(self):
+        assert_not_in(self.pkg, query_manifest(self.options))
         autobuild_tool_install.install_packages(self.options, [self.pkg])
         assert os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
+        assert_in(self.pkg, query_manifest(self.options))
 
     def test_dry_run(self):
         dry_opts = self.options.copy()
@@ -533,6 +594,18 @@ class TestInstallArchive(BaseTest):
         self.config.save()
         self.options.check_license = False
         autobuild_tool_install.install_packages(self.options, [self.pkg])
+
+    def test_list_archives(self):
+        self.options.list_archives = True
+        with CaptureStdout() as stream:
+            autobuild_tool_install.install_packages(self.options, [])
+        assert_equals(set_from_stream(stream), set(("argparse", "tut_test", "bogus")))
+
+    def test_list_licenses(self):
+        self.options.list_licenses = True
+        with CaptureStdout() as stream:
+            autobuild_tool_install.install_packages(self.options, [])
+        assert_equals(set_from_stream(stream), set(("Apache", "tut", "N/A")))
 
 # -------------------------------------  -------------------------------------
 class TestInstallCachedArchive(BaseTest):
@@ -687,14 +760,18 @@ class TestInstallRepository(BaseTest):
     def test_uninstall_reinstall(self):
         # test_success() already verifies this
         autobuild_tool_install.install_packages(self.options, [self.pkg])
+        assert_in(self.pkg, query_manifest(self.options))
         assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.cpp"))
         assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.h"))
         # ensure that uninstall leaves it alone
         autobuild_tool_uninstall.uninstall_packages(self.options, [self.pkg])
         assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.cpp"))
         assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.h"))
-        # but now we no longer remember the previous install, so will try to
-        # install over existing directory, which will blow up.
+        # Nonetheless uninstall should forget that it was installed.
+        assert_not_in(self.pkg, query_manifest(self.options))
+        # Since we no longer remember the previous install, a subsequent
+        # install will try to install over existing directory, which will blow
+        # up.
         with ExpectError("existing",
                          "Expecting InstallError from reinstall --as-source over existing dir"):
             autobuild_tool_install.install_packages(self.options, [self.pkg])
@@ -809,6 +886,11 @@ class TestInstall(unittest.TestCase):
         for f in "argparse.txt", "tut.txt":
             if not os.path.exists(os.path.join(lic_dir, f)):
                 self.fail("Installing all packages failed to install LICENSES/%s" % f)
+
+        options.list_archives = True
+        with CaptureStdout() as stream:
+            autobuild_tool_install.install_packages(options, [])
+        assert_equals(set_from_stream(stream), set(("argparse", "tut_test")))
 
 # ****************************************************************************
 #   Fixture data creation
