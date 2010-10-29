@@ -59,6 +59,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             help="the name of the installable")
         parser.add_argument('argument', nargs='*', help='a key=value pair specifying an attribute')
 
+        parser.epilog = "EXAMPLE: autobuild edit indra_common platform=linux hash=<md5 hash> url=<url>"
+
     def run(self, args):
         config = configfile.ConfigurationDescription(args.config_file)
         if args.interactive:
