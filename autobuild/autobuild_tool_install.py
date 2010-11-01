@@ -311,14 +311,15 @@ def _install_source(package, installed_config, config_file, dry_run):
 def _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
     # Check that we have a platform-specific or common url to use.
     req_plat = package.get_platform(platform)
+    package_name = getattr(package, 'name', '(undefined)')
     if not req_plat:
-        raise InstallError("no platform %s for %s" % (platform, package.name))
+        raise InstallError("no platform %s for package %s" % (platform, package_name))
     archive = req_plat.archive
     if not archive:
-        raise InstallError("no archive specified for %s for platform %s" %
-                           (package.name, platform))
+        raise InstallError("no archive specified for package %s for platform %s" %
+                           (package_name, platform))
     if not archive.url:
-        raise InstallError("no url specified for %s for platform %s" % (package.name, platform))
+        raise InstallError("no url specified for package %s for platform %s" % (package_name, platform))
     # Is this package already installed?
     installed = installed_file.installables.get(package.name)
     inst_plat = installed and installed.get_platform(platform)
