@@ -73,6 +73,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                     [config.get_build_configuration(name) for name in args.configurations]
             else:
                 build_configurations = config.get_default_build_configurations()
+            if not build_configurations:
+                logger.warn("no applicable build configurations found, autobuild cowardly refuses to build nothing!")
             for build_configuration in build_configurations:
                 if configure_first:
                     result = _configure_a_configuration(config, build_configuration,
@@ -114,6 +116,7 @@ def _build_a_configuration(config, build_configuration, extra_arguments, dry_run
         build_executable = copy.copy(build_configuration.build)
         build_executable.parent = parent_build
     elif parent_build is not None:
+        logger.info('no build executable defined; falling back to parent')
         build_executable = parent_build
     else:
         logger.info('no build executable defined; doing nothing')
