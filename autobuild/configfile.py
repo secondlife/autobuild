@@ -164,7 +164,9 @@ class ConfigurationDescription(common.Serialized):
             except llsd.LLSDParseError:
                 raise AutobuildError("Config file %s is corrupt. Aborting..." % self.path)
             if not saved_data.has_key('version'):
-                raise AutobuildError('incompatible configuration file ' + self.path)
+                raise AutobuildError("incompatible configuration file %s\n"
+                    "if this is a legacy format autobuild.xml file, please try the workaround found here:\n"
+                    "https://wiki.lindenlab.com/wiki/Autobuild/Incompatible_Configuration_File_Error" % self.path)
             if saved_data['version'] == self.version:
                 if (not saved_data.has_key('type')) or (saved_data['type'] != 'autobuild'):
                     raise AutobuildError(self.path + ' not an autobuild configuration file')
