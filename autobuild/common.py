@@ -118,9 +118,12 @@ def get_temp_dir(basename):
 
 def get_autobuild_executable_path():
     if get_current_platform() == PLATFORM_WINDOWS:
-        return "%s.cmd" % sys.argv[0]
-    else:
-        return sys.argv[0]
+        p = subprocess.Popen('uname -s', stdout=subprocess.PIPE)
+        out = p.stdout.read()
+        p.wait()
+        if not out.startswith('MINGW'):
+            return sys.argv[0] + '.cmd'
+    return sys.argv[0]
 
 def find_executable(executables, exts=None):
     """
