@@ -120,13 +120,18 @@ environment_template = """
         switch="-x"
         # Decide whether to specify -xzvf or -xjvf based on whether the archive
         # name ends in .tar.gz or .tar.bz2.
-        if [ "${1%%.tar.gz}" != "$1" ]
-        then switch="${switch}z"
-        elif [ "${1%%.tar.bz2}" != "$1" ]
-        then switch="${switch}j"
-        fi
-        switch="${switch}vf"
-        tar "$switch" "$1" || exit 1
+        case "$1" in
+        *.tar.gz|*.tgz)
+            gzip -dc "$1" | tar -xf -
+            ;;
+        *.tar.bz2|*.tbz2)
+            bzip2 -dc "$1" | tar -xf -
+            ;;
+        *)
+            echo "Do not know how to extract $1" 1>&2
+            return 1
+            ;;
+        esac
     }
     calc_md5 () {
         local archive=$1
@@ -156,7 +161,14 @@ environment_template = """
     $restore_xtrace
 """
 
-if common.get_current_platform() is "windows":
+if common.get_current_platform() == "windows":
+    mingw_template = '''
+    # fake a cygpath function
+    cygpath() {
+        echo $2 
+    }
+    '''
+
     windows_template = """
     # disable verbose debugging output
     set +o xtrace
@@ -167,9 +179,9 @@ if common.get_current_platform() is "windows":
         local config=$2
 
         if ((%(USE_INCREDIBUILD)d)) ; then
-            BuildConsole "$vcproj" /CFG="$config"
+            BuildConsole "$vcproj" %(/)sCFG="$config"
         else
-            devenv "$vcproj" /build "$config"
+            devenv "$vcproj" %(/)sbuild "$config"
         fi
     }
 
@@ -180,15 +192,15 @@ if common.get_current_platform() is "windows":
 
         if ((%(USE_INCREDIBUILD)d)) ; then
             if [ -z "$proj" ] ; then
-                BuildConsole "$solution" /CFG="$config"
+                BuildConsole "$solution" %(/)sCFG="$config"
             else
-                BuildConsole "$solution" /PRJ="$proj" /CFG="$config"
+                BuildConsole "$solution" %(/)sPRJ="$proj" %(/)sCFG="$config"
             fi
         else
             if [ -z "$proj" ] ; then
-                devenv.com "$(cygpath -m "$solution")" /build "$config"
+                devenv.com "$(cygpath -m "$solution")" %(/)sbuild "$config"
             else
-                devenv.com "$(cygpath -m "$solution")" /build "$config" /project "$proj"
+                devenv.com "$(cygpath -m "$solution")" %(/)sbuild "$config" %(/)sproject "$proj"
             fi
         fi
     }
@@ -207,7 +219,12 @@ if common.get_current_platform() is "windows":
 
     $restore_xtrace
     """
-    environment_template = "%s\n%s" % (environment_template, windows_template)
+
+    templates = []
+    if common.windows_is_mingw():
+        templates.append(mingw_template)
+    templates += [environment_template, windows_template]
+    environment_template = '\n'.join(templates)
 
 def do_source_environment(args):
     var_mapping = {
@@ -228,7 +245,8 @@ def do_source_environment(args):
         var_mapping.update(load_vsvars("80"))
         var_mapping.update(AUTOBUILD_EXECUTABLE_PATH=("$(cygpath -u '%s')" % common.get_autobuild_executable_path()))
         var_mapping.update(USE_INCREDIBUILD=bool(common.find_executable("BuildConsole")))
-
+        var_mapping.update({'/': common.windows_is_mingw() and '//' or '/'})
+            
     sys.stdout.write(environment_template % var_mapping)
 
     if get_params:

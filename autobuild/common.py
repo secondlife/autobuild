@@ -61,6 +61,22 @@ def get_current_platform():
         }
     return platform_map.get(sys.platform, PLATFORM_UNKNOWN)
 
+_mingw = None
+
+def windows_is_mingw():
+    '''
+    If running under Windows, is our environment MinGW?
+    '''
+    global _mingw
+    if _mingw is None:
+        if get_current_platform() == PLATFORM_WINDOWS:
+            p = subprocess.Popen('uname -s', stdout=subprocess.PIPE)
+            _mingw = p.stdout.read().startswith('MINGW')
+            p.wait()
+        else:
+            _mingw = False
+    return _mingw
+    
 def get_current_user():
     """
     Get the login name for the current user.
@@ -117,12 +133,8 @@ def get_temp_dir(basename):
     return tmpdir
 
 def get_autobuild_executable_path():
-    if get_current_platform() == PLATFORM_WINDOWS:
-        p = subprocess.Popen('uname -s', stdout=subprocess.PIPE)
-        out = p.stdout.read()
-        p.wait()
-        if not out.startswith('MINGW'):
-            return sys.argv[0] + '.cmd'
+    if get_current_platform() == PLATFORM_WINDOWS and not windows_is_mingw():
+        return sys.argv[0] + '.cmd'
     return sys.argv[0]
 
 def find_executable(executables, exts=None):

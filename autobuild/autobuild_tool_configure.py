@@ -62,7 +62,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 result = _configure_a_configuration(config, build_configuration,
                     args.additional_options, args.dry_run)
                 if result != 0:
-                    raise ConfigurationError("default configuration returned '%d'" % (result))
+                    raise ConfigurationError("default configuration returned %d" % (result))
         finally:
             os.chdir(current_directory)
 
