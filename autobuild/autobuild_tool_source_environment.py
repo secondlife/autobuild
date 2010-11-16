@@ -113,25 +113,7 @@ environment_template = """
         fi
     }
     extract () {
-        # Use a tar command appropriate to the extension of the filename passed as
-        # $1. If a subsequent update of a given tarball changes compression types,
-        # this should hopefully avoid having to go through this script to update
-        # the tar switches to correspond to the new file type.
-        switch="-x"
-        # Decide whether to specify -xzvf or -xjvf based on whether the archive
-        # name ends in .tar.gz or .tar.bz2.
-        case "$1" in
-        *.tar.gz|*.tgz)
-            gzip -dc "$1" | tar -xf -
-            ;;
-        *.tar.bz2|*.tbz2)
-            bzip2 -dc "$1" | tar -xf -
-            ;;
-        *)
-            echo "Do not know how to extract $1" 1>&2
-            return 1
-            ;;
-        esac
+        "$AUTOBUILD" extract "$1"
     }
     calc_md5 () {
         local archive=$1
