@@ -173,3 +173,12 @@ def _create_tarfile(tarfilename, build_directory, filelist):
         tfile.close()
     finally:
         os.chdir(current_directory)
+    print 'wrote  ', os.path.relpath(tarfilename)
+    import hashlib
+    fp = open(tarfilename)
+    m = hashlib.md5()
+    while True:
+        d = fp.read(65536)
+        if not d: break
+        m.update(d)
+    print 'md5    ', m.hexdigest()
