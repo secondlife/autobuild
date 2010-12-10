@@ -87,6 +87,7 @@ def package(config, platform_name, archive_filename=None, check_license=True, dr
     if not package_description.version:
         raise PackageError("no version number specified")
     build_directory = config.get_build_directory(platform_name)
+    logger.info('packaging from %r' % build_directory)
     if not os.path.isdir(build_directory):
         PackageError("build directory %s is not a directory" % build_directory)
     platform_description = config.get_platform(platform_name)
@@ -173,7 +174,7 @@ def _create_tarfile(tarfilename, build_directory, filelist):
         tfile.close()
     finally:
         os.chdir(current_directory)
-    print 'wrote  ', os.path.relpath(tarfilename)
+    print "wrote  %s" % tarfilename
     import hashlib
     fp = open(tarfilename)
     m = hashlib.md5()
@@ -181,4 +182,4 @@ def _create_tarfile(tarfilename, build_directory, filelist):
         d = fp.read(65536)
         if not d: break
         m.update(d)
-    print 'md5    ', m.hexdigest()
+    print "md5    %s" % m.hexdigest()
