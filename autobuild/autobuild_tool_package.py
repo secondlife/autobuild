@@ -89,7 +89,8 @@ def package(config, platform_name, archive_filename=None, check_license=True, dr
     build_directory = config.get_build_directory(platform_name)
     logger.info('packaging from %r' % build_directory)
     if not os.path.isdir(build_directory):
-        PackageError("build directory %s is not a directory" % build_directory)
+        raise PackageError("build directory %s is not a directory" % build_directory)
+    logger.info("packaging from dir %s" % build_directory)
     platform_description = config.get_platform(platform_name)
     files = _get_file_list(platform_description, build_directory)
     if(platform_name != 'common'):
