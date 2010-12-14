@@ -75,6 +75,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 build_configurations = config.get_default_build_configurations()
             if not build_configurations:
                 logger.warn("no applicable build configurations found, autobuild cowardly refuses to build nothing!")
+                logger.warn("did you remember to mark a build command as default? try passing 'default=true' to your 'autobuild edit build' command")
+
             for build_configuration in build_configurations:
                 if configure_first:
                     result = _configure_a_configuration(config, build_configuration,
