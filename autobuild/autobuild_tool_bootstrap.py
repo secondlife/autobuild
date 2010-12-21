@@ -1,4 +1,6 @@
-#!/usr/bin/env python
+# $LicenseInfo:firstyear=2010&license=mit$
+# Copyright (c) 2010, Linden Research, Inc.
+# $/LicenseInfo$
 import configfile
 from autobuild_base import AutobuildBase
 from common import AutobuildError, get_current_platform

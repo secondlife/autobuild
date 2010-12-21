@@ -1,4 +1,6 @@
-#!/usr/bin/env python
+# $LicenseInfo:firstyear=2010&license=mit$
+# Copyright (c) 2010, Linden Research, Inc.
+# $/LicenseInfo$
 
 # Base Class to give autobuild tool modules integration into autobuild
 # and standalone functionality
