@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import configfile
 from autobuild_base import AutobuildBase
 from common import AutobuildError, get_current_platform

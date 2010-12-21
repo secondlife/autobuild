@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """\
 @file   test_upload.py
 @author Nat Goodspeed

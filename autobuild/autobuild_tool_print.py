@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import configfile
 from autobuild_base import AutobuildBase
 
