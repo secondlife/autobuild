@@ -19,16 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 # $/LicenseInfo$
-"""\
-@file   test_upload.py
-@author Nat Goodspeed
-@date   2010-04-23
-@brief  Test autobuild/autobuild_tool_upload.py.
-
-$LicenseInfo:firstyear=2010&license=internal$
-Copyright (c) 2010, Linden Research, Inc.
-$/LicenseInfo$
-"""
 
 import os
 import sys
