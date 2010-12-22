@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 # $/LicenseInfo$
-#!/usr/bin/env python
+#!/usr/bin/python
 
 import unittest
 from autobuild import common

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 """\
 @file   connection.py
 @author Nat Goodspeed

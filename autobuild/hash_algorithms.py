@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 """\
 @file   hash_algorithms.py
 @author Nat Goodspeed
