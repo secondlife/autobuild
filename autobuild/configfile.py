@@ -108,9 +108,14 @@ class ConfigurationDescription(common.Serialized):
         platform_description = self.package_description.platforms.get(platform_name, None)
         if platform_description is None:
             raise ConfigurationError("no configuration for platform '%s'" % platform_name)
+        common_platform_description = self.package_description.platforms.get('common', None)
         config_directory = os.path.dirname(self.path)
         if platform_description.build_directory is not None:
             build_directory = platform_description.build_directory
+            if not os.path.isabs(build_directory):
+                build_directory = os.path.abspath(os.path.join(config_directory, build_directory))
+        elif common_platform_description is not None and common_platform_description.build_directory is not None:
+            build_directory = common_platform_description.build_directory
             if not os.path.isabs(build_directory):
                 build_directory = os.path.abspath(os.path.join(config_directory, build_directory))
         else:
