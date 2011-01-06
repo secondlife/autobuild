@@ -1,5 +1,24 @@
+#!/usr/bin/python
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
 # $/LicenseInfo$
 
 """
@@ -87,8 +106,10 @@ def package(config, platform_name, archive_filename=None, check_license=True, dr
     if not package_description.version:
         raise PackageError("no version number specified")
     build_directory = config.get_build_directory(platform_name)
+    logger.info('packaging from %r' % build_directory)
     if not os.path.isdir(build_directory):
-        PackageError("build directory %s is not a directory" % build_directory)
+        raise PackageError("build directory %s is not a directory" % build_directory)
+    logger.info("packaging from dir %s" % build_directory)
     platform_description = config.get_platform(platform_name)
     files = _get_file_list(platform_description, build_directory)
     if(platform_name != 'common'):
@@ -173,3 +194,12 @@ def _create_tarfile(tarfilename, build_directory, filelist):
         tfile.close()
     finally:
         os.chdir(current_directory)
+    print "wrote  %s" % tarfilename
+    import hashlib
+    fp = open(tarfilename)
+    m = hashlib.md5()
+    while True:
+        d = fp.read(65536)
+        if not d: break
+        m.update(d)
+    print "md5    %s" % m.hexdigest()
