@@ -161,14 +161,7 @@ environment_template = """
     $restore_xtrace
 """
 
-if common.get_current_platform() == "windows":
-    mingw_template = '''
-    # fake a cygpath function
-    cygpath() {
-        echo $2 
-    }
-    '''
-
+if common.get_current_platform() is "windows":
     windows_template = """
     # disable verbose debugging output
     set +o xtrace
@@ -179,9 +172,9 @@ if common.get_current_platform() == "windows":
         local config=$2
 
         if ((%(USE_INCREDIBUILD)d)) ; then
-            BuildConsole "$vcproj" %(/)sCFG="$config"
+            BuildConsole "$vcproj" /CFG="$config"
         else
-            devenv "$vcproj" %(/)sbuild "$config"
+            devenv "$vcproj" /build "$config"
         fi
     }
 
@@ -192,15 +185,15 @@ if common.get_current_platform() == "windows":
 
         if ((%(USE_INCREDIBUILD)d)) ; then
             if [ -z "$proj" ] ; then
-                BuildConsole "$solution" %(/)sCFG="$config"
+                BuildConsole "$solution" /CFG="$config"
             else
-                BuildConsole "$solution" %(/)sPRJ="$proj" %(/)sCFG="$config"
+                BuildConsole "$solution" /PRJ="$proj" /CFG="$config"
             fi
         else
             if [ -z "$proj" ] ; then
-                devenv.com "$(cygpath -m "$solution")" %(/)sbuild "$config"
+                devenv.com "$(cygpath -m "$solution")" /build "$config"
             else
-                devenv.com "$(cygpath -m "$solution")" %(/)sbuild "$config" %(/)sproject "$proj"
+                devenv.com "$(cygpath -m "$solution")" /build "$config" /project "$proj"
             fi
         fi
     }
@@ -219,12 +212,7 @@ if common.get_current_platform() == "windows":
 
     $restore_xtrace
     """
-
-    templates = []
-    if common.windows_is_mingw():
-        templates.append(mingw_template)
-    templates += [environment_template, windows_template]
-    environment_template = '\n'.join(templates)
+    environment_template = "%s\n%s" % (environment_template, windows_template)
 
 def do_source_environment(args):
     var_mapping = {
@@ -245,8 +233,7 @@ def do_source_environment(args):
         var_mapping.update(load_vsvars("80"))
         var_mapping.update(AUTOBUILD_EXECUTABLE_PATH=("$(cygpath -u '%s')" % common.get_autobuild_executable_path()))
         var_mapping.update(USE_INCREDIBUILD=bool(common.find_executable("BuildConsole")))
-        var_mapping.update({'/': common.windows_is_mingw() and '//' or '/'})
-            
+
     sys.stdout.write(environment_template % var_mapping)
 
     if get_params:
