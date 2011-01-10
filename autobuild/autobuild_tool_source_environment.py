@@ -104,7 +104,7 @@ environment_template = """
     export AUTOBUILD_VERSION_STRING="%(AUTOBUILD_VERSION_STRING)s"
     export AUTOBUILD_PLATFORM="%(AUTOBUILD_PLATFORM)s"
 
-    fail () {
+    fail() {
         echo "BUILD FAILED"
         if [ -n "$PARABUILD_BUILD_NAME" ] ; then
             # if we're running under parabuild then we have to clean up its stuff
@@ -113,13 +113,13 @@ environment_template = """
             exit 1
         fi
     }
-    pass () {
+    pass() {
         echo "BUILD SUCCEEDED"
         succeeded=true
     }
 
     # imported build-lindenlib functions
-    fetch_archive () {
+    fetch_archive() {
         local url=$1
         local archive=$2
         local md5=$3
@@ -132,7 +132,7 @@ environment_template = """
             echo "$md5 *$archive" | md5sum -c
         fi
     }
-    extract () {
+    extract() {
         # Use a tar command appropriate to the extension of the filename passed as
         # $1. If a subsequent update of a given tarball changes compression types,
         # this should hopefully avoid having to go through this script to update
@@ -153,7 +153,7 @@ environment_template = """
             ;;
         esac
     }
-    calc_md5 () {
+    calc_md5() {
         local archive=$1
         local md5_cmd=md5sum
         if [ "$AUTOBUILD_PLATFORM" = "darwin" ] ; then
