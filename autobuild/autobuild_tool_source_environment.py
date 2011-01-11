@@ -262,9 +262,14 @@ def do_source_environment(args):
 
         # load vsvars32.bat variables
         # *TODO - find a way to configure this instead of hardcoding to vc80
-        var_mapping.update(load_vsvars("80"))
+        try:
+            vs_ver = os.environ['AUTOBUILD_VSVER']
+        except KeyError:
+            vs_ver = "80"
+            
+        var_mapping.update(load_vsvars(vs_ver))
         var_mapping.update(AUTOBUILD_EXECUTABLE_PATH=("$(cygpath -u '%s')" % common.get_autobuild_executable_path()))
-        var_mapping.update(USE_INCREDIBUILD=bool(common.find_executable("BuildConsole")))
+        var_mapping.update(USE_INCREDIBUILD=int(os.environ.get('USE_INCREDIBUILD', common.find_executable("BuildConsole"))))
         var_mapping.update({'/': common.windows_is_mingw() and '//' or '/'})
             
     sys.stdout.write(environment_template % var_mapping)
