@@ -257,7 +257,16 @@ def do_source_environment(args):
             
         var_mapping.update(load_vsvars(vs_ver))
         var_mapping.update(AUTOBUILD_EXECUTABLE_PATH=("$(cygpath -u '%s')" % common.get_autobuild_executable_path()))
-        var_mapping.update(USE_INCREDIBUILD=int(os.environ.get('USE_INCREDIBUILD', common.find_executable("BuildConsole"))))
+
+        try:
+            use_ib = int(os.environ['USE_INCREDIBUILD'])
+        except ValueError:
+            logger.warning("USE_INCREDIBUILD environment variable contained garbage %r (expected 0 or 1), turning incredibuild off" % os.environ['USE_INCREDIBUILD'])
+            use_ib = 0
+        except KeyError:
+            use_ib = int(bool(common.find_executable('BuildConsole')))
+
+        var_mapping.update(USE_INCREDIBUILD=use_ib)
 
     sys.stdout.write(environment_template % var_mapping)
 
