@@ -332,7 +332,8 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     req_plat = package.get_platform(platform)
     package_name = getattr(package, 'name', '(undefined)')
     if not req_plat:
-        raise InstallError("no platform %s for package %s" % (platform, package_name))
+        logger.warning("package %s has no installation information configured for platform %s" % (package_name, platform))
+        return False
     archive = req_plat.archive
     if not archive:
         raise InstallError("no archive specified for package %s for platform %s" %
