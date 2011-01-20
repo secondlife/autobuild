@@ -147,6 +147,9 @@ environment_template = """
         *.tar.bz2|*.tbz2)
             bzip2 -dc "$1" | tar -xf -
             ;;
+        *.zip)
+            unzip -q "$1"
+            ;;
         *)
             echo "Do not know how to extract $1" 1>&2
             return 1
