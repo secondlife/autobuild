@@ -102,8 +102,6 @@ def get_default_scp_command():
     Return the full path to the scp command
     """
     scp = find_executable(['pscp', 'scp'], ['.exe'])
-    if not scp:
-        raise AutobuildError("cannot find an appropriate scp or pscp command")
     return scp
 
 def get_default_install_cache_dir():
@@ -411,7 +409,10 @@ class __SCPOrHTTPHandler(urllib2.BaseHandler):
         if not self._dir:
             self._dir = tempfile.mkdtemp()
         local = os.path.join(self._dir, remote.split('/')[-1])
+        if not self._scp:
+            raise AutobuildError("no scp command available; cannot fetch %s" % remote)
         command = (self._scp, remote, local)
+        logger.info("using SCP: " + remote)
         rv = subprocess.call(command)
         if rv != 0:
             raise AutobuildError("cannot fetch %s" % remote)
