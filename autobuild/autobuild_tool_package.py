@@ -196,7 +196,7 @@ def _create_tarfile(tarfilename, build_directory, filelist):
         os.chdir(current_directory)
     print "wrote  %s" % tarfilename
     import hashlib
-    fp = open(tarfilename)
+    fp = open(tarfilename, 'rb')
     m = hashlib.md5()
     while True:
         d = fp.read(65536)
