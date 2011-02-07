@@ -60,7 +60,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         parser.add_argument('--config-file',
             dest='config_file',
             default=configfile.AUTOBUILD_CONFIG_FILE,
-            help="")
+            help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
         parser.add_argument('-a','--archive',
             dest='archive',
             default=None,

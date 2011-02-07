@@ -69,7 +69,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             '--config-file',
             default=configfile.AUTOBUILD_CONFIG_FILE,
             dest='autobuild_filename',
-            help='the file used to describe how to build the package')
+            help="the file used to describe how to build the package\n  (defaults to $AUTOBUILD_CONFIG_FILE or \"autobuild.xml\")")
         parser.add_argument(
             '--archive-name',
             default=None,
