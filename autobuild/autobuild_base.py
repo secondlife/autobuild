@@ -46,6 +46,13 @@ class AutobuildBase:
             basename = basename[len(pfx):]
         return basename
 
+    def configurations_from_environment(self):
+        cfgs=os.environ.get("AUTOBUILD_CONFIGURATION")
+        if cfgs is None:
+            return []
+        else:
+            return cfgs.split(",")
+
 # Override these three functions to hook into autobuild.py
 
     def get_details(self):

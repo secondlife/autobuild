@@ -71,7 +71,9 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         parser.add_argument('--all','-a',dest='all', default=False, action="store_true",
             help="build all configurations")
         parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
-            help="build a specific build configuration", metavar='CONFIGURATION')
+                            help="build a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
+                            metavar='CONFIGURATION',
+                            default=self.configurations_from_environment())
         parser.add_argument('--use-cwd', dest='use_cwd', default=False, action="store_true",
             help="build in current working directory")
         parser.usage = """%(prog)s [-h] [--no-configure] [--config-file CONFIG_FILE] [-a]
