@@ -37,9 +37,11 @@ from common import AutobuildError
 from common import get_current_platform
 from llbase import llsd
 import update
+import logging
 
+logger = logging.getLogger('autobuild.configfile')
 
-AUTOBUILD_CONFIG_FILE="autobuild.xml"
+AUTOBUILD_CONFIG_FILE=os.environ.get("AUTOBUILD_CONFIG_FILE","autobuild.xml")
 AUTOBUILD_CONFIG_VERSION="1.2"
 AUTOBUILD_CONFIG_TYPE="autobuild"
 INSTALLED_CONFIG_FILE="installed-packages.xml"
@@ -201,6 +203,7 @@ class ConfigurationDescription(common.Serialized):
                 for (name, package) in installables.iteritems():
                     self.installables[name] = PackageDescription(package)
                 self.update(saved_data)
+                logger.info("Configuration file '%s'" % self.path)
             else:
                 if saved_data['version'] in update.updaters:
                     update.updaters[saved_data['version']](saved_data, self)
@@ -208,7 +211,7 @@ class ConfigurationDescription(common.Serialized):
                     raise ConfigurationError("cannot update version %s file %s" %
                                              (saved_data.version, self.path))
         elif not os.path.exists(self.path):
-            pass
+            logger.warn("Configuration file '%s' not found" % self.path)
         else:
             raise ConfigurationError("cannot create configuration file %s" % self.path)
 

@@ -63,7 +63,7 @@ class AutobuildTool(AutobuildBase):
             parser.add_argument('--config-file',
                 dest='config_file',
                 default=configfile.AUTOBUILD_CONFIG_FILE,
-                help="")
+                help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
             parser.set_defaults(func=callable.run_cmd)
 
     def run(self, args):
