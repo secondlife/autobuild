@@ -263,7 +263,7 @@ def extract_package(package, install_dir):
         return False
 
     # Attempt to extract the package from the install cache
-    logger.info("extracting %s to %s" % (cachename, install_dir))
+    logger.debug("extracting from %s" % cachename)
     tar = tarfile.open(cachename, 'r')
     try:
         # try to call extractall in python 2.5. Phoenix 2008-01-28

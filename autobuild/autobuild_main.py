@@ -26,6 +26,9 @@ import common
 import argparse
 import logging
 
+## Environment variable name used for default log level verbosity
+AUTOBUILD_LOGLEVEL = 'AUTOBUILD_LOGLEVEL'
+
 class run_help(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         parser.parent.search_for_and_import_tools(parser.parent.tools_list)
@@ -39,7 +42,7 @@ class Autobuild(object):
         self.parser = argparse.ArgumentParser(
             description='Autobuild', prog='autobuild', add_help=False)
         
-        self.parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
+        self.parser.add_argument('-V', '--version', action='version', version='%(prog)s 1.0')
 
         self.subparsers = self.parser.add_subparsers(title='Sub Commands',
             description='Valid Sub Commands',
@@ -86,10 +89,58 @@ class Autobuild(object):
                 instance = self.register_tool(possible_tool_module)
                 return instance
         return -1
+        
+    def get_default_loglevel_from_environment(self):
+        """
+        Returns a default log level based on the AUTOBUILD_LOGLEVEL environment variable
+
+        This may be used directly by the user, but in combination with the
+        set_recursive_loglevel method below also ensures 
+        that any recursive invocation of autobuild inherits the same level as the
+        parent, even if intervening commands do not pass it through.
+        """
+        try:
+            environment_level = os.environ[AUTOBUILD_LOGLEVEL]
+        except KeyError:
+            environment_level = ''
+
+        if environment_level == '--quiet' or environment_level == '-q' :
+            return logging.ERROR
+        elif environment_level == '':
+            return logging.WARNING
+        elif environment_level == '--verbose' or environment_level == '-v' :
+            return logging.INFO
+        elif environment_level == '--debug' or environment_level == '-d' :
+            return logging.DEBUG
+        else:
+            raise AutobuildError("invalid %s value '%s'" % (AUTOBUILD_LOGLEVEL, environment_level))
+
+    def set_recursive_loglevel(self, logger, level):
+        """
+        Sets the logger level, and also saves the equivalent option argument
+        in the AUTOBUILD_LOGLEVEL environment variable so that any recursive
+        invocation of autobuild uses the same level
+        """
+        logger.setLevel(level)
+
+        if level == logging.ERROR:
+            os.environ[AUTOBUILD_LOGLEVEL] = '--quiet'
+        elif level == logging.WARNING:
+            os.environ[AUTOBUILD_LOGLEVEL] = ''
+        elif level == logging.INFO:
+            os.environ[AUTOBUILD_LOGLEVEL] = '--verbose'
+        elif level == logging.DEBUG:
+            os.environ[AUTOBUILD_LOGLEVEL] = '--debug'
+        else:
+            raise common.AutobuildError("invalid effective log level %s" % logging.getLevelName(level))
 
 
     def main(self, args_in):
     
+        logger = logging.getLogger('autobuild')
+        logger.addHandler(logging.StreamHandler())
+        default_loglevel = self.get_default_loglevel_from_environment() 
+
         self.tools_list = []
         
         self.parser.parent = self
@@ -98,14 +149,18 @@ class Autobuild(object):
             nargs='?', default=argparse.SUPPRESS)
         
         argdefs = (
-            (('--dry-run',),
+            (('-n', '--dry-run',),
                 dict(help='run tool in dry run mode if available', action='store_true')),
-             (('--quiet',),
+
+            ## NOTE: if the mapping of verbosity controls (--{quiet,verbose,debug})
+            ##       is changed here, it must be changed to match in set_recursive_loglevel
+            ##       and get_default_loglevel_from_environment methods above.
+             (('-q', '--quiet',),
                 dict(help='minimal output', action='store_const',
-                    const=logging.ERROR, dest='logging_level', default=logging.WARNING)),
-             (('--verbose',),
+                     const=logging.ERROR, dest='logging_level', default=default_loglevel)),
+             (('-v', '--verbose',),
                 dict(help='verbose output', action='store_const', const=logging.INFO, dest='logging_level')),
-             (('--debug',),
+             (('-d', '--debug',),
                 dict(help='debug output', action='store_const', const=logging.DEBUG, dest='logging_level')),
         )
         for args, kwds in argdefs:
@@ -126,11 +181,9 @@ class Autobuild(object):
                 break
 
         args = self.parser.parse_args(args_in)
-                
-        logger = logging.getLogger('autobuild')
-        logger.setLevel(args.logging_level)
-        logger.addHandler(logging.StreamHandler())
- 
+
+        self.set_recursive_loglevel(logger, args.logging_level)
+
         if tool_to_run != -1:
             tool_to_run.run(args)
 

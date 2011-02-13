@@ -203,7 +203,7 @@ class ConfigurationDescription(common.Serialized):
                 for (name, package) in installables.iteritems():
                     self.installables[name] = PackageDescription(package)
                 self.update(saved_data)
-                logger.info("Configuration file '%s'" % self.path)
+                logger.debug("Configuration file '%s'" % self.path)
             else:
                 if saved_data['version'] in update.updaters:
                     update.updaters[saved_data['version']](saved_data, self)

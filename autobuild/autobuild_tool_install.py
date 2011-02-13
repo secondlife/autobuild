@@ -243,6 +243,8 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
             # raise error if named package doesn't exist in autobuild.xml
             raise InstallError('unknown package: %s' % pname)
 
+        logger.warn("checking package %s" % pname)
+        
         # The --as-source command-line switch only affects the installation of
         # new packages. When we first install a package, we remember whether
         # it's --as-source. Every subsequent 'autobuild install' affecting
@@ -260,16 +262,16 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
             # do not mess with it now.
             source_install = installed.as_source
             if source_install:
-                logger.info("%s previously installed --as-source, not updating" % pname)
+                logger.warn("%s previously installed --as-source, not updating" % pname)
                 continue
 
         # Existing tarball install, or new package install of either kind
         if source_install:
-            logger.info("installing %s --as-source" % pname)
+            logger.warn("installing %s --as-source" % pname)
             if _install_source(package, installed_file, config_file, dry_run):
                 installed_pkgs.append(pname)
         else:
-            logger.info("installing %s from archive" % pname)
+            logger.warn("installing %s from archive" % pname)
             if _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
                 installed_pkgs.append(pname)
     return installed_pkgs
@@ -302,7 +304,7 @@ def _install_source(package, installed_config, config_file, dry_run):
     except OSError, err:
         if err.errno != errno.EEXIST:
             raise
-    logger.info("checking out %s from %s to %s" % (package.name, package.source, sourcepath))
+    logger.warn("checking out %s from %s to %s" % (package.name, package.source, sourcepath))
     if package.sourcetype == 'svn':
         command = ['svn', 'checkout', package.source, sourcepath]
         logger.debug(' '.join(command))
@@ -356,9 +358,10 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
 
     # download the package, if it's not already in our cache
     if os.path.exists(cachefile):
-        logger.info("found in cache: " + cachefile)
+        logger.debug("found in cache: " + cachefile)
     else:
         # download the package to the cache
+        logger.warn("downloading %s archive from %s" % (package.name, archive.url))
         if not common.download_package(archive.url):
             # Download failure has been observed to leave a zero-length file.
             common.remove_package(archive.url)
@@ -380,13 +383,14 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
 
     # check that the install dir exists...
     if not os.path.exists(install_dir):
-        logger.info("creating " + install_dir)
+        logger.debug("creating " + install_dir)
         os.makedirs(install_dir)
 
     # extract the files from the package
+    logger.warn("extracting %s" % (package.name))
     files = common.extract_package(archive.url, install_dir)
     for f in files:
-        logger.info("extracted: " + f)
+        logger.debug("extracted: " + f)
 
     # Update the installed-packages.xml file. The above uninstall() call
     # should have removed any existing entry in installed_file. Copy
@@ -426,7 +430,7 @@ def uninstall(package_name, installed_config):
         package = installed_config.installables.pop(package_name)
     except KeyError:
         # If the package has never yet been installed, we're good.
-        logger.info("%s not installed, no uninstall needed" % package_name)
+        logger.debug("%s not installed, no uninstall needed" % package_name)
         return
 
     if package.as_source:
@@ -434,7 +438,8 @@ def uninstall(package_name, installed_config):
         logger.warning("%s installed --as-source, not removing" % package_name)
         return
 
-    logger.info("uninstalling %s from %s" % (package_name, package.install_dir))
+    logger.warn("uninstalling %s" % (package_name))
+    logger.debug("uninstalling %s from %s" % (package_name, package.install_dir))
     # The platforms attribute should contain exactly one PlatformDescription.
     # We don't especially care about its key name.
     _, platform = package.platforms.popitem()
@@ -452,7 +457,7 @@ def uninstall(package_name, installed_config):
             # traceback. But there are a couple different ways we could get
             # through this logic without actually deleting. So produce a
             # message only when we're sure we've actually deleted something.
-            logger.info("    removed " + f)
+            logger.debug("    removed " + f)
         except OSError, err:
             if err.errno == errno.ENOENT:
                 # this file has already been deleted for some reason -- fine
@@ -472,7 +477,7 @@ def uninstall(package_name, installed_config):
                 # Okay, it's a directory, remove it with rmdir().
                 try:
                     os.rmdir(fn)
-                    logger.info("    removed " + f)
+                    logger.debug("    removed " + f)
                 except OSError, err:
                     # We try to remove directories named in the install
                     # archive in case these directories were created solely
@@ -482,7 +487,7 @@ def uninstall(package_name, installed_config):
                     # contains files.
                     if err.errno != errno.ENOTEMPTY:
                         raise
-                    logger.info("    leaving " + f)
+                    logger.debug("    leaving " + f)
             else:
                 # no idea what this exception is, better let it propagate
                 raise
@@ -494,10 +499,10 @@ def install_packages(options, args):
 
     # write packages into 'packages' subdir of build directory by default
     if options.install_dir:
-        logger.info("specified install directory: " + options.install_dir)
+        logger.debug("specified install directory: " + options.install_dir)
     else:
         options.install_dir = os.path.join(config_file.make_build_directory(), 'packages')
-        logger.info("default install directory: " + options.install_dir)
+        logger.debug("default install directory: " + options.install_dir)
 
     # get the absolute paths to the install dir and installed-packages.xml file
     install_dir = os.path.realpath(options.install_dir)
