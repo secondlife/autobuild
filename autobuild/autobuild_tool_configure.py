@@ -51,7 +51,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         parser.add_argument('--config-file',
             dest='config_file',
             default=configfile.AUTOBUILD_CONFIG_FILE,
-            help="")
+            help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
         parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
                             help="build a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',

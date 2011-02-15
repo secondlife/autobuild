@@ -70,7 +70,7 @@ def add_arguments(parser):
         '--config-file',
         default=configfile.AUTOBUILD_CONFIG_FILE,
         dest='install_filename',
-        help='The file used to describe what should be installed.')
+        help="The file used to describe what should be installed\n  (defaults to $AUTOBUILD_CONFIG_FILE or \"autobuild.xml\").")
     parser.add_argument(
         '--installed-manifest',
         default=configfile.INSTALLED_CONFIG_FILE,
