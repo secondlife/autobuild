@@ -51,6 +51,7 @@ class AutobuildTool(AutobuildBase):
         """
         Define arguments specific to this subcommand (tool).
         """
+        parser.description = "upload a package archive to either s3 or a private service (requires credentials to be specified externally)."
         parser.add_argument('archive', nargs=1,
                             help="specify the archive to upload to install-packages.lindenlab.com "
                                  "or to S3, as indicated by config file")

@@ -57,6 +57,9 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                     description="Builds platform targets.")
 
     def register(self, parser):
+        parser.usage = """%(prog)s [-h] [--no-configure] [--config-file CONFIG_FILE] [-a]
+                       [-c CONFIGURATION] [--dry-run] -- [OPT [OPT ...]]"""
+        parser.description = "build the current package and copy its output artifacts into the build directory for use by the 'autobuild package' command."
         parser.add_argument('--config-file',
             dest='config_file',
             default=configfile.AUTOBUILD_CONFIG_FILE,
@@ -76,8 +79,6 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             default=self.configurations_from_environment())
         parser.add_argument('--use-cwd', dest='use_cwd', default=False, action="store_true",
             help="build in current working directory")
-        parser.usage = """%(prog)s [-h] [--no-configure] [--config-file CONFIG_FILE] [-a]
-                       [-c CONFIGURATION] [--dry-run] -- [OPT [OPT ...]]"""
 
     def run(self, args):
         config = configfile.ConfigurationDescription(args.config_file)

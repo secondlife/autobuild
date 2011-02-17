@@ -92,6 +92,7 @@ to represent a platform-independent package.
 """
 
 def add_arguments(parser):
+    parser.description = "install artifacts of dependency packages for use during the build of the current package"
     parser.add_argument(
         'package',
         nargs='*',

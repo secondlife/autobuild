@@ -285,6 +285,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
     # called by autobuild to add help and options to the autobuild parser, and
     # by standalone code to set up argparse
     def register(self, parser):
+        parser.description='prints out the shell environment Autobuild-based buildscripts to use (by calling \'eval\' i.e. eval "$(autobuild source_environment)").'
         parser.add_argument('-V', '--version', action='version', version='source_environment tool module 1.0')
 
     def run(self, args):

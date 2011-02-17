@@ -57,6 +57,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             description="Manipulate installable package entries in the autobuild configuration.")
      
     def register(self, parser):
+        parser.description = "specify installables as dependencies of the current pacakge for use by the 'autobuild install' command."
         parser.add_argument('--config-file',
             dest='config_file',
             default=configfile.AUTOBUILD_CONFIG_FILE,

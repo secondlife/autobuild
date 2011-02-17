@@ -30,6 +30,7 @@ class AutobuildTool(AutobuildBase):
             description="Print configuration.")
 
     def register(self, parser):
+        parser.description = "provide a human-readable view of the package definition in the current package."
         parser.add_argument('--config-file',
             dest='config_file',
             default=configfile.AUTOBUILD_CONFIG_FILE,

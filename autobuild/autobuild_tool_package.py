@@ -65,6 +65,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                     description='Creates an archive of build output.')
 
     def register(self, parser):
+        parser.description = "package the artifacts produced by the 'autobuild build' command into a package archive for distribution."
         parser.add_argument(
             '--config-file',
             default=configfile.AUTOBUILD_CONFIG_FILE,

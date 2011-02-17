@@ -60,6 +60,7 @@ This is because there may be local source changes in that repository.
 """
 
 def add_arguments(parser):
+    parser.description = "uninstall artifacts installed by the 'autobuild install' command."
     parser.add_argument(
         'package',
         nargs='*',

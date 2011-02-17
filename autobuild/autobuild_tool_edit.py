@@ -51,8 +51,9 @@ class AutobuildTool(AutobuildBase):
             description="Manage build and package configuration.")
      
     def register(self, parser):
+        parser.description = "edit the definition of the current package, for specifying the commands to run for the various build steps (configure and build subcommands), versioning and licensing information (package and source-info subcommands), etc."
         subparsers = parser.add_subparsers(title='subcommands', dest='subparser_name')
-        
+
         for (cmd,callable) in self._get_command_callables().items():
             parser = subparsers.add_parser(cmd, help=callable.HELP, formatter_class=argparse.RawTextHelpFormatter)
             parser.add_argument('argument', 

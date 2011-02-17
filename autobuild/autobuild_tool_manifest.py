@@ -41,6 +41,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             description="Manipulate manifest entries to the autobuild configuration.")
      
     def register(self, parser):
+        parser.description = "specify manifest of artifacts to be packaged by the 'autobuild package' command."
         parser.add_argument('--config-file',
             dest='config_file',
             default=configfile.AUTOBUILD_CONFIG_FILE,
