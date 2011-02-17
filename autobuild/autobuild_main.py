@@ -144,7 +144,7 @@ class Autobuild(object):
         self.tools_list = []
         
         self.parser.parent = self
-        self.parser.add_argument('--help',
+        self.parser.add_argument('-h', '--help',
             help='find all valid Autobuild Tools and show help', action=run_help,
             nargs='?', default=argparse.SUPPRESS)
         
