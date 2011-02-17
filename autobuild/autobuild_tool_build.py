@@ -84,13 +84,14 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         config = configfile.ConfigurationDescription(args.config_file)
         current_directory = os.getcwd()
         build_directory = config.make_build_directory()
+        logger.debug("building in %s" % build_directory)
         if not args.use_cwd:
             os.chdir(build_directory)
         try:
             configure_first = not args.do_not_configure
             if args.all:
                 build_configurations = config.get_all_build_configurations()
-            elif args.configurations is not None:
+            elif args.configurations:
                 build_configurations = \
                     [config.get_build_configuration(name) for name in args.configurations]
             else:
@@ -99,6 +100,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 logger.warn("no applicable build configurations found, autobuild cowardly refuses to build nothing!")
                 logger.warn("did you remember to mark a build command as default? try passing 'default=true' to your 'autobuild edit build' command")
 
+            logger.debug("building for configuration(s) %r" % build_configurations)
             for build_configuration in build_configurations:
                 if configure_first:
                     result = _configure_a_configuration(config, build_configuration,
