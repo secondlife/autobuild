@@ -22,6 +22,7 @@
 
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -71,8 +72,21 @@ def load_vsvars(vsver):
     """)
     temp_script_file.close()
 
-    cmd = subprocess.Popen(['cmd', '/Q', '/C', temp_script_name], stdout=subprocess.PIPE)
+    if sys.platform == "cygwin":
+        # cygwin needs the file to have executable permissions, and translated to a path
+        # name that cmd.exe can understand
+        cmdline = ["cygpath", "-d", "%s" % temp_script_name]
+        logger.debug(cmdline)
+        os.chmod(temp_script_name, stat.S_IREAD|stat.S_IWRITE|stat.S_IEXEC)
+        (temp_script_name, _) = subprocess.Popen(cmdline, stdout=subprocess.PIPE).communicate()
+        temp_script_name = temp_script_name.rstrip()
+
+    cmdline = ['cmd', '/Q', '/C', temp_script_name]
+    logger.debug(cmdline)
+    cmd = subprocess.Popen(cmdline, stdout=subprocess.PIPE)
     (cmdout, cmderr) = cmd.communicate()
+
+    logger.debug("cmdout: %r" % cmdout)
 
     os.remove(temp_script_name)
 
@@ -83,6 +97,8 @@ def load_vsvars(vsver):
     cmdout = '\\\\'.join(cmdout.split('\\'))
 
     vsvars = llsd.parse(cmdout)
+
+    logger.debug("VSVARS: %r" % vsvars)
 
     # translate paths from windows to cygwin format
     vsvars['VSPATH'] = ":".join(
@@ -247,9 +263,13 @@ def do_source_environment(args):
         }
 
     if common.get_current_platform() is "windows":
-        # reset stdout in binary mode so sh doesn't get confused by '\r'
-        import msvcrt
-        msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
+        try:
+            # reset stdout in binary mode so sh doesn't get confused by '\r'
+            import msvcrt
+            msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
+        except ImportError:
+            # cygwin gets a pass
+            pass
 
         # load vsvars32.bat variables
         # *TODO - find a way to configure this instead of hardcoding to vc80
