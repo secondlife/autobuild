@@ -91,6 +91,7 @@ class TestLocally(object):
 
 class TestWithConfigFile(object):
     def setup(self):
+        raise SkipTest()
         # Create a temp directory for fixture data.
         self.tempdir = tempfile.mkdtemp()
         self.origdir = os.path.join(self.tempdir, "orig")
@@ -190,7 +191,6 @@ class TestWithConfigFile(object):
             raise reraise[0], reraise[1], reraise[2]
 
     def testNoDry(self):
-        raise SkipTest()
         # Capture print output
         oldout, sys.stdout = sys.stdout, StringIO()
         try:
@@ -206,7 +206,6 @@ class TestWithConfigFile(object):
         assert not self.scpconn.SCPFileExists(self.upno_archive)
 
     def testYesDry(self):
-        raise SkipTest()
         # Capture print output
         oldout, sys.stdout = sys.stdout, StringIO()
         try:
@@ -228,7 +227,6 @@ class TestWithConfigFile(object):
         assert not self.s3conn.S3FileExists(self.upyes_archive)
 
     def testNo(self):
-        raise SkipTest()
         # Establish that this upload() call actually changes the return from
         # SCPFileExists().
         assert not self.scpconn.SCPFileExists(self.upno_archive)
@@ -255,7 +253,6 @@ class TestWithConfigFile(object):
         assert_in("not uploading", testmsg)
 
     def testYes(self):
-        raise SkipTest()
         # Want to change the state of both servers.
         assert not self.scpconn.SCPFileExists(self.upyes_archive), \
             "file already exists on install-packages %s" % self.upyes_archive
