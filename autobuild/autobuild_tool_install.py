@@ -450,7 +450,7 @@ def uninstall(package_name, installed_config):
     for f in reversed(platform.manifest):
         # Some tarballs contain funky directory name entries (".//"). Use
         # realpath() to dewackify them.
-        fn = os.path.realpath(os.path.join(package.install_dir, f))
+        fn = os.path.normpath(os.path.join(package.install_dir, f))
         try:
             os.remove(fn)
             # We used to print "removing f" before the call above, the
