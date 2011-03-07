@@ -104,6 +104,9 @@ def package(config, platform_name, archive_filename=None, check_license=True, dr
     if not config.package_description:
         raise PackageError("no package description")
     package_description = config.package_description
+    if not package_description.name:
+        raise PackageError("no package name specified")
+    print "packing %s" % package_description.name
     if not package_description.version:
         raise PackageError("no version number specified")
     build_directory = config.get_build_directory(platform_name)
