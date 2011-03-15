@@ -102,13 +102,14 @@ def _arg_help_str(args, arg_dict):
 
 class _config(InteractiveCommand):
 
-    ARGUMENTS = ['name', 'platform', 'command', 'options', 'arguments',]
+    ARGUMENTS = ['name', 'platform', 'command', 'options', 'arguments', 'default']
 
     ARG_DICT = {    'name':     {'help':'Name of config'}, 
                     'platform': {'help':'Platform of config'},
                     'command':  {'help':'Command to execute'}, 
                     'options':  {'help':'Options for command'},
                     'arguments':{'help':'Arguments for command'},
+                    'default':  {'help':'Run by default'},
                 }
 
     def __init__(self, config):
