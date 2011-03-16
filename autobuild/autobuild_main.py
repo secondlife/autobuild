@@ -189,8 +189,23 @@ class Autobuild(object):
 
         return 0
 
+def main():
+    # find the path to the actual autobuild exectuable and ensure it's in PATH
+    # so that build commands can find it and other scripts distributed with autobuild.
+    script_path = os.path.dirname(common.get_autobuild_executable_path())
+
+    logger = logging.getLogger('autobuild')
+    try:
+        os.environ['PATH'] = os.environ.get('PATH') + os.pathsep + script_path
+        sys.exit( Autobuild().main(sys.argv[1:]) )
+    except KeyboardInterrupt, e:
+        sys.exit("Aborted...")
+    except common.AutobuildError, e:
+        if logger.getEffectiveLevel() <= logging.DEBUG:
+            logger.exception(str(e))
+        sys.exit("ERROR: %s\nFor more information: try re-running your command with --verbose or --debug" % e)
+
+ 
 if __name__ == "__main__":
-    sys.exit( Autobuild().main( sys.argv[1:] ) )
-
-
+    main()
 

@@ -22,7 +22,9 @@
 # THE SOFTWARE.
 # $/LicenseInfo$
 
-from distutils.core import setup
+from distribute_setup import use_setuptools
+use_setuptools()
+from setuptools import setup
 
 # most of this is shamelessly cloned from llbase's setup.py
 
@@ -47,12 +49,13 @@ setup(
     version=LLAUTOBUILD_VERSION,
     author='Brad Linden',
     author_email='brad@lindenlab.com',
-    url='http://bitbucket.org/brad_linden/autobuild/',
+    url='http://bitbucket.org/lindenlab/autobuild/',
     description='Linden Lab Automated Package Management and Build System',
     platforms=["any"],
     package_dir={PACKAGE_NAME:LLAUTOBUILD_SOURCE},
     packages=[PACKAGE_NAME],
-    scripts=['bin/autobuild', 'bin/autobuild.cmd'],
+    entry_points=dict(console_scripts=['autobuild=autobuild.autobuild_main:main']),
+    scripts=['bin/autobuild.cmd'],
     license='MIT',
     classifiers=filter(None, CLASSIFIERS.split("\n")),
     #requires=['eventlet', 'elementtree'],
