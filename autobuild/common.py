@@ -533,7 +533,7 @@ class Bootstrap(object):
         python_dir = os.path.join(install_dir, "lib", "python2.5")
         print "# python_dir =", python_dir
         if python_dir not in sys.path:
-            sys.path.append(python_dir)
+            sys.path.insert(0, python_dir)
 
         # install all of our dependent packages, as needed
         platform = get_current_platform()
