@@ -66,24 +66,14 @@ class Executable(common.Serialized):
         self.arguments = arguments
         self.parent = parent
     
-    def __call__(self, options=[]):
-        actual_command = self.get_command()
-        if actual_command is None:
-            raise ExecutableError('no command specified')
-        all_arguments = [actual_command]
-        all_arguments.extend(self.get_options())
-        all_arguments.extend(options)
-        all_arguments.extend(self.get_arguments())
-
-        autobuild_env = dict(os.environ, AUTOBUILD=os.environ.get('AUTOBUILD',common.get_autobuild_executable_path()))
-
-        return subprocess.call(' '.join(all_arguments), shell=True, env=autobuild_env)
+    def __call__(self, options=[], environment=os.environ):
+        return subprocess.call(' '.join(self._get_all_arguments(options)), shell=True, env=environment)
    
-    def __str__(self):
-        all_arguments = [self.get_command()]
-        all_arguments.extend(self.get_options())
-        all_arguments.extend(self.get_arguments())
-        return ' '.join(all_arguments)
+    def __str__(self, options=[]):
+        try:   
+            return ' '.join(self._get_all_arguments(options))
+        except:
+            return 'INVALID EXECUTABLE!'
     
     def get_arguments(self):
         """
@@ -117,4 +107,13 @@ class Executable(common.Serialized):
             return self.parent.get_command()
         else:
             None
-            
+    
+    def _get_all_arguments(self, options):
+        actual_command = self.get_command()
+        if actual_command is None:
+            raise ExecutableError('no command specified')
+        all_arguments = [actual_command]
+        all_arguments.extend(self.get_options())
+        all_arguments.extend(options)
+        all_arguments.extend(self.get_arguments())
+        return all_arguments        

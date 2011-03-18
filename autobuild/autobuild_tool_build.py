@@ -147,8 +147,8 @@ def _build_a_configuration(config, build_configuration, extra_arguments, dry_run
     else:
         logger.info('no build executable defined; doing nothing')
         return 0
-    logger.info('executing build command %s', build_executable)
+    logger.info('executing build command %s', build_executable.__str__(extra_arguments))
     if not dry_run:
-        return build_executable(extra_arguments)
+        return build_executable(extra_arguments, common.get_autobuild_environment())
     else:
         return 0
