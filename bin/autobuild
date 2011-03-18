@@ -34,7 +34,7 @@ script_path = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
 lib_path = os.path.dirname(script_path)
 if os.path.exists(os.path.join(lib_path, 'autobuild', '__init__.py')):
     if not lib_path in sys.path:
-        sys.path.insert(0, os.path.dirname(script_path))
+        sys.path.insert(0, lib_path)
 from autobuild.autobuild_main import Autobuild
 from autobuild.common import AutobuildError
 

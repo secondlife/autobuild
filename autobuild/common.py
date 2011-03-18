@@ -528,10 +528,8 @@ class Bootstrap(object):
         # get the directory where we keep autobuild's dependencies
         install_dir = get_temp_dir("autobuild")
 
-        print "# install_dir =", install_dir
         # add its lib/pythonX.X directory to our module search path
         python_dir = os.path.join(install_dir, "lib", "python2.5")
-        print "# python_dir =", python_dir
         if python_dir not in sys.path:
             sys.path.append(python_dir)
 
