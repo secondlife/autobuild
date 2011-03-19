@@ -49,6 +49,8 @@ import urllib2
 
 logger = logging.getLogger('autobuild.common')
 
+AUTOBUILD_VERSION_STRING = "0.8"
+
 
 class AutobuildError(RuntimeError):
     pass
