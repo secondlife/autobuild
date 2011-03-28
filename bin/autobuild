@@ -35,7 +35,7 @@ if os.path.exists(os.path.join(lib_path, 'autobuild', '__init__.py')):
     if not lib_path in sys.path:
         sys.path.insert(0, lib_path)
 
-from autobuild.autobuild_main import Autobuild
+from autobuild import autobuild_main
 
 if __name__ == "__main__":
     autobuild_main.main()
