@@ -123,8 +123,8 @@ def _configure_a_configuration(config, build_configuration, extra_arguments, dry
     else:
         logger.info('no configure executable defined; doing nothing')
         return 0
-    logger.info('executing configure command %s', configure_executable)
+    logger.info('executing configure command %s', configure_executable.__str__(extra_arguments))
     if not dry_run:
-        return configure_executable(extra_arguments)
+        return configure_executable(extra_arguments, common.get_autobuild_environment())
     else:
         return 0

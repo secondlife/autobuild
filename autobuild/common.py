@@ -49,6 +49,8 @@ import urllib2
 
 logger = logging.getLogger('autobuild.common')
 
+AUTOBUILD_VERSION_STRING = "0.8"
+
 
 class AutobuildError(RuntimeError):
     pass
@@ -103,6 +105,13 @@ def get_default_scp_command():
     """
     scp = find_executable(['pscp', 'scp'], ['.exe'])
     return scp
+    
+def get_autobuild_environment():
+    """
+    Return an environment under which to execute autobuild subprocesses.
+    """
+    return dict(os.environ, AUTOBUILD=os.environ.get(
+        'AUTOBUILD', get_autobuild_executable_path()))
 
 def get_default_install_cache_dir():
     """

@@ -256,7 +256,7 @@ if common.get_current_platform() is "windows":
 def do_source_environment(args):
     var_mapping = {
             'AUTOBUILD_EXECUTABLE_PATH':common.get_autobuild_executable_path(),
-            'AUTOBUILD_VERSION_STRING':"0.0.1-mvp",
+            'AUTOBUILD_VERSION_STRING':common.AUTOBUILD_VERSION_STRING,
             'AUTOBUILD_PLATFORM':common.get_current_platform(),
             'MAKEFLAGS':"",
             'DISTCC_HOSTS':"",
@@ -306,7 +306,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
     # by standalone code to set up argparse
     def register(self, parser):
         parser.description='prints out the shell environment Autobuild-based buildscripts to use (by calling \'eval\' i.e. eval "$(autobuild source_environment)").'
-        parser.add_argument('-V', '--version', action='version', version='source_environment tool module 1.0')
+        parser.add_argument('-V', '--version', action='version',
+                            version='source_environment tool module %s' % common.AUTOBUILD_VERSION_STRING)
 
     def run(self, args):
         do_source_environment(args)

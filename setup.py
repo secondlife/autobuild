@@ -28,8 +28,22 @@ from setuptools import setup
 
 # most of this is shamelessly cloned from llbase's setup.py
 
+# Version twiddling
+# Each time we rebuild an autobuild package, manually increment the "build
+# number" here, e.g. 0.8.1, 0.8.2, etc.
+BUILD = 2
+# But suppose we update our repository with new source and the version number
+# embedded in the package itself changes, e.g. from 0.8 to 0.9 -- but we don't
+# notice, simply incrementing the build number? The package build we expected
+# to become 0.8.5 should really be 0.9.1 instead -- NOT 0.9.5.
+VERSION_WHEN_LAST_PACKAGED = "0.8"
+
+from autobuild.common import AUTOBUILD_VERSION_STRING
+if AUTOBUILD_VERSION_STRING != VERSION_WHEN_LAST_PACKAGED:
+    BUILD = 1
+
+
 PACKAGE_NAME = 'autobuild'
-LLAUTOBUILD_VERSION = '0.0.0'
 LLAUTOBUILD_SOURCE = 'autobuild'
 CLASSIFIERS = """\
 Development Status :: 4 - Beta
@@ -46,10 +60,10 @@ ext_modules = []
 
 setup(
     name=PACKAGE_NAME,
-    version=LLAUTOBUILD_VERSION,
+    version="%s.%s" % (AUTOBUILD_VERSION_STRING, BUILD),
     author='Brad Linden',
     author_email='brad@lindenlab.com',
-    url='http://bitbucket.org/lindenlab/autobuild/',
+    url="http://wiki.secondlife.com/wiki/Autobuild",
     description='Linden Lab Automated Package Management and Build System',
     platforms=["any"],
     package_dir={PACKAGE_NAME:LLAUTOBUILD_SOURCE},

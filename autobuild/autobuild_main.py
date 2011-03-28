@@ -42,7 +42,8 @@ class Autobuild(object):
         self.parser = argparse.ArgumentParser(
             description='Autobuild', prog='autobuild', add_help=False)
         
-        self.parser.add_argument('-V', '--version', action='version', version='%(prog)s 1.0')
+        self.parser.add_argument('-V', '--version', action='version',
+                                 version='%%(prog)s %s' % common.AUTOBUILD_VERSION_STRING)
 
         self.subparsers = self.parser.add_subparsers(title='Sub Commands',
             description='Valid Sub Commands',
