@@ -371,7 +371,7 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     # error out if MD5 doesn't match
     if not hash_algorithms.verify_hash(archive.hash_algorithm, cachefile, archive.hash):
         common.remove_package(archive.url)
-        raise InstallError("%s mismatch for %s" % (archive.hash_algorithm, cachefile))
+        raise InstallError("%s mismatch for %s" % ((archive.hash_algorithm or "md5"), cachefile))
 
     # dry run mode = download but don't install packages
     if dry_run:
