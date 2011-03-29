@@ -358,20 +358,28 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     cachefile = common.get_package_in_cache(archive.url)
 
     # download the package, if it's not already in our cache
+    download_required = False
     if os.path.exists(cachefile):
-        logger.debug("found in cache: " + cachefile)
+        if hash_algorithms.verify_hash(archive.hash_algorithm, cachefile, archive.hash):
+            logger.debug("found in cache: " + cachefile)
+        else:
+            download_required = True
+            common.remove_package(archive.url)
     else:
+        download_required = True
+    
+    if download_required:
         # download the package to the cache
         logger.warn("downloading %s archive from %s" % (package.name, archive.url))
         if not common.download_package(archive.url):
             # Download failure has been observed to leave a zero-length file.
             common.remove_package(archive.url)
             raise InstallError("failed to download %s" % archive.url)
-
-    # error out if MD5 doesn't match
-    if not hash_algorithms.verify_hash(archive.hash_algorithm, cachefile, archive.hash):
-        common.remove_package(archive.url)
-        raise InstallError("%s mismatch for %s" % (archive.hash_algorithm, cachefile))
+    
+        # error out if MD5 doesn't match
+        if not hash_algorithms.verify_hash(archive.hash_algorithm, cachefile, archive.hash):
+            common.remove_package(archive.url)
+            raise InstallError("download error--%s mismatch for %s" % ((archive.hash_algorithm or "md5"), cachefile))
 
     # dry run mode = download but don't install packages
     if dry_run:
