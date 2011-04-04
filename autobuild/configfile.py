@@ -105,11 +105,7 @@ class ConfigurationDescription(common.Serialized):
         """
         Returns the absolute path to the build directory for the platform.
         """
-        if self.package_description is None:
-            raise ConfigurationError("no package configuration defined; one may be created using 'autobuild edit package'")
-        platform_description = self.package_description.platforms.get(platform_name, None)
-        if platform_description is None:
-            raise ConfigurationError("no configuration for platform '%s' found; one may be created using 'autobuild edit platform'" % platform_name)
+        platform_description = self.get_platform(platform_name)
         common_platform_description = self.package_description.platforms.get('common', None)
         config_directory = os.path.dirname(self.path)
         if platform_description.build_directory is not None:
