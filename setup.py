@@ -31,7 +31,7 @@ from setuptools import setup
 # Version twiddling
 # Each time we rebuild an autobuild package, manually increment the "build
 # number" here, e.g. 0.8.1, 0.8.2, etc.
-BUILD = 4
+BUILD = 5
 # But suppose we update our repository with new source and the version number
 # embedded in the package itself changes, e.g. from 0.8 to 0.9 -- but we don't
 # notice, simply incrementing the build number? The package build we expected
@@ -69,7 +69,7 @@ setup(
     package_dir={PACKAGE_NAME:LLAUTOBUILD_SOURCE},
     packages=[PACKAGE_NAME],
     entry_points=dict(console_scripts=['autobuild=autobuild.autobuild_main:main']),
-    scripts=['bin/autobuild.cmd'],
+    scripts=[],
     license='MIT',
     classifiers=filter(None, CLASSIFIERS.split("\n")),
     #requires=['eventlet', 'elementtree'],
