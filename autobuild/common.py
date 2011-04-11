@@ -80,7 +80,7 @@ def get_current_platform():
         'cygwin' : PLATFORM_WINDOWS,
         'solaris' : PLATFORM_SOLARIS
         }
-    return platform_map.get(sys.platform, PLATFORM_UNKNOWN)
+    return os.environ.get('AUTOBUILD_PLATFORM_OVERRIDE', platform_map.get(sys.platform, PLATFORM_UNKNOWN))
 
 def get_current_user():
     """
