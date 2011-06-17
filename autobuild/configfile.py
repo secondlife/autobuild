@@ -341,8 +341,10 @@ class BuildConfigurationDescription(common.Serialized):
         command = dictionary.pop(name, None)
         if command is not None:
             self[name] = Executable(
-                command=command.get('command'), options=command.get('options', []), 
-                arguments=command.get('arguments'))
+                command=command.get('command'),
+                options=command.get('options', []),
+                arguments=command.get('arguments'),
+                filters=command.get('filters'))
 
 
 class ArchiveDescription(common.Serialized):

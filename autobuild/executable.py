@@ -31,8 +31,16 @@ Date   : 2010-09-29
 import os
 import sys
 import subprocess
+import re
 
 import common
+
+# Like any() but calls each element of the iterable
+def _any_call(iterable):
+    for element in iterable:
+        if element():
+            return True
+    return False
 
 class ExecutableError(common.AutobuildError):
     pass
@@ -46,6 +54,7 @@ class Executable(common.Serialized):
         command - The command to invoke.
         arguments - The arguments to pass to the command being invoked.
         options - The options to pass to the command being invoked.
+        filters - Regexes to filter command output.
         parent - An Executable instance from which to inherit values from.
         
     Instances of this object may be chained by using the parent attribute.  If either the command or
@@ -60,17 +69,31 @@ class Executable(common.Serialized):
     
     parent = None
     
-    def __init__(self, command=None, options=[], arguments=None, parent=None):
+    def __init__(self, command=None, options=[], arguments=None, filters=None, parent=None):
         self.command = command
         self.options = options
         self.arguments = arguments
         self.parent = parent
+        self.filters = filters
     
     def __call__(self, options=[], environment=os.environ):
-        return subprocess.call(' '.join(self._get_all_arguments(options)), shell=True, env=environment)
+        filters = self.get_filters()
+        if filters:
+            filters_re = [ re.compile(filter, re.MULTILINE) for filter in filters ]
+            process = subprocess.Popen(' '.join(self._get_all_arguments(options)), shell=True, env=environment, stdout=subprocess.PIPE)
+            for line in process.stdout:
+                filters_l = [ lambda: filter_re.search(line) for filter_re in filters_re ]
+                if _any_call(filters_l):
+                    continue
+                line = line.replace("\r\n", "\n")
+                line = line.replace("\r", "\n")
+                print line, # Trailing , prevents an extra newline
+            return process.wait()
+        else:
+            return subprocess.call(' '.join(self._get_all_arguments(options)), shell=True, env=environment)
    
     def __str__(self, options=[]):
-        try:   
+        try:
             return ' '.join(self._get_all_arguments(options))
         except:
             return 'INVALID EXECUTABLE!'
@@ -84,7 +107,7 @@ class Executable(common.Serialized):
         elif self.parent is not None:
             return self.parent.get_arguments()
         else:
-            return []    
+            return []
     
     def get_options(self):
         """
@@ -106,7 +129,18 @@ class Executable(common.Serialized):
         elif self.parent is not None:
             return self.parent.get_command()
         else:
-            None
+            return None
+    
+    def get_filters(self):
+        """
+        Returns the filters on command output.
+        """
+        if self.filters is not None:
+            return self.filters
+        elif self.parent is not None:
+            return self.parent.get_filters()
+        else:
+            return None
     
     def _get_all_arguments(self, options):
         actual_command = self.get_command()
