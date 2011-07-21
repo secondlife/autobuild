@@ -276,7 +276,7 @@ def do_source_environment(args):
         try:
             vs_ver = os.environ['AUTOBUILD_VSVER']
         except KeyError:
-            vs_ver = "80"
+            vs_ver = "100"
             
         var_mapping.update(load_vsvars(vs_ver))
         var_mapping.update(AUTOBUILD_EXECUTABLE_PATH=("$(cygpath -u '%s')" % common.get_autobuild_executable_path()))
