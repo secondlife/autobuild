@@ -181,8 +181,12 @@ class ConfigurationDescription(common.Serialized):
             else:
                 self.path = abs_path
         if os.path.isfile(self.path):
+            autobuild_xml = file(self.path, 'rb').read()
+            if not autobuild_xml:
+                logger.warn("Configuration file '%s' is empty" % self.path)
+                return
             try:
-                saved_data = llsd.parse(file(self.path, 'rb').read())
+                saved_data = llsd.parse(autobuild_xml)
             except llsd.LLSDParseError:
                 raise AutobuildError("Config file %s is corrupt. Aborting..." % self.path)
             if not saved_data.has_key('version'):
