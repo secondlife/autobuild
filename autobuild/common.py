@@ -46,10 +46,9 @@ import tarfile
 import tempfile
 import urllib2
 
+from version import AUTOBUILD_VERSION_STRING
 
 logger = logging.getLogger('autobuild.common')
-
-AUTOBUILD_VERSION_STRING = "0.8"
 
 
 class AutobuildError(RuntimeError):

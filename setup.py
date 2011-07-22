@@ -25,20 +25,34 @@
 from distribute_setup import use_setuptools
 use_setuptools()
 from setuptools import setup
+import os.path
 
 # most of this is shamelessly cloned from llbase's setup.py
 
 # Version twiddling
 # Each time we rebuild an autobuild package, manually increment the "build
 # number" here, e.g. 0.8.1, 0.8.2, etc.
-BUILD = 5
+BUILD = 7                               # default to VS2010
 # But suppose we update our repository with new source and the version number
 # embedded in the package itself changes, e.g. from 0.8 to 0.9 -- but we don't
 # notice, simply incrementing the build number? The package build we expected
 # to become 0.8.5 should really be 0.9.1 instead -- NOT 0.9.5.
 VERSION_WHEN_LAST_PACKAGED = "0.8"
 
-from autobuild.common import AUTOBUILD_VERSION_STRING
+# from http://stackoverflow.com/questions/2058802/how-can-i-get-the-version-defined-in-setup-py-setuptools-in-my-package :
+# "make a version.py in your package with a __version__ line, then read it
+# from setup.py using execfile('mypackage/version.py'), so that it sets
+# __version__ in the setup.py namespace."
+
+# [We actually define AUTOBUILD_VERSION_STRING, but same general idea.]
+
+# "DO NOT import your package from your setup.py... it will seem to work for
+# you (because you already have your package's dependencies installed), but it
+# will wreak havoc upon new users of your package, as they will not be able to
+# install your package without manually installing the dependencies first."
+# from autobuild.common import AUTOBUILD_VERSION_STRING
+execfile(os.path.join("autobuild", "version.py"))
+# The previous execfile better have defined AUTOBUILD_VERSION_STRING...
 if AUTOBUILD_VERSION_STRING != VERSION_WHEN_LAST_PACKAGED:
     BUILD = 1
 
