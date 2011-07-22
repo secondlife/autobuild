@@ -102,8 +102,17 @@ def print_manifest(config, platform_name):
     """
     Prints the platform's manifest.
     """
-    for pattern in config.get_platform(platform_name).manifest:
-        print pattern
+    if platform_name == 'all':
+        for platform in config.get_all_platforms():
+            patterns = config.get_platform(platform).manifest
+            if len(patterns) == 0:
+                continue
+            print "%s:" % platform
+            for pattern in config.get_platform(platform).manifest:
+                print "\t%s" % pattern
+    else:
+        for pattern in config.get_platform(platform_name).manifest:
+            print pattern
 
 
 if __name__ == "__main__":
