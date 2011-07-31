@@ -72,6 +72,7 @@ class ConfigurationDescription(common.Serialized):
         self.installables = {}
         self.package_description = None
         self.__load(path)
+        os.environ['AUTOBUILD_CONFIG_FILE'] = os.path.basename(self.path)
  
     def absolute_path(self, path):
         """
