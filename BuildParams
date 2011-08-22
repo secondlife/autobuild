@@ -1,0 +1,2 @@
+# Enable Teamcity Coding Policy Checks
+build_enforce_coding_policy = true
