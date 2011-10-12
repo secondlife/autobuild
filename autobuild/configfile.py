@@ -357,6 +357,7 @@ class ArchiveDescription(common.Serialized):
     Describes a dowloadable archive of artifacts for this package.
     
     Attributes:
+        format
         hash
         hash_algorithm
         url
@@ -364,6 +365,7 @@ class ArchiveDescription(common.Serialized):
     # Implementations for various values of hash_algorithm should be found in
     # hash_algorithms.py.
     def __init__(self, dictionary = None):
+        self.format = None
         self.hash = None
         self.hash_algorithm = None
         self.url = None

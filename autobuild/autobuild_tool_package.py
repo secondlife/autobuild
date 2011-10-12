@@ -27,7 +27,7 @@ Creates archives of build output.
 The package sub-command works by locating all of the files in the
 build output directory that match the manifest specified in the
 configuration file. The manifest can include platform-specific and
-platform-common files, and they can use glob-style wildcards.
+platform-common files which may use glob-style wildcards.
 
 The package command optionally enforces the restriction that a license
 string and a valid licensefile for the package has been specified. The operation
@@ -43,6 +43,7 @@ following metadata in the autobuild.xml file:
 * license_file (assumes LICENSES/<package-name>.txt otherwise)
 """
 
+import hashlib
 import sys
 import os
 import tarfile
@@ -54,6 +55,7 @@ import configfile
 import autobuild_base
 from connection import SCPConnection, S3Connection
 from common import AutobuildError
+from zipfile import ZipFile
 
 
 logger = logging.getLogger('autobuild.package')
@@ -87,17 +89,22 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             default=True,
             dest='check_license',
             help="do not perform the license check")
+        parser.add_argument(
+            '--archive-format',
+            default='tbz2',
+            dest='archive_format',
+            help='the format of the archive (tbz2 or zip)')
 
     def run(self, args):
         config = configfile.ConfigurationDescription(args.autobuild_filename)
-        package(config, args.platform, args.archive_filename, args.check_license, args.dry_run)
+        package(config, args.platform, args.archive_filename, args.archive_format, args.check_license, args.dry_run)
 
 
 class PackageError(AutobuildError):
     pass
 
 
-def package(config, platform_name, archive_filename=None, check_license=True, dry_run=False):
+def package(config, platform_name, archive_filename=None, archive_format=None, check_license=True, dry_run=False):
     """
     Create an archive for the given platform.
     """
@@ -138,7 +145,23 @@ def package(config, platform_name, archive_filename=None, check_license=True, dr
         for f in files:
             logger.info('added ' + f)
     else:
-        _create_tarfile(tarfilename, build_directory, files)
+        archive_description = platform_description.archive
+        format = _determine_archive_format(archive_format, archive_description)
+        if format == 'tbz2':
+            _create_tarfile(tarfilename + '.tar.bz2', build_directory, files)
+        elif format == 'zip':
+            _create_zip_archive(tarfilename + '.zip', build_directory, files)
+        else:
+            raise PackageError("archive format %s is not supported" % format)
+
+
+def _determine_archive_format(archive_format_argument, archive_description):
+    if archive_format_argument is not None:
+        return archive_format_argument
+    elif archive_description is None or archive_description.format is None:
+        return 'tbz2'
+    else:
+        archive_description.format
 
 
 def _generate_archive_name(package_description, platform_name, suffix=''):
@@ -150,7 +173,6 @@ def _generate_archive_name(package_description, platform_name, suffix=''):
     name = package_name + '-' + package_description.version + '-'
     name += platform_name + '-'
     name += time.strftime("%Y%m%d") + suffix
-    name += '.tar.bz2'
     return name
 
 
@@ -203,8 +225,38 @@ def _create_tarfile(tarfilename, build_directory, filelist):
     # Not using logging, since this output should be produced unconditionally on stdout
     # Downstream build tools utilize this output
     print "wrote  %s" % tarfilename
-    import hashlib
-    fp = open(tarfilename, 'rb')
+    _print_hash(tarfilename)
+    
+    
+def _create_zip_archive(archive_filename, build_directory, file_list):
+    if not os.path.exists(os.path.dirname(archive_filename)):
+        os.makedirs(os.path.dirname(archive_filename))
+    current_directory = os.getcwd()
+    os.chdir(build_directory)
+    try:
+        archive = ZipFile(archive_filename, 'w')
+        for file in file_list:
+            _add_file_to_zip_archive(archive, file, archive_filename)
+        archive.close()
+    finally:
+        os.chdir(current_directory)
+    print "wrote  %s" % archive_filename
+    _print_hash(archive_filename)
+
+
+def _add_file_to_zip_archive(zip_file, file, archive_filename):
+    try:
+        zip_file.write(file)
+        logger.info('added ' + file)
+        if os.path.isdir(file):
+            for f in os.listdir(file):
+                _add_file_to_zip_archive(zip_file, os.path.join(file, f), archive_filename)
+    except:
+        raise PackageError("unable to add %s to %s" % (file, archive_filename))
+    
+
+def _print_hash(filename):
+    fp = open(filename, 'rb')
     m = hashlib.md5()
     while True:
         d = fp.read(65536)
@@ -212,4 +264,5 @@ def _create_tarfile(tarfilename, build_directory, filelist):
         m.update(d)
     # Not using logging, since this output should be produced unconditionally on stdout
     # Downstream build tools utilize this output
-    print "md5    %s" % m.hexdigest()
+    print "md5    %s" % m.hexdigest()    
+    
