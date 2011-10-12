@@ -30,6 +30,7 @@ import tarfile
 import unittest
 import autobuild.autobuild_tool_package as package
 from autobuild import configfile
+from zipfile import ZipFile
 
 
 class TestPackaging(unittest.TestCase):
@@ -40,6 +41,7 @@ class TestPackaging(unittest.TestCase):
         self.config = configfile.ConfigurationDescription(self.config_path)
         self.tar_basename = os.path.join(this_dir, "archive-test")
         self.tar_name = self.tar_basename + ".tar.bz2"
+        self.zip_name = self.tar_basename + ".zip"
 
     def test_package(self):
         package.package(self.config, 'linux', self.tar_basename)
@@ -57,6 +59,13 @@ class TestPackaging(unittest.TestCase):
         assert [os.path.basename(f) for f in tarball.getnames()].sort() == \
             ['file3', 'file1', 'test1.txt'].sort()
         os.remove(self.tar_name)
+        result = subprocess.call('autobuild package --config-file=%s --archive-name=%s --archive-format=zip -p linux' % \
+            (self.config_path, self.tar_basename), shell=True)
+        assert result == 0
+        assert os.path.exists(self.zip_name)
+        zip_file = ZipFile(self.zip_name, 'r')
+        assert [os.path.basename(f) for f in zip_file.namelist()].sort() == \
+            ['file3', 'file1', 'test1.txt'].sort()
         result = subprocess.call('autobuild package --config-file=%s -p linux --dry-run' % \
             (self.config_path), shell=True)
         assert result == 0
