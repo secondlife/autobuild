@@ -38,10 +38,11 @@ class TestPackaging(unittest.TestCase):
         data_dir = os.path.join(this_dir, "data")
         self.config_path = os.path.join(data_dir, "autobuild-package.xml")
         self.config = configfile.ConfigurationDescription(self.config_path)
-        self.tar_name = os.path.join(this_dir, "archive-test.tar.bz2")
+        self.tar_basename = os.path.join(this_dir, "archive-test")
+        self.tar_name = self.tar_basename + ".tar.bz2"
 
     def test_package(self):
-        package.package(self.config, 'linux', self.tar_name)
+        package.package(self.config, 'linux', self.tar_basename)
         assert os.path.exists(self.tar_name)
         tarball = tarfile.open(self.tar_name)
         assert [os.path.basename(f) for f in tarball.getnames()].sort() == \
@@ -49,7 +50,7 @@ class TestPackaging(unittest.TestCase):
             
     def test_autobuild_package(self):
         result = subprocess.call('autobuild package --config-file=%s --archive-name=%s -p linux' % \
-            (self.config_path, self.tar_name), shell=True)
+            (self.config_path, self.tar_basename), shell=True)
         assert result == 0
         assert os.path.exists(self.tar_name)
         tarball = tarfile.open(self.tar_name)
