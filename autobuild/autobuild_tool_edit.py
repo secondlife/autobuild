@@ -84,6 +84,7 @@ class AutobuildTool(AutobuildBase):
             self.arguments
         except AttributeError:
             self.arguments = {
+                                'archive':      Archive,
                                 'configure':    Configure,
                                 'build':        Build,
                                 'package':      Package,
@@ -253,6 +254,56 @@ class Platform(InteractiveCommand):
             raise AutobuildError("'name' argument must be provided with --delete option.")
         print "Deleting entry."
         self.config.package_description.platforms.pop(name)
+
+
+class Archive(InteractiveCommand):
+
+    ARGUMENTS = ['format', 'hash_algorithm', 'platform']
+
+    ARG_DICT = {    'format':             {'help':'Archive format (e.g zip or tbz2)'}, 
+                    'hash_algorithm':  {'help':'The algorithm for computing the archive hash (e.g. md5)'},
+                    'platform': {'help':'The name of the platform archive to be configured'}
+                }
+
+    HELP = "Platform-specific archive configuration"
+
+    def __init__(self, config):
+        stream = StringIO()
+        stream.write("Current platform archive settings:\n")
+        archives = {}
+        for platform, description in config.get_all_platforms().iteritems():
+            if description.archive is not None:
+                archives[platform] = description.archive
+        configfile.pretty_print(archives, stream)
+        self.description = stream.getvalue()
+        stream.close()
+        self.config = config
+
+    def _create_or_update_platform_archive(self, platform, format, hash_algorithm):
+        try:
+            platform_description = self.config.get_platform(platform)
+        except configfile.ConfigurationError:
+            platform_description = configfile.PlatformDescription({'name': platform})
+            self.config.package_description.platforms[platform] = platform_description
+        if platform_description.archive is None:
+            platform_description.archive = configfile.ArchiveDescription()
+        platform_description.archive.format = format
+        platform_description.archive.hash_algorithm = hash_algorithm
+
+    def run(self, platform=get_current_platform(), format=None, hash_algorithm=None):
+        """
+        Configure platform archive details.
+        """
+        self._create_or_update_platform_archive(platform, format, hash_algorithm)
+        
+    def delete(self, platform=get_current_platform(), **kwargs):
+        """
+        Delete the named config value.
+        """
+        print "Deleting %s archive entry." % platform
+        platform_description = self.config.get_platform(platform)
+        if platform_description is not None:
+            platform_description.archive = None
 
 
 class _package(InteractiveCommand):
