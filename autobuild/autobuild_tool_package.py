@@ -235,8 +235,9 @@ def _create_zip_archive(archive_filename, build_directory, file_list):
     os.chdir(build_directory)
     try:
         archive = ZipFile(archive_filename, 'w', ZIP_DEFLATED)
+        added_files = set()
         for file in file_list:
-            _add_file_to_zip_archive(archive, file, archive_filename)
+            _add_file_to_zip_archive(archive, file, archive_filename, added_files)
         archive.close()
     finally:
         os.chdir(current_directory)
@@ -244,13 +245,17 @@ def _create_zip_archive(archive_filename, build_directory, file_list):
     _print_hash(archive_filename)
 
 
-def _add_file_to_zip_archive(zip_file, file, archive_filename):
+def _add_file_to_zip_archive(zip_file, file, archive_filename, added_files):
+    if file not in added_files:
+        added_files.add(file)
+    else:
+        return
     try:
         zip_file.write(file)
         logger.info('added ' + file)
         if os.path.isdir(file):
             for f in os.listdir(file):
-                _add_file_to_zip_archive(zip_file, os.path.join(file, f), archive_filename)
+                _add_file_to_zip_archive(zip_file, os.path.join(file, f), archive_filename, added_files)
     except:
         raise PackageError("unable to add %s to %s" % (file, archive_filename))
     
