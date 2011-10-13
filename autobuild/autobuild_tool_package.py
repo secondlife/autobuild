@@ -245,10 +245,12 @@ def _create_zip_archive(archive_filename, build_directory, file_list):
     _print_hash(archive_filename)
 
 
-def _add_file_to_zip_archive(zip_file, file, archive_filename, added_files):
+def _add_file_to_zip_archive(zip_file, unormalized_file, archive_filename, added_files):
+    file = os.path.normpath(unormalized_file)
     if file not in added_files:
         added_files.add(file)
     else:
+        logger.info('skipped duplicate ' + file)
         return
     try:
         zip_file.write(file)
