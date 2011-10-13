@@ -43,6 +43,7 @@ import logging
 import shutil
 import subprocess
 import tarfile
+from zipfile import ZipFile, is_zipfile
 import tempfile
 import urllib2
 
@@ -270,18 +271,13 @@ def extract_package(package, install_dir):
     if not os.path.exists(cachename):
         logger.error("cannot extract non-existing package: %s" % cachename)
         return False
-
-    # Attempt to extract the package from the install cache
-    logger.debug("extracting from %s" % cachename)
-    tar = tarfile.open(cachename, 'r')
-    try:
-        # try to call extractall in python 2.5. Phoenix 2008-01-28
-        tar.extractall(path=install_dir)
-    except AttributeError:
-        # or fallback on pre-python 2.5 behavior
-        __extractall(tar, path=install_dir)
-
-    return tar.getnames()
+    if tarfile.is_tarfile(cachename):
+        return __extract_tar_file(cachename, install_dir)
+    elif is_zipfile(cachename):
+        return __extract_zip_archive(cachename, install_dir)
+    else:
+        logger.error("package %s is not archived in a supported format" % cachename)
+        return False
 
 def remove_package(package):
     """
@@ -381,6 +377,29 @@ class Serialized(dict, object):
 #   Private module classes and functions below here.
 #
 ######################################################################
+
+def __extract_tar_file(cachename, install_dir):
+
+    # Attempt to extract the package from the install cache
+    logger.debug("extracting from %s" % cachename)
+    tar = tarfile.open(cachename, 'r')
+    try:
+        # try to call extractall in python 2.5. Phoenix 2008-01-28
+        tar.extractall(path=install_dir)
+    except AttributeError:
+        # or fallback on pre-python 2.5 behavior
+        __extractall(tar, path=install_dir)
+
+    return tar.getnames()
+    
+def __extract_zip_archive(cachename, install_dir):
+    zip_archive = ZipFile(cachename, 'r')
+    try:
+        zip_archive.extractall(path=install_dir)
+        return zip_archive.namelist()
+    except AttributeError:
+        logger.error("zip extraction not supported by this python version.")
+        return False
 
 class __SCPOrHTTPHandler(urllib2.BaseHandler):
     """

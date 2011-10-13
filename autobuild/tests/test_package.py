@@ -73,6 +73,8 @@ class TestPackaging(unittest.TestCase):
     def tearDown(self):
         if os.path.exists(self.tar_name):
             os.remove(self.tar_name)
+        if os.path.exists(self.zip_name):
+            os.remove(self.zip_name)
 
 if __name__ == '__main__':
     unittest.main()
