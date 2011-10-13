@@ -91,7 +91,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             help="do not perform the license check")
         parser.add_argument(
             '--archive-format',
-            default='tbz2',
+            default=None,
             dest='archive_format',
             help='the format of the archive (tbz2 or zip)')
 
@@ -161,7 +161,7 @@ def _determine_archive_format(archive_format_argument, archive_description):
     elif archive_description is None or archive_description.format is None:
         return 'tbz2'
     else:
-        archive_description.format
+        return archive_description.format
 
 
 def _generate_archive_name(package_description, platform_name, suffix=''):
