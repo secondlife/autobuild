@@ -55,7 +55,7 @@ import configfile
 import autobuild_base
 from connection import SCPConnection, S3Connection
 from common import AutobuildError
-from zipfile import ZipFile
+from zipfile import ZipFile, ZIP_DEFLATED
 
 
 logger = logging.getLogger('autobuild.package')
@@ -234,7 +234,7 @@ def _create_zip_archive(archive_filename, build_directory, file_list):
     current_directory = os.getcwd()
     os.chdir(build_directory)
     try:
-        archive = ZipFile(archive_filename, 'w')
+        archive = ZipFile(archive_filename, 'w', ZIP_DEFLATED)
         for file in file_list:
             _add_file_to_zip_archive(archive, file, archive_filename)
         archive.close()
