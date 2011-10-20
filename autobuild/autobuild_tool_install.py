@@ -153,6 +153,12 @@ def add_arguments(parser):
         dest='as_source',
         default=[],
         help="Get the source for this package instead of prebuilt binary.")
+    parser.add_argument(
+        '--local',
+        action='append',
+        dest='local_archives',
+        default=[],
+        help="Install this locally built archive in place of the configured installable.")
 
 def print_list(label, array):
     """
@@ -227,13 +233,14 @@ def post_install_license_check(packages, config_file, installed_file):
             raise InstallError("nonexistent license_file for %s: %s "
                                "(you can use --skip-license-check)" % (pname, license_file))
 
-def do_install(packages, config_file, installed_file, platform, install_dir, dry_run, as_source=[]):
+def do_install(packages, config_file, installed_file, platform, install_dir, dry_run, as_source=[], local_archives=[]):
     """
     Install the specified list of packages. By default this will download the
     packages to the local cache, extract the contents of those
     archives to the install dir, and update the installed_file config.  For packages
     listed in the optional 'as_source' list, the source will be downloaded in place
-    of the prebuilt binary.
+    of the prebuilt binary. For packages listed in the local_archives, the local archive will be
+    installed in place of the configured one.
     """
     # Decide whether to check out (or update) source, or download a tarball
     installed_pkgs = []
@@ -270,6 +277,10 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
         if source_install:
             logger.warn("installing %s --as-source" % pname)
             if _install_source(package, installed_file, config_file, dry_run):
+                installed_pkgs.append(pname)
+        elif pname in local_archives:
+            logger.warn("installing %s from local archive" % pname)
+            if _install_local(platform, package, local_archives[pname], install_dir, installed_file, dry_run):
                 installed_pkgs.append(pname)
         else:
             logger.warn("installing %s from archive" % pname)
@@ -328,6 +339,42 @@ def _install_source(package, installed_config, config_file, dry_run):
     inst_pkg.install_dir = sourcepath
     # But clear platforms: we only use platforms for tarball installs.
     inst_pkg.platforms.clear()
+    return True
+
+def _install_local(platform, package, package_path, install_dir, installed_file, dry_run):
+    package_name = package.name
+    
+    if dry_run:
+        dry_run_msg("Dry run mode: not installing %s" % package.name)
+        return False
+
+    # If this package has already been installed, first uninstall the older
+    # version.
+    uninstall(package_name, installed_file)
+
+    # check that the install dir exists...
+    if not os.path.exists(install_dir):
+        logger.debug("creating " + install_dir)
+        os.makedirs(install_dir)
+
+    # extract the files from the package
+    logger.warn("extracting %s" % (package.name))
+    files = common.install_package(package_path, install_dir)
+    if not files:
+        return False
+    for f in files:
+        logger.debug("extracted: " + f)
+    
+    installed_package = package.copy()
+    if platform not in package.platforms:
+        installed_platform = configfile.PlatformDescription(dict(name=platform))
+    else:
+        installed_platform = installed_package.get_platform(platform)
+    if installed_platform.archive is None:
+        installed_platform.archive = configfile.ArchiveDescription()
+    installed_platform.archive.url = "file://" + os.path.abspath(package_path)
+    installed_platform.archive.hash = common.compute_md5(package_path)
+    _update_installed_package_files(installed_package, platform, installed_file, install_dir, files)
     return True
 
 def _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
@@ -400,28 +447,19 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     files = common.extract_package(archive.url, install_dir)
     for f in files:
         logger.debug("extracted: " + f)
-
-    # Update the installed-packages.xml file. The above uninstall() call
-    # should have removed any existing entry in installed_file. Copy
-    # PackageDescription metadata from the autobuild.xml entry.
-    inst_pkg = package.copy()
-    # Set it as the installed package.
-    installed_file.installables[package.name] = inst_pkg
-    inst_pkg.as_source = False
-    # Record the install_dir as of THIS run, so that even if user passes a
-    # different --install-dir on a later run, we can still successfully
-    # uninstall this package.
-    inst_pkg.install_dir = install_dir
-    # Clear platforms: there should be exactly one.
-    inst_pkg.platforms.clear()
-
-    # Even if we end up using the "common" specification in autobuild.xml,
-    # in installed-packages.xml we should say we've installed this package
-    # on THIS platform rather than on "common".
-    inst_plat = req_plat.copy()
-    inst_pkg.platforms[platform] = inst_plat
-    inst_plat.manifest = files
+        
+    _update_installed_package_files(package, platform, installed_file, install_dir, files)
     return True
+
+def _update_installed_package_files(package, platform, installed_file, install_dir, files):
+    installed_package = package.copy()
+    installed_file.installables[package.name] = installed_package
+    installed_package.as_source = False
+    installed_package.install_dir = install_dir
+    installed_package.platforms.clear()
+    installed_platform = package.get_platform(platform).copy()
+    installed_package.platforms[platform] = installed_platform
+    installed_platform.manifest = files
 
 def uninstall(package_name, installed_config):
     """
@@ -533,10 +571,19 @@ def install_packages(options, args):
     # check the license properties for the packages to install
     if options.check_license:
         pre_install_license_check(packages, config_file)
+        
+    # collect any locally built archives.
+    local_archives = {}
+    for archive_path in options.local_archives:
+        try:
+            package = common.split_tarname(archive_path)[1][0]
+        except:
+            raise IntallError("cannot get package name from local archive " + archive_path)
+        local_archives[package] = archive_path
 
     # do the actual install of the new/updated packages
     packages = do_install(packages, config_file, installed_file, options.platform, install_dir,
-                          options.dry_run, as_source=options.as_source)
+                          options.dry_run, as_source=options.as_source, local_archives=local_archives)
 
     # check the license_file properties for actually-installed packages
     if options.check_license and not options.dry_run:

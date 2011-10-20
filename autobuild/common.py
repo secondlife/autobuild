@@ -265,18 +265,23 @@ def extract_package(package, install_dir):
     directory.  Returns the list of files that were successfully
     extracted.
     """
-
     # Find the name of the package in the install cache
-    cachename = get_package_in_cache(package)
-    if not os.path.exists(cachename):
-        logger.error("cannot extract non-existing package: %s" % cachename)
+    return install_package(get_package_in_cache(package), install_dir)
+
+def install_package(archive_path, install_dir):
+    """
+    Install the archive at the provided path into the given installation directory.  Returns the
+    list of files that were installed.
+    """
+    if not os.path.exists(archive_path):
+        logger.error("cannot extract non-existing package: %s" % archive_path)
         return False
-    if tarfile.is_tarfile(cachename):
-        return __extract_tar_file(cachename, install_dir)
-    elif is_zipfile(cachename):
-        return __extract_zip_archive(cachename, install_dir)
+    if tarfile.is_tarfile(archive_path):
+        return __extract_tar_file(archive_path, install_dir)
+    elif is_zipfile(archive_path):
+        return __extract_zip_archive(archive_path, install_dir)
     else:
-        logger.error("package %s is not archived in a supported format" % cachename)
+        logger.error("package %s is not archived in a supported format" % archive_path)
         return False
 
 def remove_package(package):

@@ -268,6 +268,7 @@ def setup():
                      export_manifest=False,
                      as_source=[],
                      verbose=False,
+                     local_archives=[],
                      ):
             # Take all constructor params and assign as object attributes.
             params = locals().copy()
@@ -642,6 +643,26 @@ class TestInstallCachedArchive(BaseTest):
         self.new_package(fixture.package)
 
     def test_success(self):
+        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        assert os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
+        assert os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
+
+# -------------------------------------  -------------------------------------
+class TestInstallLocalArchive(BaseTest):
+    def setup(self):
+        BaseTest.setup(self)
+        self.pkg = "bogus"
+        self.fixture = FIXTURES[self.pkg + "-0.1"]
+        # Make sure this fixture isn't in either the server directory or cahce:
+        assert not os.path.exists(in_dir(SERVER_DIR, self.fixture.pathname))
+        assert not os.path.exists(in_dir(common.get_default_install_cache_dir(), self.fixture.pathname))
+        # Create variant config file
+        self.new_package(self.fixture.package)
+
+    def test_success(self):
+        self.options.local_archives = [self.fixture.pathname]
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
         autobuild_tool_install.install_packages(self.options, [self.pkg])
         assert os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
