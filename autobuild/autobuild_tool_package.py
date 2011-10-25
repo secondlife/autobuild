@@ -255,15 +255,16 @@ def _add_file_to_zip_archive(zip_file, unnormalized_file, archive_filename, adde
         logger.info('skipped duplicate ' + file)
         return
     added_files.add(lowerfile)
-    try:
-        zip_file.write(file)
-    except Exception, err:
-        raise PackageError("%s: unable to add %s to %s: %s" %
-                           (err.__class__.__name__, file, archive_filename, err))
-    logger.info('added ' + file)
     if os.path.isdir(file):
         for f in os.listdir(file):
             _add_file_to_zip_archive(zip_file, os.path.join(file, f), archive_filename, added_files)
+    else:
+        try:
+            zip_file.write(file)
+        except Exception, err:
+            raise PackageError("%s: unable to add %s to %s: %s" %
+                               (err.__class__.__name__, file, archive_filename, err))
+        logger.info('added ' + file)
     
 
 def _print_hash(filename):
