@@ -198,7 +198,8 @@ def _check_or_add_license(package_description, build_directory, filelist):
         licensefile = 'LICENSES/%s.txt' % package_description.name
     if licensefile.startswith('http://'):
         pass # No need to add.
-    elif os.path.normpath(licensefile) in [os.path.normpath(f) for f in filelist]:
+    elif os.path.normcase(os.path.normpath(licensefile)) in \
+             [os.path.normcase(os.path.normpath(f)) for f in filelist]:
         pass # Already found.
     elif os.path.isfile(os.path.join(build_directory, licensefile)):
         filelist.append(licensefile) # Can add to to the package.
@@ -245,21 +246,24 @@ def _create_zip_archive(archive_filename, build_directory, file_list):
     _print_hash(archive_filename)
 
 
-def _add_file_to_zip_archive(zip_file, unormalized_file, archive_filename, added_files):
-    file = os.path.normpath(unormalized_file)
-    if file not in added_files:
-        added_files.add(file)
-    else:
+def _add_file_to_zip_archive(zip_file, unnormalized_file, archive_filename, added_files):
+    # Normalize the path that actually gets added to zipfile.
+    file = os.path.normpath(unnormalized_file)
+    # But normalize case only for testing added_files.
+    lowerfile = os.path.normcase(file)
+    if lowerfile in added_files:
         logger.info('skipped duplicate ' + file)
         return
+    added_files.add(lowerfile)
     try:
         zip_file.write(file)
-        logger.info('added ' + file)
-        if os.path.isdir(file):
-            for f in os.listdir(file):
-                _add_file_to_zip_archive(zip_file, os.path.join(file, f), archive_filename, added_files)
-    except:
-        raise PackageError("unable to add %s to %s" % (file, archive_filename))
+    except Exception, err:
+        raise PackageError("%s: unable to add %s to %s: %s" %
+                           (err.__class__.__name__, file, archive_filename, err))
+    logger.info('added ' + file)
+    if os.path.isdir(file):
+        for f in os.listdir(file):
+            _add_file_to_zip_archive(zip_file, os.path.join(file, f), archive_filename, added_files)
     
 
 def _print_hash(filename):
