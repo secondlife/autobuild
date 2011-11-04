@@ -69,7 +69,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
 
 class ManifestError(AutobuildError):
-	pass
+    pass
 
 
 def add(config, platform_name, pattern):

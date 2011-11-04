@@ -27,7 +27,7 @@ Creates archives of build output.
 The package sub-command works by locating all of the files in the
 build output directory that match the manifest specified in the
 configuration file. The manifest can include platform-specific and
-platform-common files, and they can use glob-style wildcards.
+platform-common files which may use glob-style wildcards.
 
 The package command optionally enforces the restriction that a license
 string and a valid licensefile for the package has been specified. The operation
@@ -43,6 +43,7 @@ following metadata in the autobuild.xml file:
 * license_file (assumes LICENSES/<package-name>.txt otherwise)
 """
 
+import hashlib
 import sys
 import os
 import tarfile
@@ -54,6 +55,7 @@ import configfile
 import autobuild_base
 from connection import SCPConnection, S3Connection
 from common import AutobuildError
+from zipfile import ZipFile, ZIP_DEFLATED
 
 
 logger = logging.getLogger('autobuild.package')
@@ -87,17 +89,22 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             default=True,
             dest='check_license',
             help="do not perform the license check")
+        parser.add_argument(
+            '--archive-format',
+            default=None,
+            dest='archive_format',
+            help='the format of the archive (tbz2 or zip)')
 
     def run(self, args):
         config = configfile.ConfigurationDescription(args.autobuild_filename)
-        package(config, args.platform, args.archive_filename, args.check_license, args.dry_run)
+        package(config, args.platform, args.archive_filename, args.archive_format, args.check_license, args.dry_run)
 
 
 class PackageError(AutobuildError):
     pass
 
 
-def package(config, platform_name, archive_filename=None, check_license=True, dry_run=False):
+def package(config, platform_name, archive_filename=None, archive_format=None, check_license=True, dry_run=False):
     """
     Create an archive for the given platform.
     """
@@ -138,7 +145,23 @@ def package(config, platform_name, archive_filename=None, check_license=True, dr
         for f in files:
             logger.info('added ' + f)
     else:
-        _create_tarfile(tarfilename, build_directory, files)
+        archive_description = platform_description.archive
+        format = _determine_archive_format(archive_format, archive_description)
+        if format == 'tbz2':
+            _create_tarfile(tarfilename + '.tar.bz2', build_directory, files)
+        elif format == 'zip':
+            _create_zip_archive(tarfilename + '.zip', build_directory, files)
+        else:
+            raise PackageError("archive format %s is not supported" % format)
+
+
+def _determine_archive_format(archive_format_argument, archive_description):
+    if archive_format_argument is not None:
+        return archive_format_argument
+    elif archive_description is None or archive_description.format is None:
+        return 'tbz2'
+    else:
+        return archive_description.format
 
 
 def _generate_archive_name(package_description, platform_name, suffix=''):
@@ -150,7 +173,6 @@ def _generate_archive_name(package_description, platform_name, suffix=''):
     name = package_name + '-' + package_description.version + '-'
     name += platform_name + '-'
     name += time.strftime("%Y%m%d") + suffix
-    name += '.tar.bz2'
     return name
 
 
@@ -176,7 +198,8 @@ def _check_or_add_license(package_description, build_directory, filelist):
         licensefile = 'LICENSES/%s.txt' % package_description.name
     if licensefile.startswith('http://'):
         pass # No need to add.
-    elif os.path.normpath(licensefile) in [os.path.normpath(f) for f in filelist]:
+    elif os.path.normcase(os.path.normpath(licensefile)) in \
+             [os.path.normcase(os.path.normpath(f)) for f in filelist]:
         pass # Already found.
     elif os.path.isfile(os.path.join(build_directory, licensefile)):
         filelist.append(licensefile) # Can add to to the package.
@@ -203,8 +226,49 @@ def _create_tarfile(tarfilename, build_directory, filelist):
     # Not using logging, since this output should be produced unconditionally on stdout
     # Downstream build tools utilize this output
     print "wrote  %s" % tarfilename
-    import hashlib
-    fp = open(tarfilename, 'rb')
+    _print_hash(tarfilename)
+    
+    
+def _create_zip_archive(archive_filename, build_directory, file_list):
+    if not os.path.exists(os.path.dirname(archive_filename)):
+        os.makedirs(os.path.dirname(archive_filename))
+    current_directory = os.getcwd()
+    os.chdir(build_directory)
+    try:
+        archive = ZipFile(archive_filename, 'w', ZIP_DEFLATED)
+        added_files = set()
+        for file in file_list:
+            _add_file_to_zip_archive(archive, file, archive_filename, added_files)
+        archive.close()
+    finally:
+        os.chdir(current_directory)
+    print "wrote  %s" % archive_filename
+    _print_hash(archive_filename)
+
+
+def _add_file_to_zip_archive(zip_file, unnormalized_file, archive_filename, added_files):
+    # Normalize the path that actually gets added to zipfile.
+    file = os.path.normpath(unnormalized_file)
+    # But normalize case only for testing added_files.
+    lowerfile = os.path.normcase(file)
+    if lowerfile in added_files:
+        logger.info('skipped duplicate ' + file)
+        return
+    added_files.add(lowerfile)
+    if os.path.isdir(file):
+        for f in os.listdir(file):
+            _add_file_to_zip_archive(zip_file, os.path.join(file, f), archive_filename, added_files)
+    else:
+        try:
+            zip_file.write(file)
+        except Exception, err:
+            raise PackageError("%s: unable to add %s to %s: %s" %
+                               (err.__class__.__name__, file, archive_filename, err))
+        logger.info('added ' + file)
+    
+
+def _print_hash(filename):
+    fp = open(filename, 'rb')
     m = hashlib.md5()
     while True:
         d = fp.read(65536)
@@ -212,4 +276,5 @@ def _create_tarfile(tarfilename, build_directory, filelist):
         m.update(d)
     # Not using logging, since this output should be produced unconditionally on stdout
     # Downstream build tools utilize this output
-    print "md5    %s" % m.hexdigest()
+    print "md5    %s" % m.hexdigest()    
+    

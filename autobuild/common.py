@@ -43,6 +43,7 @@ import logging
 import shutil
 import subprocess
 import tarfile
+from zipfile import ZipFile, is_zipfile
 import tempfile
 import urllib2
 
@@ -264,24 +265,24 @@ def extract_package(package, install_dir):
     directory.  Returns the list of files that were successfully
     extracted.
     """
-
     # Find the name of the package in the install cache
-    cachename = get_package_in_cache(package)
-    if not os.path.exists(cachename):
-        logger.error("cannot extract non-existing package: %s" % cachename)
+    return install_package(get_package_in_cache(package), install_dir)
+
+def install_package(archive_path, install_dir):
+    """
+    Install the archive at the provided path into the given installation directory.  Returns the
+    list of files that were installed.
+    """
+    if not os.path.exists(archive_path):
+        logger.error("cannot extract non-existing package: %s" % archive_path)
         return False
-
-    # Attempt to extract the package from the install cache
-    logger.debug("extracting from %s" % cachename)
-    tar = tarfile.open(cachename, 'r')
-    try:
-        # try to call extractall in python 2.5. Phoenix 2008-01-28
-        tar.extractall(path=install_dir)
-    except AttributeError:
-        # or fallback on pre-python 2.5 behavior
-        __extractall(tar, path=install_dir)
-
-    return tar.getnames()
+    if tarfile.is_tarfile(archive_path):
+        return __extract_tar_file(archive_path, install_dir)
+    elif is_zipfile(archive_path):
+        return __extract_zip_archive(archive_path, install_dir)
+    else:
+        logger.error("package %s is not archived in a supported format" % archive_path)
+        return False
 
 def remove_package(package):
     """
@@ -381,6 +382,29 @@ class Serialized(dict, object):
 #   Private module classes and functions below here.
 #
 ######################################################################
+
+def __extract_tar_file(cachename, install_dir):
+
+    # Attempt to extract the package from the install cache
+    logger.debug("extracting from %s" % cachename)
+    tar = tarfile.open(cachename, 'r')
+    try:
+        # try to call extractall in python 2.5. Phoenix 2008-01-28
+        tar.extractall(path=install_dir)
+    except AttributeError:
+        # or fallback on pre-python 2.5 behavior
+        __extractall(tar, path=install_dir)
+
+    return tar.getnames()
+    
+def __extract_zip_archive(cachename, install_dir):
+    zip_archive = ZipFile(cachename, 'r')
+    try:
+        zip_archive.extractall(path=install_dir)
+        return zip_archive.namelist()
+    except AttributeError:
+        logger.error("zip extraction not supported by this python version.")
+        return False
 
 class __SCPOrHTTPHandler(urllib2.BaseHandler):
     """
