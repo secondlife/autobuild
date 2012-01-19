@@ -118,7 +118,13 @@ def get_default_install_cache_dir():
     In general, the package archives do not change much, so find a 
     host/user specific location to cache files.
     """
-    return get_temp_dir("install.cache")
+    cache = os.getenv('AUTOBUILD_INSTALLABLE_CACHE')
+    if cache == None:
+        cache = get_temp_dir("install.cache")
+    else:
+        if not os.path.exists(cache):
+            os.makedirs(cache, mode=0755)
+    return cache
 
 def get_s3_url():
     """
