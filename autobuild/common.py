@@ -282,6 +282,7 @@ def install_package(archive_path, install_dir):
     if not os.path.exists(archive_path):
         logger.error("cannot extract non-existing package: %s" % archive_path)
         return False
+    logger.warn("extracting from %s" % os.path.basename(archive_path))
     if tarfile.is_tarfile(archive_path):
         return __extract_tar_file(archive_path, install_dir)
     elif is_zipfile(archive_path):
@@ -392,7 +393,6 @@ class Serialized(dict, object):
 def __extract_tar_file(cachename, install_dir):
 
     # Attempt to extract the package from the install cache
-    logger.debug("extracting from %s" % cachename)
     tar = tarfile.open(cachename, 'r')
     try:
         # try to call extractall in python 2.5. Phoenix 2008-01-28
@@ -593,7 +593,7 @@ class Bootstrap(object):
 
             # download & extract the package, if not done already
             if not is_package_in_cache(url):
-                logger.info("installing package '%s'..." % name)
+                logger.info("downloading package '%s'..." % name)
                 if download_package(url):
                     if not does_package_match_md5(url, md5sum):
                         raise AutobuildError("md5 mismatch for %s" % url)
