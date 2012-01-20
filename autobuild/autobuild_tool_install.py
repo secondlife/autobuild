@@ -275,15 +275,12 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
 
         # Existing tarball install, or new package install of either kind
         if source_install:
-            logger.warn("installing %s --as-source" % pname)
             if _install_source(package, installed_file, config_file, dry_run):
                 installed_pkgs.append(pname)
         elif pname in local_archives:
-            logger.warn("installing %s from local archive" % pname)
             if _install_local(platform, package, local_archives[pname], install_dir, installed_file, dry_run):
                 installed_pkgs.append(pname)
         else:
-            logger.warn("installing %s from archive" % pname)
             if _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
                 installed_pkgs.append(pname)
     return installed_pkgs
@@ -352,13 +349,14 @@ def _install_local(platform, package, package_path, install_dir, installed_file,
     # version.
     uninstall(package_name, installed_file)
 
+    logger.warn("installing %s from local archive" % package.name)
+
     # check that the install dir exists...
     if not os.path.exists(install_dir):
         logger.debug("creating " + install_dir)
         os.makedirs(install_dir)
 
     # extract the files from the package
-    logger.warn("extracting %s" % (package.name))
     files = common.install_package(package_path, install_dir)
     if not files:
         return False
@@ -442,8 +440,8 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
         logger.debug("creating " + install_dir)
         os.makedirs(install_dir)
 
+    logger.warn("installing %s from archive" % package.name)
     # extract the files from the package
-    logger.warn("extracting %s" % (package.name))
     files = common.extract_package(archive.url, install_dir)
     for f in files:
         logger.debug("extracted: " + f)
