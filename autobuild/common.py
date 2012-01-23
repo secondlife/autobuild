@@ -113,7 +113,7 @@ def get_autobuild_environment():
     return dict(os.environ, AUTOBUILD=os.environ.get(
         'AUTOBUILD', get_autobuild_executable_path()))
 
-def get_default_install_cache_dir():
+def get_install_cache_dir():
     """
     In general, the package archives do not change much, so find a 
     host/user specific location to cache files.
@@ -199,7 +199,7 @@ def get_package_in_cache(package):
     The file may not actually exist.
     """
     filename = os.path.basename(package)
-    return os.path.join(get_default_install_cache_dir(), filename)
+    return os.path.join(get_install_cache_dir(), filename)
 
 def is_package_in_cache(package):
     """

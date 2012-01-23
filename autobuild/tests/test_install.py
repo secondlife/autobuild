@@ -212,7 +212,7 @@ def setup():
 
     # Capture initial state of the autobuild download cache. Use a set so we
     # can take set difference with subsequent snapshot.
-    INIT_CACHE = set(os.listdir(common.get_default_install_cache_dir()))
+    INIT_CACHE = set(os.listdir(common.get_install_cache_dir()))
 
     # For the duration of this script, run a server thread from which to
     # direct autobuild to "download" test archives. Various tests will
@@ -380,7 +380,7 @@ def clean_cache():
         raise RuntimeError("clean_cache() called before module setup()!?")
     # Okay, we believe INIT_CACHE is valid. Inventory cache directory again
     # to discover what we've added since we started.
-    cachedir = common.get_default_install_cache_dir()
+    cachedir = common.get_install_cache_dir()
     for f in set(os.listdir(cachedir)) - INIT_CACHE:
         clean_file(os.path.join(cachedir, f))
 
@@ -638,7 +638,7 @@ class TestInstallCachedArchive(BaseTest):
         # SERVER_DIR; in fact ensure it's not there.
         assert not os.path.exists(in_dir(SERVER_DIR, fixture.pathname))
         # Instead copy directly to cache dir.
-        self.copyto(fixture.pathname, common.get_default_install_cache_dir())
+        self.copyto(fixture.pathname, common.get_install_cache_dir())
         # Create variant config file
         self.new_package(fixture.package)
 
@@ -655,7 +655,7 @@ class TestInstallLocalArchive(BaseTest):
         self.fixture = FIXTURES[self.pkg + "-0.1"]
         # Make sure this fixture isn't in either the server directory or cahce:
         assert not os.path.exists(in_dir(SERVER_DIR, self.fixture.pathname))
-        assert not os.path.exists(in_dir(common.get_default_install_cache_dir(), self.fixture.pathname))
+        assert not os.path.exists(in_dir(common.get_install_cache_dir(), self.fixture.pathname))
         # Create variant config file
         self.new_package(self.fixture.package)
 
@@ -676,7 +676,7 @@ class TestDownloadFail(BaseTest):
         # ArchiveFixture creates tarballs in STAGING_DIR. Don't copy to
         # SERVER_DIR; in fact ensure it's neither there nor in cache dir.
         assert not os.path.exists(in_dir(SERVER_DIR, fixture.pathname))
-        self.cache_name = in_dir(common.get_default_install_cache_dir(), fixture.pathname)
+        self.cache_name = in_dir(common.get_install_cache_dir(), fixture.pathname)
         assert not os.path.exists(self.cache_name)
         # Create variant config file
         self.new_package(fixture.package)
@@ -695,7 +695,7 @@ class TestGarbledDownload(BaseTest):
         # ArchiveFixture creates tarballs in STAGING_DIR. Have to copy to
         # SERVER_DIR if we want to be able to download.
         self.copyto(fixture.pathname, SERVER_DIR)
-        self.cache_name = in_dir(common.get_default_install_cache_dir(), fixture.pathname)
+        self.cache_name = in_dir(common.get_install_cache_dir(), fixture.pathname)
         assert not os.path.exists(self.cache_name)
         # Fake up a PackageDescription with bad MD5 without disturbing
         # FIXTURES["bogus-0.1"], which is shared with several other tests.
