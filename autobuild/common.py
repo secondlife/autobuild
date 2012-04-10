@@ -40,6 +40,7 @@ import sys
 import glob
 import itertools
 import logging
+import socket
 import shutil
 import subprocess
 import tarfile
@@ -233,12 +234,20 @@ def does_package_match_md5(package, md5sum):
     """
     return compute_md5(get_package_in_cache(package)) == md5sum
 
+
 def download_package(package):
     """
     Download a package, specified as a URL, to the install cache.
     If the package already exists in the cache then this is a no-op.
     Returns False if there was a problem downloading the file.
     """
+
+    # download timeout so a download doesn't hang
+    download_timeout_seconds  = 120
+    download_timeout_retries  = 5
+
+    # save the old timeout
+    old_download_timeout = socket.getdefaulttimeout()
 
     # have we already downloaded this file to the cache?
     cachename = get_package_in_cache(package)
@@ -255,12 +264,39 @@ def download_package(package):
     # Attempt to download the remote file 
     logger.info("downloading %s to %s" % (package, cachename))
     result = True
-    try:
-        file(cachename, 'wb').write(urllib2.urlopen(package).read())
-    except Exception, e:
-        logger.exception("unable to download file: %s" % e)
-        result = False
+        
+    #
+    # Exception handling:
+    # 1. Isolate any exception from the setdefaulttimeout call.
+    # 2. urllib2.urlopen supposedly wraps all errors in URLErrror. Include socket.timeout just in case.
+    # 3. This code is here just to implement socket timeouts. The last general exception was already here so just leave it.
+    #
     
+    try:
+        socket.setdefaulttimeout(download_timeout_seconds)
+    except Exception, e:
+        logger.exception("error setting socket default timeout: %s. " % e)
+        result = False
+    else:
+        for tries in itertools.count(1):
+            try:
+                file(cachename, 'wb').write(urllib2.urlopen(package).read())
+                break
+            except (socket.timeout, urllib2.URLError), e :
+                if tries >= download_timeout_retries :
+                    result = False
+                    logger.exception("  error %s from class %s downloading package: %s" % ( e, e.__class__.__name__, package) )
+                    break
+                logger.info("  error %s from class %s downloading package: %s. Retrying." % ( e, e.__class__.__name__, package) )
+                continue
+            except Exception, e:
+                logger.exception("error %s from class %s downloading package: %s. " % ( e, e.__class__.__name__, package) )
+                result = False
+                break    
+    finally:
+        #restore the old timeout, even if it's 0
+        socket.setdefaulttimeout(old_download_timeout) 
+  
     # Clean up and return True if the download succeeded
     scp_or_http.cleanup()
     return result
