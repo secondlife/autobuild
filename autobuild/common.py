@@ -274,10 +274,7 @@ def download_package(package):
     
     try:
         socket.setdefaulttimeout(download_timeout_seconds)
-    except Exception, e:
-        logger.exception("error setting socket default timeout: %s. " % e)
-        result = False
-    else:
+ 
         for tries in itertools.count(1):
             try:
                 file(cachename, 'wb').write(urllib2.urlopen(package).read())
@@ -292,7 +289,7 @@ def download_package(package):
             except Exception, e:
                 logger.exception("error %s from class %s downloading package: %s. " % ( e, e.__class__.__name__, package) )
                 result = False
-                break    
+                break
     finally:
         #restore the old timeout, even if it's 0
         socket.setdefaulttimeout(old_download_timeout) 
