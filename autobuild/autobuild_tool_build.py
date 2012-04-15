@@ -83,7 +83,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
     def run(self, args):
         config = configfile.ConfigurationDescription(args.config_file)
         current_directory = os.getcwd()
-        build_directory = config.make_build_directory()
+        build_directory = config.make_build_directory(args.dry_run)
         logger.debug("building in %s" % build_directory)
         if not args.use_cwd:
             os.chdir(build_directory)

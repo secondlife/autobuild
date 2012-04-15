@@ -99,7 +99,7 @@ def uninstall_packages(options, args):
             # load config file to get default install_dir
             logger.debug("loading " + options.install_filename)
             config_file = configfile.ConfigurationDescription(options.install_filename)
-            install_dir = os.path.join(config_file.make_build_directory(), 'packages')
+            install_dir = os.path.join(config_file.make_build_directory(options.dry_run), 'packages')
             logger.info("default install directory: " + install_dir)
 
         # get the absolute path to the installed-packages.xml file

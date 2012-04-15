@@ -546,7 +546,8 @@ def install_packages(options, args):
     if options.install_dir:
         logger.debug("specified install directory: " + options.install_dir)
     else:
-        options.install_dir = os.path.join(config_file.make_build_directory(), 'packages')
+        build_directory = config_file.make_build_directory(options.dry_run)
+        options.install_dir = os.path.join(build_directory, 'packages')
         logger.debug("default install directory: " + options.install_dir)
 
     # get the absolute paths to the install dir and installed-packages.xml file

@@ -156,13 +156,19 @@ class ConfigurationDescription(common.Serialized):
         """
         return self.get_platform(get_current_platform())
     
-    def make_build_directory(self):
+    def make_build_directory(self, dry_run):
         """
         Makes the working platform's build directory if it does not exist and returns a path to it.
         """
         build_directory = self.get_build_directory(common.get_current_platform())
         if not os.path.isdir(build_directory):
-            os.makedirs(build_directory)
+            if not dry_run:
+                logger.info("Creating build directory %s"
+                            % build_directory)
+                os.makedirs(build_directory)
+            else:
+                logger.warn("Dry run mode: not creating build directory %s"
+                            % build_directory)
         return build_directory
             
     def save(self):
