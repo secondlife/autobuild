@@ -83,10 +83,6 @@ class AutobuildTool(autobuild_base.AutobuildBase):
     def run(self, args):
         config = configfile.ConfigurationDescription(args.config_file)
         current_directory = os.getcwd()
-        build_directory = config.make_build_directory()
-        logger.debug("building in %s" % build_directory)
-        if not args.use_cwd:
-            os.chdir(build_directory)
         try:
             configure_first = not args.do_not_configure
             if args.all:
@@ -102,6 +98,12 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
             logger.debug("building for configuration(s) %r" % build_configurations)
             for build_configuration in build_configurations:
+                if args.use_cwd:
+                    logger.debug("building in %s" % current_directory)
+                else:
+                    build_directory = config.make_build_directory(build_configuration)
+                    logger.debug("building in %s" % build_directory)
+                    os.chdir(build_directory)
                 if configure_first:
                     result = _configure_a_configuration(config, build_configuration,
                         args.build_extra_arguments, args.dry_run)

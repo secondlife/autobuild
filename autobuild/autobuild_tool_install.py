@@ -91,74 +91,6 @@ Supported platforms include: windows, darwin, linux, and a common platform
 to represent a platform-independent package.
 """
 
-def add_arguments(parser):
-    parser.description = "install artifacts of dependency packages for use during the build of the current package"
-    parser.add_argument(
-        'package',
-        nargs='*',
-        help='List of packages to consider for installation.')
-    parser.add_argument(
-        '--config-file',
-        default=configfile.AUTOBUILD_CONFIG_FILE,
-        dest='install_filename',
-        help="The file used to describe what should be installed\n  (defaults to $AUTOBUILD_CONFIG_FILE or \"autobuild.xml\").")
-    parser.add_argument(
-        '--installed-manifest',
-        default=configfile.INSTALLED_CONFIG_FILE,
-        dest='installed_filename',
-        help='The file used to record what is installed.')
-    parser.add_argument(
-        '-p', '--platform',
-        default=common.get_current_platform(),
-        dest='platform',
-        help='Override the automatically determined platform.')
-    parser.add_argument(
-        '--install-dir',
-        default=None,
-        dest='install_dir',
-        help='Where to unpack the installed files.')
-    parser.add_argument(
-        '--list',
-        action='store_true',
-        default=False,
-        dest='list_archives',
-        help="List the archives specified in the package file.")
-    parser.add_argument(
-        '--list-installed',
-        action='store_true',
-        default=False,
-        dest='list_installed',
-        help="List the installed package names and exit.")
-    parser.add_argument(
-        '--skip-license-check',
-        action='store_false',
-        default=True,
-        dest='check_license',
-        help="Do not perform the license check.")
-    parser.add_argument(
-        '--list-licenses',
-        action='store_true',
-        default=False,
-        dest='list_licenses',
-        help="List known licenses and exit.")
-    parser.add_argument(
-        '--export-manifest',
-        action='store_true',
-        default=False,
-        dest='export_manifest',
-        help="Print the install manifest to stdout and exit.")
-    parser.add_argument(
-        '--as-source',
-        action='append',
-        dest='as_source',
-        default=[],
-        help="Get the source for this package instead of prebuilt binary.")
-    parser.add_argument(
-        '--local',
-        action='append',
-        dest='local_archives',
-        default=[],
-        help="Install this locally built archive in place of the configured installable.")
 
 def print_list(label, array):
     """
@@ -537,20 +469,8 @@ def uninstall(package_name, installed_config):
                 # no idea what this exception is, better let it propagate
                 raise
 
-def install_packages(options, args):
-    # load the list of packages to install
-    logger.debug("loading " + options.install_filename)
-    config_file = configfile.ConfigurationDescription(options.install_filename)
-
-    # write packages into 'packages' subdir of build directory by default
-    if options.install_dir:
-        logger.debug("specified install directory: " + options.install_dir)
-    else:
-        options.install_dir = os.path.join(config_file.make_build_directory(), 'packages')
-        logger.debug("default install directory: " + options.install_dir)
-
-    # get the absolute paths to the install dir and installed-packages.xml file
-    install_dir = os.path.realpath(options.install_dir)
+def install_packages(options, config_file, install_dir, args):
+    logger.debug("installing to directory: " + install_dir)
     # If installed_filename is already an absolute pathname, join() is smart
     # enough to leave it alone. Therefore we can do this unconditionally.
     installed_filename = os.path.join(install_dir, options.installed_filename)
@@ -605,10 +525,118 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                     description='Fetch and install package archives.')
 
     def register(self, parser):
-        add_arguments(parser)
+        parser.description = "install artifacts of dependency packages for use during the build of the current package"
+        parser.add_argument(
+            'package',
+            nargs='*',
+            help='List of packages to consider for installation.')
+        parser.add_argument(
+            '--config-file',
+            default=configfile.AUTOBUILD_CONFIG_FILE,
+            dest='install_filename',
+            help="The file used to describe what should be installed\n  (defaults to $AUTOBUILD_CONFIG_FILE or \"autobuild.xml\").")
+        parser.add_argument(
+            '--installed-manifest',
+            default=configfile.INSTALLED_CONFIG_FILE,
+            dest='installed_filename',
+            help='The file used to record what is installed.')
+        parser.add_argument(
+            '-p', '--platform',
+            default=common.get_current_platform(),
+            dest='platform',
+            help='Override the automatically determined platform.')
+        parser.add_argument(
+            '--install-dir',
+            default=None,
+            dest='install_dir',
+            help='Where to unpack the installed files.')
+        parser.add_argument(
+            '--list',
+            action='store_true',
+            default=False,
+            dest='list_archives',
+            help="List the archives specified in the package file.")
+        parser.add_argument(
+            '--list-installed',
+            action='store_true',
+            default=False,
+            dest='list_installed',
+            help="List the installed package names and exit.")
+        parser.add_argument(
+            '--skip-license-check',
+            action='store_false',
+            default=True,
+            dest='check_license',
+            help="Do not perform the license check.")
+        parser.add_argument(
+            '--list-licenses',
+            action='store_true',
+            default=False,
+            dest='list_licenses',
+            help="List known licenses and exit.")
+        parser.add_argument(
+            '--export-manifest',
+            action='store_true',
+            default=False,
+            dest='export_manifest',
+            help="Print the install manifest to stdout and exit.")
+        parser.add_argument(
+            '--as-source',
+            action='append',
+            dest='as_source',
+            default=[],
+            help="Get the source for this package instead of prebuilt binary.")
+        parser.add_argument(
+            '--local',
+            action='append',
+            dest='local_archives',
+            default=[],
+            help="Install this locally built archive in place of the configured installable.")
+        parser.add_argument('--all','-a',dest='all', default=False, action="store_true",
+            help="install packages for all configurations")
+        parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
+                            help="install packages for a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
+                            metavar='CONFIGURATION',
+                            default=self.configurations_from_environment())
+        parser.add_argument('--use-cwd', dest='use_cwd', default=False, action="store_true",
+            help="install in current working directory")
 
     def run(self, args):
-        install_packages(args, args.package)
+        # load the list of packages to install
+        logger.debug("loading " + args.install_filename)
+        config = configfile.ConfigurationDescription(args.install_filename)
+
+        # write packages into 'packages' subdir of build directory by default
+        install_dirs = []
+        if args.install_dir:
+            install_dirs.append(args.install_dir)
+            logger.debug("specified install directory: " + args.install_dir)
+        elif args.use_cwd:
+            current_directory = os.getcwd()
+            install_dir = os.path.join(current_director, 'packages')
+            install_dirs.append(install_dir)
+            logger.debug("specified current working directory: " + install_dir)
+        else:
+            if args.all:
+                build_configurations = config.get_all_build_configurations()
+            elif args.configurations:
+                build_configurations = \
+                    [config.get_build_configuration(name) for name in args.configurations]
+            else:
+                build_configurations = config.get_default_build_configurations()
+            logger.debug("installing packages for configuration(s) %s" % pprint.pformat(build_configurations))
+            for build_configuration in build_configurations:
+                install_dir = config.make_build_directory(build_configuration)
+                install_dir = os.path.join(install_dir, 'packages')
+                install_dirs.append(install_dir)
+
+        # get the absolute paths to the install dir and installed-packages.xml file
+        try:
+            for install_dir in install_dirs:
+                install_dir = os.path.realpath(install_dir)
+                install_packages(args, config, install_dir, args.package)
+        except InstallError,e:
+            print e
 
 if __name__ == '__main__':
     sys.exit("Please invoke this script using 'autobuild %s'" %

@@ -102,13 +102,20 @@ class ConfigurationDescription(common.Serialized):
             raise ConfigurationError("no configuration for build configuration '%s' found; one may be created using 'autobuild edit build'" % 
                 build_configuration_name)
    
-    def get_build_directory(self, platform_name=get_current_platform()):
+    def get_build_directory(self, configuration, platform_name=get_current_platform()):
         """
         Returns the absolute path to the build directory for the platform.
         """
         platform_description = self.get_platform(platform_name)
         common_platform_description = self.package_description.platforms.get('common', None)
         config_directory = os.path.dirname(self.path)
+        # Try specific configuration build_directory first.
+        if hasattr(configuration, 'build_directory') and configuration.build_directory is not None:
+            build_directory = configuration.build_directory
+            if not os.path.isabs(build_directory):
+                build_directory = os.path.abspath(os.path.join(config_directory, build_directory))
+            return build_directory
+
         if platform_description.build_directory is not None:
             build_directory = platform_description.build_directory
             if not os.path.isabs(build_directory):
@@ -156,11 +163,11 @@ class ConfigurationDescription(common.Serialized):
         """
         return self.get_platform(get_current_platform())
     
-    def make_build_directory(self):
+    def make_build_directory(self, configuration):
         """
         Makes the working platform's build directory if it does not exist and returns a path to it.
         """
-        build_directory = self.get_build_directory(common.get_current_platform())
+        build_directory = self.get_build_directory(configuration, common.get_current_platform())
         if not os.path.isdir(build_directory):
             os.makedirs(build_directory)
         return build_directory

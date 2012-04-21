@@ -50,6 +50,7 @@ import tarfile
 import time
 import glob
 import common
+import pprint
 import logging
 import configfile
 import autobuild_base
@@ -94,17 +95,58 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             default=None,
             dest='archive_format',
             help='the format of the archive (tbz2 or zip)')
+        parser.add_argument(
+            '--build-dir',
+            default=None,
+            dest='build_dir',
+            help='Package specific build directory.')
+        parser.add_argument('--all','-a',dest='all', default=False, action="store_true",
+            help="package all configurations")
+        parser.add_argument('--use-cwd', dest='use_cwd', default=False, action="store_true",
+            help="package from current working directory")
+        parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
+                            help="package a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
+                            metavar='CONFIGURATION',
+                            default=self.configurations_from_environment())
 
     def run(self, args):
+        logger.debug("loading " + args.autobuild_filename)
         config = configfile.ConfigurationDescription(args.autobuild_filename)
-        package(config, args.platform, args.archive_filename, args.archive_format, args.check_license, args.dry_run)
+
+        build_dirs = []
+        if args.build_dir:
+            build_dirs.append(args.build_dir)
+            logger.debug("specified build directory: " + args.build_dir)
+        elif args.use_cwd:
+            build_dir = os.getcwd()
+            build_dirs.append(build_dir)
+            logger.debug("specified current working directory: " + build_dir)
+        else:
+            if args.all:
+                build_configurations = config.get_all_build_configurations()
+            elif args.configurations:
+                build_configurations = \
+                    [config.get_build_configuration(name) for name in args.configurations]
+            else:
+                build_configurations = config.get_default_build_configurations()
+            logger.debug("packaging configuration(s) %s" % pprint.pformat(build_configurations))
+            for build_configuration in build_configurations:
+                build_dir = config.get_build_directory(build_configuration, args.platform)
+                build_dirs.append(build_dir)
+
+            
+        try:
+            for build_dir in build_dirs:
+                package(config, build_dir, args.platform, args.archive_filename, args.archive_format, args.check_license, args.dry_run)
+        except PackageError,e:
+            print e
 
 
 class PackageError(AutobuildError):
     pass
 
 
-def package(config, platform_name, archive_filename=None, archive_format=None, check_license=True, dry_run=False):
+def package(config, build_directory, platform_name, archive_filename=None, archive_format=None, check_license=True, dry_run=False):
     """
     Create an archive for the given platform.
     """
@@ -118,7 +160,6 @@ def package(config, platform_name, archive_filename=None, archive_format=None, c
     print "packing %s" % package_description.name
     if not package_description.version:
         raise PackageError("no version number specified")
-    build_directory = config.get_build_directory(platform_name)
     logger.info('packaging from %r' % build_directory)
     if not os.path.isdir(build_directory):
         raise PackageError("build directory %s is not a directory" % build_directory)

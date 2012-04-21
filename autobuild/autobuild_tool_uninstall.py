@@ -36,6 +36,7 @@ import os
 import sys
 import errno
 import common
+import pprint
 import logging
 import configfile
 import autobuild_base
@@ -59,52 +60,7 @@ in installed-packages.xml; it doesn't delete the package's source repository.
 This is because there may be local source changes in that repository.
 """
 
-def add_arguments(parser):
-    parser.description = "uninstall artifacts installed by the 'autobuild install' command."
-    parser.add_argument(
-        'package',
-        nargs='*',
-        help='List of packages to uninstall.')
-    # Sigh, the ONLY reason we need to read the autobuild.xml file is to
-    # find the default --install-dir.
-    parser.add_argument(
-        '--config-file',
-        default=configfile.AUTOBUILD_CONFIG_FILE,
-        dest='install_filename',
-        help="The file used to describe what should be installed\n  (defaults to $AUTOBUILD_CONFIG_FILE or \"autobuild.xml\").")
-    parser.add_argument(
-        '--installed-manifest',
-        default=configfile.INSTALLED_CONFIG_FILE,
-        dest='installed_filename',
-        help='The file used to record what is installed.')
-    # The only reason we need to know --install-dir is because the default
-    # --installed-manifest is relative.
-    parser.add_argument(
-        '--install-dir',
-        default=None,
-        dest='install_dir',
-        help='Where to find the default --installed-manifest file.')
-
-def uninstall_packages(options, args):
-    installed_filename = options.installed_filename
-    if not os.path.isabs(installed_filename):
-        # Give user the opportunity to avoid reading AUTOBUILD_CONFIG_FILE by
-        # specifying a full pathname for --installed-manifest. This logic
-        # handles the (usual) case when installed_filename is relative to
-        # install_dir. Therefore we must figure out install_dir.
-        install_dir = options.install_dir
-        if install_dir:
-            logger.info("specified install directory: " + install_dir)
-        else:
-            # load config file to get default install_dir
-            logger.debug("loading " + options.install_filename)
-            config_file = configfile.ConfigurationDescription(options.install_filename)
-            install_dir = os.path.join(config_file.make_build_directory(), 'packages')
-            logger.info("default install directory: " + install_dir)
-
-        # get the absolute path to the installed-packages.xml file
-        installed_filename = os.path.realpath(os.path.join(install_dir, installed_filename))
-
+def uninstall_packages(options, installed_filename, args):
     # load the list of already installed packages
     logger.debug("loading " + installed_filename)
     installed_file = configfile.ConfigurationDescription(installed_filename)
@@ -123,10 +79,79 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                     description='Uninstall package archives.')
 
     def register(self, parser):
-        add_arguments(parser)
+        parser.description = "uninstall artifacts installed by the 'autobuild install' command."
+        parser.add_argument(
+            'package',
+            nargs='*',
+            help='List of packages to uninstall.')
+        # Sigh, the ONLY reason we need to read the autobuild.xml file is to
+        # find the default --install-dir.
+        parser.add_argument(
+            '--config-file',
+            default=configfile.AUTOBUILD_CONFIG_FILE,
+            dest='install_filename',
+            help="The file used to describe what should be installed\n  (defaults to $AUTOBUILD_CONFIG_FILE or \"autobuild.xml\").")
+        parser.add_argument(
+            '--installed-manifest',
+            default=configfile.INSTALLED_CONFIG_FILE,
+            dest='installed_filename',
+            help='The file used to record what is installed.')
+        # The only reason we need to know --install-dir is because the default
+        # --installed-manifest is relative.
+        parser.add_argument(
+            '--install-dir',
+            default=None,
+            dest='install_dir',
+            help='Where to find the default --installed-manifest file.')
+        parser.add_argument('--all','-a',dest='all', default=False, action="store_true",
+            help="uninstall packages for all configurations")
+        parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
+                            help="uninstall packages for a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
+                            metavar='CONFIGURATION',
+                            default=self.configurations_from_environment())
+        parser.add_argument('--use-cwd', dest='use_cwd', default=False, action="store_true",
+            help="uninstall from current working directory")
+
 
     def run(self, args):
-        uninstall_packages(args, args.package)
+        installed_filenames = []
+        installed_filename = args.installed_filename
+        if os.path.isabs(installed_filename):
+            installed_filenames.append(installed_filename)
+        else:
+            # Give user the opportunity to avoid reading AUTOBUILD_CONFIG_FILE by
+            # specifying a full pathname for --installed-manifest. This logic
+            # handles the (usual) case when installed_filename is relative to
+            # install_dir. Therefore we must figure out install_dir.
+            # load the list of packages to install
+
+            # write packages into 'packages' subdir of build directory by default
+            if args.install_dir:
+                installed_filenames.append( os.path.realpath(os.path.join(args.install_dir, installed_filename)) )
+                logger.debug("specified install directory: " + args.install_dir)
+            elif args.use_cwd:
+                current_directory = os.getcwd()
+                installed_filenames.append( os.path.realpath(os.path.join(current_directory, installed_filename)) )
+                logger.debug("specified current working directory: " + current_directory)
+            else:
+                logger.debug("loading " + args.install_filename)
+                config = configfile.ConfigurationDescription(args.install_filename)
+                if args.all:
+                    build_configurations = config.get_all_build_configurations()
+                elif args.configurations:
+                    build_configurations = \
+                        [config.get_build_configuration(name) for name in args.configurations]
+                else:
+                    build_configurations = config.get_default_build_configurations()
+                    logger.debug("uninstalling packages for configuration(s) %s" % pprint.pformat(build_configurations))
+                for build_configuration in build_configurations:
+                    install_dir = config.make_build_directory(build_configuration)
+                    install_dir = os.path.join(install_dir, 'packages')
+                    installed_filenames.append( os.path.realpath(os.path.join(install_dir, installed_filename)) )
+
+        logger.debug("installed filenames: %s" % installed_filenames)
+        for installed_filename in installed_filenames:
+            uninstall_packages(args, installed_filename, args.package)  
 
 if __name__ == '__main__':
     sys.exit("Please invoke this script using 'autobuild %s'" %
