@@ -133,8 +133,9 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             for build_configuration in build_configurations:
                 build_dir = config.get_build_directory(build_configuration, args.platform)
                 build_dirs.append(build_dir)
-
             
+        if len(build_dirs) == 0:
+            build_dirs = [config.get_build_directory(None, args.platform)]
         try:
             for build_dir in build_dirs:
                 package(config, build_dir, args.platform, args.archive_filename, args.archive_format, args.check_license, args.dry_run)
@@ -182,6 +183,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
         tarfilename = archive_filename
     else:
         tarfilename = os.path.abs(os.path.join(config_directory, archive_filename))
+    logger.debug(tarfilename)
     if dry_run:
         for f in files:
             logger.info('added ' + f)

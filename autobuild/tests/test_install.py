@@ -44,6 +44,10 @@ from BaseHTTPServer import HTTPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 from autobuild import autobuild_tool_install, autobuild_tool_uninstall, configfile, common
 
+# Configure autobuild_tool_[un]install modules to let exceptions through.
+autobuild_tool_install._CATCH_EXCEPTIONS = False
+autobuild_tool_uninstall._CATCH_EXCEPTIONS = False
+
 mydir = os.path.dirname(__file__)
 HOST = '127.0.0.1'                      # localhost server
 PORT = 8800                             # base port, may change
@@ -105,12 +109,14 @@ class ExpectError(object):
     Usage:
 
     with ExpectError("unknown", "Expected InstallError for unknown package name"):
-        autobuild_tool_install.install_packages(self.options, ["no_such_package"])
+        self.options.package = ["no_such_package"]
+        autobuild_tool_install.AutobuildTool().run(self.options)
 
     replaces:
 
     try:
-        autobuild_tool_install.install_packages(self.options, ["no_such_package"])
+        self.options.package = ["no_such_package"]
+        autobuild_tool_install.AutobuildTool().run(self.options)
     except autobuild_tool_install.InstallError, err:
         assert_in("unknown", str(err))
     else:
@@ -177,7 +183,7 @@ def query_manifest(options=None):
     options = options.copy() if options else FakeOptions()
     options.export_manifest = True
     with CaptureStdout() as stream:
-        autobuild_tool_install.install_packages(options, [])
+        autobuild_tool_install.AutobuildTool().run(options)
     raw = stream.getvalue()
     if not raw.strip():
         # If output is completely empty, eval() would barf -- but that's okay,
@@ -267,8 +273,9 @@ def setup():
                      list_licenses=False,
                      export_manifest=False,
                      as_source=[],
-                     verbose=False,
+                     logging_level=logging.DEBUG,
                      local_archives=[],
+                     package=[],
                      ):
             # Take all constructor params and assign as object attributes.
             params = locals().copy()
@@ -441,6 +448,7 @@ class BaseTest(object):
         # Each of these tests wants a variant config file.
         self.options = FakeOptions()
         self.config = self.options.use_temp_config()
+        logger.setLevel(self.options.logging_level)
 
     def copyto(self, source, destdir):
         return self.copy(source, in_dir(destdir, source))
@@ -491,6 +499,7 @@ class TestInstallArchive(BaseTest):
     def setup(self):
         BaseTest.setup(self)
         self.pkg = "bogus"
+        self.options.package = [self.pkg]
         fixture = FIXTURES[self.pkg + "-0.1"]
         # ArchiveFixture creates tarballs in STAGING_DIR. Have to copy to
         # SERVER_DIR if we want to be able to download.
@@ -500,7 +509,7 @@ class TestInstallArchive(BaseTest):
 
     def test_success(self):
         assert_not_in(self.pkg, query_manifest(self.options))
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
         assert os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
         assert_in(self.pkg, query_manifest(self.options))
@@ -508,14 +517,14 @@ class TestInstallArchive(BaseTest):
     def test_dry_run(self):
         dry_opts = self.options.copy()
         dry_opts.dry_run = True
-        autobuild_tool_install.install_packages(dry_opts, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(dry_opts)
         assert_not_in(self.pkg, query_manifest(self.options))
         assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
 
     def test_reinstall(self):
         # test_success() establishes that this first one should work
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
         # Delete tarball from SERVER_DIR so our local server can't find it to
         # download. (Make darned sure it's gone: use os.remove() here instead
         # of clean_file(). If there's an exception, user should know why!)
@@ -524,14 +533,14 @@ class TestInstallArchive(BaseTest):
         clean_cache()
         # TestDownloadFail() establishes that when the tarball we need is
         # neither in cache nor in SERVER_DIR, we should get an InstallError.
-        # Absence of that exception means install_packages() didn't even try
+        # Absence of that exception means AutobuildTool().run() didn't even try
         # to fetch the tarball -- which should mean it realized this package
         # is already up-to-date.
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
 
     def test_update(self):
         # test_success() establishes that this first one should work
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
         # Get ready to update with newer version of same package name
         fixture = FIXTURES[self.pkg + "-0.2"]
         self.copyto(fixture.pathname, SERVER_DIR)
@@ -541,16 +550,16 @@ class TestInstallArchive(BaseTest):
                          "bogus-0.2 install failed to completely uninstall bogus-0.1"):
             # bogus-0.2 has no license file. We expect to fail
             # post_install_license_check().
-            autobuild_tool_install.install_packages(self.options, [self.pkg])
+            autobuild_tool_install.AutobuildTool().run(self.options)
         # okay, if we got this far, turn off license check
         self.options.check_license = False
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
         # verify that the update actually updated a file still in package
         assert_in("0.2", open(os.path.join(INSTALL_DIR, "include", "bogus.h")).read())
 
     def test_update_move(self):
         # test_success() establishes that this first one should work
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
         # Get ready to update with newer version of same package name
         fixture = FIXTURES[self.pkg + "-0.2"]
         self.copyto(fixture.pathname, SERVER_DIR)
@@ -562,7 +571,7 @@ class TestInstallArchive(BaseTest):
         old_install_dir = self.options.install_dir
         self.options.install_dir = os.path.join(os.path.dirname(old_install_dir), "other_packages")
         self.tempdirs.append(self.options.install_dir)
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
         # verify uninstall in old_install_dir
         assert not os.path.exists(os.path.join(old_install_dir, "lib", "bogus.lib"))
         assert not os.path.exists(os.path.join(old_install_dir, "include", "bogus.h"))
@@ -575,20 +584,21 @@ class TestInstallArchive(BaseTest):
         self.config.installables[self.pkg].platforms["common"] = \
             self.config.installables[self.pkg].platforms.pop("darwin")
         self.config.save()
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
         assert os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
 
     def test_unknown(self):
         with ExpectError("unknown", "Expected InstallError for unknown package name"):
-            autobuild_tool_install.install_packages(self.options, ["no_such_package"])
+            self.options.package = ["no_such_package"]
+            autobuild_tool_install.AutobuildTool().run(self.options)
         assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
 
     def test_no_platform(self):
         del self.config.installables[self.pkg].platforms["darwin"]
         self.config.save()
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
         assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
 
@@ -596,36 +606,36 @@ class TestInstallArchive(BaseTest):
         self.config.installables[self.pkg].platforms["darwin"].archive = None
         self.config.save()
         with ExpectError("no archive", "Expected InstallError for missing ArchiveDescription"):
-            autobuild_tool_install.install_packages(self.options, [self.pkg])
+            autobuild_tool_install.AutobuildTool().run(self.options)
 
     def test_no_url(self):
         self.config.installables[self.pkg].platforms["darwin"].archive.url = None
         self.config.save()
         with ExpectError("no url", "Expected InstallError for missing archive url"):
-            autobuild_tool_install.install_packages(self.options, [self.pkg])
+            autobuild_tool_install.AutobuildTool().run(self.options)
 
     def test_no_license(self):
         self.config.installables[self.pkg].license = None
         self.config.save()
         with ExpectError("no license", "Expected InstallError for missing license"):
-            autobuild_tool_install.install_packages(self.options, [self.pkg])
+            autobuild_tool_install.AutobuildTool().run(self.options)
 
     def test_skip_license(self):
         self.config.installables[self.pkg].license = None
         self.config.save()
         self.options.check_license = False
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
 
     def test_list_archives(self):
         self.options.list_archives = True
         with CaptureStdout() as stream:
-            autobuild_tool_install.install_packages(self.options, [])
+            autobuild_tool_install.AutobuildTool().run(self.options)
         assert_equals(set_from_stream(stream), set(("argparse", "tut_test", "bogus")))
 
     def test_list_licenses(self):
         self.options.list_licenses = True
         with CaptureStdout() as stream:
-            autobuild_tool_install.install_packages(self.options, [])
+            autobuild_tool_install.AutobuildTool().run(self.options)
         assert_equals(set_from_stream(stream), set(("Apache", "tut", "N/A")))
 
 # -------------------------------------  -------------------------------------
@@ -633,6 +643,7 @@ class TestInstallCachedArchive(BaseTest):
     def setup(self):
         BaseTest.setup(self)
         self.pkg = "bogus"
+        self.options.package = [self.pkg]
         fixture = FIXTURES[self.pkg + "-0.1"]
         # ArchiveFixture creates tarballs in STAGING_DIR. Don't copy to
         # SERVER_DIR; in fact ensure it's not there.
@@ -643,7 +654,7 @@ class TestInstallCachedArchive(BaseTest):
         self.new_package(fixture.package)
 
     def test_success(self):
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
         assert os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
 
@@ -652,6 +663,7 @@ class TestInstallLocalArchive(BaseTest):
     def setup(self):
         BaseTest.setup(self)
         self.pkg = "bogus"
+        self.options.package = [self.pkg]
         self.fixture = FIXTURES[self.pkg + "-0.1"]
         # Make sure this fixture isn't in either the server directory or cahce:
         assert not os.path.exists(in_dir(SERVER_DIR, self.fixture.pathname))
@@ -663,7 +675,7 @@ class TestInstallLocalArchive(BaseTest):
         self.options.local_archives = [self.fixture.pathname]
         assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
         assert os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
 
@@ -672,6 +684,7 @@ class TestDownloadFail(BaseTest):
     def setup(self):
         BaseTest.setup(self)
         self.pkg = "bogus"
+        self.options.package = [self.pkg]
         fixture = FIXTURES[self.pkg + "-0.1"]
         # ArchiveFixture creates tarballs in STAGING_DIR. Don't copy to
         # SERVER_DIR; in fact ensure it's neither there nor in cache dir.
@@ -683,7 +696,7 @@ class TestDownloadFail(BaseTest):
 
     def test_bad(self):
         with ExpectError("download", "expected InstallError for download failure"):
-            autobuild_tool_install.install_packages(self.options, [self.pkg])
+            autobuild_tool_install.AutobuildTool().run(self.options)
         assert not os.path.exists(self.cache_name)
 
 # -------------------------------------  -------------------------------------
@@ -691,6 +704,7 @@ class TestGarbledDownload(BaseTest):
     def setup(self):
         BaseTest.setup(self)
         self.pkg = "bogus"
+        self.options.package = [self.pkg]
         fixture = FIXTURES[self.pkg + "-0.1"]
         # ArchiveFixture creates tarballs in STAGING_DIR. Have to copy to
         # SERVER_DIR if we want to be able to download.
@@ -706,7 +720,7 @@ class TestGarbledDownload(BaseTest):
 
     def test_bad(self):
         with ExpectError("md5", "expected InstallError for md5 mismatch"):
-            autobuild_tool_install.install_packages(self.options, [self.pkg])
+            autobuild_tool_install.AutobuildTool().run(self.options)
         assert not os.path.exists(self.cache_name)
 
 # -------------------------------------  -------------------------------------
@@ -714,6 +728,7 @@ class TestInstallRepository(BaseTest):
     def setup(self):
         BaseTest.setup(self)
         self.pkg = "sourcepkg"
+        self.options.package = [self.pkg]
         fixture = FIXTURES[self.pkg]
         self.new_package(fixture.package)
         self.options.as_source.append(fixture.package.name)
@@ -722,14 +737,14 @@ class TestInstallRepository(BaseTest):
         self.tempdirs.append(self.install_dir)
 
     def test_success(self):
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
         assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.cpp"))
         assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.h"))
 
     def test_dry_run(self):
         dry_opts = self.options.copy()
         dry_opts.dry_run = True
-        autobuild_tool_install.install_packages(dry_opts, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(dry_opts)
         assert_not_in(self.pkg, query_manifest(self.options))
         assert not os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.cpp"))
         assert not os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.h"))
@@ -758,7 +773,7 @@ class TestInstallRepository(BaseTest):
         with ExpectError(errfrag, "expected InstallError for %s %s" % (desc, value)):
             # Try to install --as-source with the specified value.
             # Verify the expected error fragment.
-            autobuild_tool_install.install_packages(self.options, [self.pkg])
+            autobuild_tool_install.AutobuildTool().run(self.options)
 
     def test_reinstall_no_as_source(self):
         # First make a temp clone of this repository because, in this test, we
@@ -774,7 +789,7 @@ class TestInstallRepository(BaseTest):
         self.config.installables[self.pkg].source = temprepo
         self.config.save()
         # test_success() establishes that this works
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
         something_relpath = os.path.join("indra", "newview", "something.cpp")
         something_source = os.path.join(self.install_dir, something_relpath)
         assert os.path.exists(something_source)
@@ -788,7 +803,7 @@ class TestInstallRepository(BaseTest):
         # Remove --as-source flag from next command line to prove we remember
         # that this package was previously installed --as-source.
         self.options.as_source.remove(self.pkg)
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
         # If we fail to remember this package was previously installed
         # --as-source, we'll blow up trying to install a nonexistent archive.
         # If we try to clone over the previous install_dir, we'll blow up.
@@ -801,12 +816,12 @@ class TestInstallRepository(BaseTest):
 
     def test_uninstall_reinstall(self):
         # test_success() already verifies this
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
         assert_in(self.pkg, query_manifest(self.options))
         assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.cpp"))
         assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.h"))
         # ensure that uninstall leaves it alone
-        autobuild_tool_uninstall.uninstall_packages(self.options, [self.pkg])
+        autobuild_tool_uninstall.AutobuildTool().run(self.options)
         assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.cpp"))
         assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.h"))
         # Nonetheless uninstall should forget that it was installed.
@@ -816,13 +831,14 @@ class TestInstallRepository(BaseTest):
         # up.
         with ExpectError("existing",
                          "Expecting InstallError from reinstall --as-source over existing dir"):
-            autobuild_tool_install.install_packages(self.options, [self.pkg])
+            autobuild_tool_install.AutobuildTool().run(self.options)
 
 # -------------------------------------  -------------------------------------
 class TestMockSubversion(BaseTest):
     def setup(self):
         BaseTest.setup(self)
         self.pkg = "sourcepkg"
+        self.options.package = [self.pkg]
         fixture = FIXTURES[self.pkg]
         svnpkg = fixture.package.copy()
         svnpkg.sourcetype = "svn"
@@ -835,7 +851,7 @@ class TestMockSubversion(BaseTest):
         autobuild_tool_install.subprocess = mock_subprocess
         try:
             with ExpectError("checking out", "Expected InstallError from mock svn checkout"):
-                autobuild_tool_install.install_packages(self.options, [self.pkg])
+                autobuild_tool_install.AutobuildTool().run(self.options)
         finally:
             autobuild_tool_install.subprocess = real_subprocess
         assert_equals(len(mock_subprocess.commands), 1)
@@ -857,17 +873,18 @@ class TestUninstallArchive(BaseTest):
         BaseTest.setup(self)
         # Preliminary setup just like TestInstallArchive
         self.pkg = "bogus"
+        self.options.package = [self.pkg]
         fixture = FIXTURES[self.pkg + "-0.1"]
         self.copyto(fixture.pathname, SERVER_DIR)
         self.new_package(fixture.package)
         # but for uninstall testing, part of setup() is to install.
         # TestInstallArchive verifies that this part works.
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
         assert os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
 
     def test_success(self):
-        autobuild_tool_uninstall.uninstall_packages(self.options, [self.pkg])
+        autobuild_tool_uninstall.AutobuildTool().run(self.options)
         assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
         assert not os.path.exists(os.path.join(INSTALL_DIR, "LICENSES", "bogus.txt"))
@@ -876,12 +893,13 @@ class TestUninstallArchive(BaseTest):
         assert not os.path.exists(os.path.join(INSTALL_DIR, "include"))
 
         # Trying to uninstall a not-installed package is a no-op.
-        autobuild_tool_uninstall.uninstall_packages(self.options, [self.pkg])
+        autobuild_tool_uninstall.AutobuildTool().run(self.options)
 
     def test_unknown(self):
         # Trying to uninstall an unknown package is a no-op. uninstall() only
         # checks installed-packages.xml; it doesn't even use autobuild.xml.
-        autobuild_tool_uninstall.uninstall_packages(self.options, ["no_such_package"])
+        self.options.package = ["no_such_package"]
+        autobuild_tool_uninstall.AutobuildTool().run(self.options)
 
 # -------------------------------------  -------------------------------------
 class TestUninstallRepository(BaseTest):
@@ -889,6 +907,7 @@ class TestUninstallRepository(BaseTest):
         BaseTest.setup(self)
         # Preliminary setup just like TestInstallRepository
         self.pkg = "sourcepkg"
+        self.options.package = [self.pkg]
         fixture = FIXTURES[self.pkg]
         self.new_package(fixture.package)
         self.options.as_source.append(fixture.package.name)
@@ -897,14 +916,14 @@ class TestUninstallRepository(BaseTest):
         self.tempdirs.append(self.install_dir)
         # but for uninstall testing, part of setup() is to install.
         # TestInstallRepository verifies that this part works.
-        autobuild_tool_install.install_packages(self.options, [self.pkg])
+        autobuild_tool_install.AutobuildTool().run(self.options)
         assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.cpp"))
         assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.h"))
         # Don't also specify --as-source to uninstall
         self.options.as_source.remove(fixture.package.name)
 
     def test_uninstall_source(self):
-        autobuild_tool_uninstall.uninstall_packages(self.options, [self.pkg])
+        autobuild_tool_uninstall.AutobuildTool().run(self.options)
         # Attempting to uninstall an --as-source package should have NO EFFECT
         # on its files.
         assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.cpp"))
@@ -919,7 +938,8 @@ class TestInstall(unittest.TestCase):
         # Use all default options, bearing in mind that FakeOptions defaults
         # are biased towards our fixture data.
         options = FakeOptions()
-        autobuild_tool_install.install_packages(options, None)
+        options.package = None
+        autobuild_tool_install.AutobuildTool().run(options)
 
         # do an extra check to make sure the install worked
         lic_dir = os.path.join(options.install_dir, "LICENSES")
@@ -931,7 +951,7 @@ class TestInstall(unittest.TestCase):
 
         options.list_archives = True
         with CaptureStdout() as stream:
-            autobuild_tool_install.install_packages(options, [])
+            autobuild_tool_install.AutobuildTool().run(options)
         assert_equals(set_from_stream(stream), set(("argparse", "tut_test")))
 
 # ****************************************************************************

@@ -58,6 +58,7 @@ logger = logging.getLogger('autobuild.install')
 # with --quiet if need be.
 dry_run_msg = logger.warning
 
+_CATCH_EXCEPTIONS = True
 class InstallError(common.AutobuildError):
     pass
 
@@ -636,7 +637,10 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 install_dir = os.path.realpath(install_dir)
                 install_packages(args, config, install_dir, args.package)
         except InstallError,e:
-            print e
+            if _CATCH_EXCEPTIONS:
+                print e
+            else:
+                raise
 
 if __name__ == '__main__':
     sys.exit("Please invoke this script using 'autobuild %s'" %
