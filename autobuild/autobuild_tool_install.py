@@ -613,7 +613,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             logger.debug("specified install directory: " + args.install_dir)
         elif args.use_cwd:
             current_directory = os.getcwd()
-            install_dir = os.path.join(current_director, 'packages')
+            install_dir = os.path.join(current_directory, 'packages')
             install_dirs.append(install_dir)
             logger.debug("specified current working directory: " + install_dir)
         else:
