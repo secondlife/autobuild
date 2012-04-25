@@ -1,4 +1,4 @@
-# $LicenseInfo:firstyear=2012&license=mit$
+# $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,3 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 # $/LicenseInfo$
+import os
+
+def setup():
+    os.environ.pop('AUTOBUILD_CONFIGURATION', None)
