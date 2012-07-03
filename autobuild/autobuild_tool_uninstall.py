@@ -146,7 +146,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                     build_configurations = config.get_default_build_configurations()
                     logger.debug("uninstalling packages for configuration(s) %s" % pprint.pformat(build_configurations))
                 for build_configuration in build_configurations:
-                    install_dir = config.make_build_directory(build_configuration)
+                    install_dir = config.make_build_directory(build_configuration, args.dry_run)
                     install_dir = os.path.join(install_dir, 'packages')
                     installed_filenames.append( os.path.realpath(os.path.join(install_dir, installed_filename)) )
 

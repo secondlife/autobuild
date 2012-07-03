@@ -101,9 +101,10 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 if args.use_cwd:
                     logger.debug("building in %s" % current_directory)
                 else:
-                    build_directory = config.make_build_directory(build_configuration)
+                    build_directory = config.make_build_directory(build_configuration, args.dry_run)
                     logger.debug("building in %s" % build_directory)
-                    os.chdir(build_directory)
+                    if not args.dry_run:
+                        os.chdir(build_directory)
                 if configure_first:
                     result = _configure_a_configuration(config, build_configuration,
                         args.build_extra_arguments, args.dry_run)
