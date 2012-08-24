@@ -102,8 +102,6 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             help='Package specific build directory.')
         parser.add_argument('--all','-a',dest='all', default=False, action="store_true",
             help="package all configurations")
-        parser.add_argument('--use-cwd', dest='use_cwd', default=False, action="store_true",
-            help="package from current working directory")
         parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
                             help="package a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
@@ -117,10 +115,6 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         if args.build_dir:
             build_dirs.append(args.build_dir)
             logger.debug("specified build directory: " + args.build_dir)
-        elif args.use_cwd:
-            build_dir = os.getcwd()
-            build_dirs.append(build_dir)
-            logger.debug("specified current working directory: " + build_dir)
         else:
             if args.all:
                 build_configurations = config.get_all_build_configurations()

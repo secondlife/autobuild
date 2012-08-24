@@ -77,8 +77,6 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="build a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
-        parser.add_argument('--use-cwd', dest='use_cwd', default=False, action="store_true",
-            help="build in current working directory")
 
     def run(self, args):
         config = configfile.ConfigurationDescription(args.config_file)
@@ -98,13 +96,10 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
             logger.debug("building for configuration(s) %r" % build_configurations)
             for build_configuration in build_configurations:
-                if args.use_cwd:
-                    logger.debug("building in %s" % current_directory)
-                else:
-                    build_directory = config.make_build_directory(build_configuration, args.dry_run)
-                    logger.debug("building in %s" % build_directory)
-                    if not args.dry_run:
-                        os.chdir(build_directory)
+                build_directory = config.make_build_directory(build_configuration, args.dry_run)
+                logger.debug("building in %s" % build_directory)
+                if not args.dry_run:
+                    os.chdir(build_directory)
                 if configure_first:
                     result = _configure_a_configuration(config, build_configuration,
                         args.build_extra_arguments, args.dry_run)

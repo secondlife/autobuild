@@ -599,8 +599,6 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="install packages for a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
-        parser.add_argument('--use-cwd', dest='use_cwd', default=False, action="store_true",
-            help="install in current working directory")
 
     def run(self, args):
         # load the list of packages to install
@@ -612,11 +610,6 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         if args.install_dir:
             install_dirs.append(args.install_dir)
             logger.debug("specified install directory: " + args.install_dir)
-        elif args.use_cwd:
-            current_directory = os.getcwd()
-            install_dir = os.path.join(current_directory, 'packages')
-            install_dirs.append(install_dir)
-            logger.debug("specified current working directory: " + install_dir)
         else:
             if args.all:
                 build_configurations = config.get_all_build_configurations()

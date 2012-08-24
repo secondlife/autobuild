@@ -110,8 +110,6 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="uninstall packages for a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
-        parser.add_argument('--use-cwd', dest='use_cwd', default=False, action="store_true",
-            help="uninstall from current working directory")
 
 
     def run(self, args):
@@ -130,10 +128,6 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             if args.install_dir:
                 installed_filenames.append( os.path.realpath(os.path.join(args.install_dir, installed_filename)) )
                 logger.debug("specified install directory: " + args.install_dir)
-            elif args.use_cwd:
-                current_directory = os.getcwd()
-                installed_filenames.append( os.path.realpath(os.path.join(current_directory, installed_filename)) )
-                logger.debug("specified current working directory: " + current_directory)
             else:
                 logger.debug("loading " + args.install_filename)
                 config = configfile.ConfigurationDescription(args.install_filename)
