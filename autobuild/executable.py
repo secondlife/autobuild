@@ -35,13 +35,6 @@ import re
 
 import common
 
-# Like any() but calls each element of the iterable
-def _any_call(iterable):
-    for element in iterable:
-        if element():
-            return True
-    return False
-
 class ExecutableError(common.AutobuildError):
     pass
 
@@ -82,8 +75,7 @@ class Executable(common.Serialized):
             filters_re = [ re.compile(filter, re.MULTILINE) for filter in filters ]
             process = subprocess.Popen(' '.join(self._get_all_arguments(options)), shell=True, env=environment, stdout=subprocess.PIPE)
             for line in process.stdout:
-                filters_l = [ lambda: filter_re.search(line) for filter_re in filters_re ]
-                if _any_call(filters_l):
+                if any(regex.search(line) for regex in filters_re):
                     continue
                 line = line.replace("\r\n", "\n")
                 line = line.replace("\r", "\n")
