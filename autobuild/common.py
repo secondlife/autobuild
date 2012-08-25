@@ -40,6 +40,7 @@ import sys
 import glob
 import itertools
 import logging
+import pprint
 import socket
 import shutil
 import subprocess
@@ -106,7 +107,7 @@ def get_default_scp_command():
     """
     scp = find_executable(['pscp', 'scp'], ['.exe'])
     return scp
-    
+
 def get_autobuild_environment():
     """
     Return an environment under which to execute autobuild subprocesses.
@@ -208,14 +209,14 @@ def is_package_in_cache(package):
     to the local package cache.
     """
     return os.path.exists(get_package_in_cache(package))
-    
+
 def compute_md5(path):
     """
     Returns the MD5 sum for the given file.
     """
     if not os.path.isfile(path):
         raise AutobuildError('%s is not a file' % path)
-    
+
     try:
         from hashlib import md5      # Python 2.6
     except ImportError:
@@ -261,19 +262,19 @@ def download_package(package):
     opener.add_handler(scp_or_http)
     urllib2.install_opener(opener)
 
-    # Attempt to download the remote file 
+    # Attempt to download the remote file
     logger.info("downloading %s to %s" % (package, cachename))
     result = True
-        
+
     #
     # Exception handling:
     # 1. Isolate any exception from the setdefaulttimeout call.
     # 2. urllib2.urlopen supposedly wraps all errors in URLErrror. Include socket.timeout just in case.
     # 3. This code is here just to implement socket timeouts. The last general exception was already here so just leave it.
     #
-    
+
     socket.setdefaulttimeout(download_timeout_seconds)
- 
+
     for tries in itertools.count(1):
         try:
             file(cachename, 'wb').write(urllib2.urlopen(package).read())
@@ -290,8 +291,8 @@ def download_package(package):
             result = False
             break
 
-    socket.setdefaulttimeout(old_download_timeout) 
-  
+    socket.setdefaulttimeout(old_download_timeout)
+
     # Clean up and return True if the download succeeded
     scp_or_http.cleanup()
     return result
@@ -376,7 +377,7 @@ def split_tarname(pathname):
 def search_up_for_file(path):
     """
     Search up the file tree for a file matching the base name of the path provided.
-    
+
     Returns either the path to the file found or None if search fails.
     """
     path = os.path.abspath(path)
@@ -385,7 +386,7 @@ def search_up_for_file(path):
     while not os.path.exists(os.path.join(dir, filename)):
         newdir = os.path.dirname(dir)
         if newdir == dir:
-            return None 
+            return None
         dir = newdir
     return os.path.abspath(os.path.join(dir, filename))
 
@@ -395,13 +396,13 @@ class Serialized(dict, object):
     A base class for serialized objects.  Regular attributes are stored in the inherited dictionary
     and will be serialized. Class variables will be handled normally and are not serialized.
     """
-    
+
     def __getattr__(self, name):
         if self.has_key(name):
             return self[name]
         else:
             raise AttributeError("object has no attribute '%s'" % name)
-   
+
     def __setattr__(self, name, value):
         if self.__class__.__dict__.has_key(name):
             self.__dict__[name] = value
@@ -414,6 +415,86 @@ class Serialized(dict, object):
         instead of letting dict.copy() return a simple dict.
         """
         return self.__class__(self)
+
+def select_directories(args, config, desc, verb, dir_from_config, platform=None):
+    """
+    Several of our subcommands provide the ability to specify an individual
+    build tree on which to operate, or the build tree for each specified
+    configuration, or --all build trees. Factor out the common selection logic.
+
+    Returns: possibly-empty list of directories on which to operate.
+
+    Pass:
+
+    args: from argparse. Build your argparse subcommand arguments to set at least:
+        select_dir: a specific individual directory (e.g. from "--install-dir")
+        all: True when --all is specified
+        configurations: list of configuration names, e.g. "Debug"
+
+    config: loaded configuration file (from "autobuild.xml")
+
+    desc: debugging output: modifies 'directory', e.g. "install" directory
+
+    verb: debugging output: what we're doing to configurations, e.g.
+    "packaging" configurations x, y and z
+
+    dir_from_config: callable(configuration): when deriving directories from
+    build configurations (at present, unless args.select_dir is specified),
+    call this to obtain the directory for the passed build configuration.
+    Example: lambda cnf: config.get_build_directory(cnf, args.platform)
+
+    platform: platform on which all this should operate.
+        - If platform= is passed, use that platform.
+        - If not, but args.platform exists, use that platform.
+        - Otherwise use get_current_platform().
+    """
+    if args.select_dir:
+        logger.debug("specified %s directory: %s" % (desc, args.select_dir))
+        return [args.select_dir]
+
+    return [dir_from_config(conf)
+            for conf in select_configurations(args, config, verb, platform)]
+
+def select_configurations(args, config, verb, platform=None):
+    """
+    Several of our subcommands provide the ability to specify an individual
+    build configuration on which to operate, or several specified
+    configurations, or --all configurations. Factor out the common selection
+    logic.
+
+    Returns: possibly-empty list of configurations on which to operate.
+
+    Pass:
+
+    args: from argparse. Build your argparse subcommand arguments to set at least:
+        all: True when --all is specified
+        configurations: list of configuration names, e.g. "Debug"
+
+    config: loaded configuration file (from "autobuild.xml")
+
+    verb: debugging output: what we're doing to the selected configurations, e.g.
+    "packaging" configurations x, y and z
+
+    platform: platform on which all this should operate.
+        - If platform= is passed, use that platform.
+        - If not, but args.platform exists, use that platform.
+        - Otherwise use get_current_platform().
+    """
+    if platform is None:
+        try:
+            platform = args.platform
+        except AttributeError:
+            platform = get_current_platform()
+
+    if args.all:
+        configurations = config.get_all_build_configurations(platform)
+    elif args.configurations:
+        configurations = [config.get_build_configuration(name, platform)
+                          for name in args.configurations]
+    else:
+        configurations = config.get_default_build_configurations(platform)
+    logger.debug("%s configuration(s) %s" % (verb, pprint.pformat(configurations)))
+    return configurations
 
 ######################################################################
 #
@@ -433,7 +514,7 @@ def __extract_tar_file(cachename, install_dir):
         __extractall(tar, path=install_dir)
 
     return tar.getnames()
-    
+
 def __extract_zip_archive(cachename, install_dir):
     zip_archive = ZipFile(cachename, 'r')
     try:
@@ -615,7 +696,7 @@ class Bootstrap(object):
             else:
                 raise AutobuildError("no package defined for %s for %s" %
                                    (name, platform))
-            
+
             # get the url and md5 for this package dependency
             md5sum = specs['md5sum']
             # *NOTE - don't use os.path.join(): does the wrong thing on windows
@@ -644,4 +725,3 @@ class Bootstrap(object):
 # call the bootstrap code whenever this module is imported
 #
 Bootstrap()
-

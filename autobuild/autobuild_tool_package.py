@@ -50,7 +50,6 @@ import tarfile
 import time
 import glob
 import common
-import pprint
 import logging
 import configfile
 import autobuild_base
@@ -98,7 +97,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         parser.add_argument(
             '--build-dir',
             default=None,
-            dest='build_dir',
+            dest='select_dir',          # see common.select_directories()
             help='Package specific build directory.')
         parser.add_argument('--all','-a',dest='all', default=False, action="store_true",
             help="package all configurations")
@@ -111,24 +110,11 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         logger.debug("loading " + args.autobuild_filename)
         config = configfile.ConfigurationDescription(args.autobuild_filename)
 
-        build_dirs = []
-        if args.build_dir:
-            build_dirs.append(args.build_dir)
-            logger.debug("specified build directory: " + args.build_dir)
-        else:
-            if args.all:
-                build_configurations = config.get_all_build_configurations()
-            elif args.configurations:
-                build_configurations = \
-                    [config.get_build_configuration(name) for name in args.configurations]
-            else:
-                build_configurations = config.get_default_build_configurations()
-            logger.debug("packaging configuration(s) %s" % pprint.pformat(build_configurations))
-            for build_configuration in build_configurations:
-                build_dir = config.get_build_directory(build_configuration, args.platform)
-                build_dirs.append(build_dir)
-            
-        if len(build_dirs) == 0:
+        build_dirs = common.select_directories(args, config, "build", "packaging",
+                                               lambda cnf:
+                                               config.get_build_directory(cnf, args.platform))
+
+        if not build_dirs:
             build_dirs = [config.get_build_directory(None, args.platform)]
         try:
             for build_dir in build_dirs:

@@ -549,7 +549,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         parser.add_argument(
             '--install-dir',
             default=None,
-            dest='install_dir',
+            dest='select_dir',          # see common.select_directories()
             help='Where to unpack the installed files.')
         parser.add_argument(
             '--list',
@@ -595,7 +595,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             help="Install this locally built archive in place of the configured installable.")
         parser.add_argument('--all','-a',dest='all', default=False, action="store_true",
             help="install packages for all configurations")
-        parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
+        parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations',
                             help="install packages for a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
@@ -606,23 +606,12 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         config = configfile.ConfigurationDescription(args.install_filename)
 
         # write packages into 'packages' subdir of build directory by default
-        install_dirs = []
-        if args.install_dir:
-            install_dirs.append(args.install_dir)
-            logger.debug("specified install directory: " + args.install_dir)
-        else:
-            if args.all:
-                build_configurations = config.get_all_build_configurations()
-            elif args.configurations:
-                build_configurations = \
-                    [config.get_build_configuration(name) for name in args.configurations]
-            else:
-                build_configurations = config.get_default_build_configurations()
-            logger.debug("installing packages for configuration(s) %s" % pprint.pformat(build_configurations))
-            for build_configuration in build_configurations:
-                install_dir = config.make_build_directory(build_configuration, args.dry_run)
-                install_dir = os.path.join(install_dir, 'packages')
-                install_dirs.append(install_dir)
+        install_dirs = \
+             common.select_directories(args, config,
+                                       "install", "installing packages for",
+                                       lambda cnf:
+                                       os.path.join(config.make_build_directory(cnf, args.dry_run),
+                                                    "packages"))
 
         # get the absolute paths to the install dir and installed-packages.xml file
         try:

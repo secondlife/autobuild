@@ -36,7 +36,6 @@ import os
 import sys
 import errno
 import common
-import pprint
 import logging
 import configfile
 import autobuild_base
@@ -102,7 +101,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         parser.add_argument(
             '--install-dir',
             default=None,
-            dest='install_dir',
+            dest='select_dir',          # see common.select_directories()
             help='Where to find the default --installed-manifest file.')
         parser.add_argument('--all','-a',dest='all', default=False, action="store_true",
             help="uninstall packages for all configurations")
@@ -113,41 +112,41 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
 
     def run(self, args):
-        installed_filenames = []
         installed_filename = args.installed_filename
         if os.path.isabs(installed_filename):
-            installed_filenames.append(installed_filename)
+            installed_filenames = [installed_filename]
         else:
             # Give user the opportunity to avoid reading AUTOBUILD_CONFIG_FILE by
-            # specifying a full pathname for --installed-manifest. This logic
-            # handles the (usual) case when installed_filename is relative to
-            # install_dir. Therefore we must figure out install_dir.
-            # load the list of packages to install
+            # specifying a full pathname for --installed-manifest. Make a
+            # 'config' object that only actually loads the config file if we
+            # try to use it by accessing an attribute.
+            class LazyConfig(object):
+                def __init__(self, filename):
+                    self.filename = filename
+                    self.config = None
+                def __getattr__(self, attr):
+                    if self.config is None:
+                        logger.debug("loading " + self.filename)
+                        self.config = configfile.ConfigurationDescription(self.filename)
+                    return getattr(self.config, attr)
+
+            # This logic handles the (usual) case when installed_filename is
+            # relative to install_dir. Therefore we must figure out install_dir.
 
             # write packages into 'packages' subdir of build directory by default
-            if args.install_dir:
-                installed_filenames.append( os.path.realpath(os.path.join(args.install_dir, installed_filename)) )
-                logger.debug("specified install directory: " + args.install_dir)
-            else:
-                logger.debug("loading " + args.install_filename)
-                config = configfile.ConfigurationDescription(args.install_filename)
-                if args.all:
-                    build_configurations = config.get_all_build_configurations()
-                elif args.configurations:
-                    build_configurations = \
-                        [config.get_build_configuration(name) for name in args.configurations]
-                else:
-                    build_configurations = config.get_default_build_configurations()
-                    logger.debug("uninstalling packages for configuration(s) %s" % pprint.pformat(build_configurations))
-                for build_configuration in build_configurations:
-                    install_dir = config.make_build_directory(build_configuration, args.dry_run)
-                    install_dir = os.path.join(install_dir, 'packages')
-                    installed_filenames.append( os.path.realpath(os.path.join(install_dir, installed_filename)) )
+            installed_filenames = \
+                 [os.path.realpath(os.path.join(install_dir, installed_filename))
+                  for install_dir in
+                  common.select_directories(args, LazyConfig(args.install_filename),
+                                            "install", "uninstalling",
+                                            lambda cnf:
+                                            os.path.join(config.make_build_directory(cnf, args.dry_run),
+                                                         "packages"))]
 
         logger.debug("installed filenames: %s" % installed_filenames)
         try:
             for installed_filename in installed_filenames:
-                uninstall_packages(args, installed_filename, args.package)  
+                uninstall_packages(args, installed_filename, args.package)
         except UninstallError,e:
             if _CATCH_EXCEPTIONS:
                 print e

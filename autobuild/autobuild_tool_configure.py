@@ -67,14 +67,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         config = configfile.ConfigurationDescription(args.config_file)
         current_directory = os.getcwd()
         try:
-            if args.all:
-                build_configurations = config.get_all_build_configurations()
-            elif args.configurations:
-                build_configurations = \
-                    [config.get_build_configuration(name) for name in args.configurations]
-            else:
-                build_configurations = config.get_default_build_configurations()
-            logger.debug("configuring for configuration(s) %r" % build_configurations)
+            build_configurations = common.select_configurations(args, config, "configuring for")
             for build_configuration in build_configurations:
                 build_directory = config.make_build_directory(build_configuration, args.dry_run)
                 logger.debug("configuring in %s" % build_directory)

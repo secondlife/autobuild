@@ -264,7 +264,7 @@ def setup():
         def __init__(self,
                      install_filename=os.path.join(mydir, "data", "packages-install.xml"),
                      installed_filename=os.path.join(INSTALL_DIR, "packages-installed.xml"),
-                     install_dir=INSTALL_DIR,
+                     select_dir=INSTALL_DIR, # uses common.select_directories() now
                      platform="darwin",
                      dry_run=False,
                      list_archives=False,
@@ -568,16 +568,16 @@ class TestInstallArchive(BaseTest):
         # turn off license check: we already know bogus-0.2 omits license file
         self.options.check_license = False
         # but pass different --install-dir
-        old_install_dir = self.options.install_dir
-        self.options.install_dir = os.path.join(os.path.dirname(old_install_dir), "other_packages")
-        self.tempdirs.append(self.options.install_dir)
+        old_select_dir = self.options.select_dir
+        self.options.select_dir = os.path.join(os.path.dirname(old_select_dir), "other_packages")
+        self.tempdirs.append(self.options.select_dir)
         autobuild_tool_install.AutobuildTool().run(self.options)
-        # verify uninstall in old_install_dir
-        assert not os.path.exists(os.path.join(old_install_dir, "lib", "bogus.lib"))
-        assert not os.path.exists(os.path.join(old_install_dir, "include", "bogus.h"))
+        # verify uninstall in old_select_dir
+        assert not os.path.exists(os.path.join(old_select_dir, "lib", "bogus.lib"))
+        assert not os.path.exists(os.path.join(old_select_dir, "include", "bogus.h"))
         # verify install in new --install-dir
-        assert os.path.exists(os.path.join(self.options.install_dir, "lib", "bogus.lib"))
-        assert os.path.exists(os.path.join(self.options.install_dir, "include", "bogus.h"))
+        assert os.path.exists(os.path.join(self.options.select_dir, "lib", "bogus.lib"))
+        assert os.path.exists(os.path.join(self.options.select_dir, "include", "bogus.h"))
 
     def test_common_platform(self):
         # Move the PlatformDescription from "darwin" to "common"
@@ -942,7 +942,7 @@ class TestInstall(unittest.TestCase):
         autobuild_tool_install.AutobuildTool().run(options)
 
         # do an extra check to make sure the install worked
-        lic_dir = os.path.join(options.install_dir, "LICENSES")
+        lic_dir = os.path.join(options.select_dir, "LICENSES")
         if not os.path.exists(lic_dir):
             self.fail("Installation did not install a LICENSES dir")
         for f in "argparse.txt", "tut.txt":
