@@ -29,12 +29,13 @@ import sys
 from baseline_compare import AutobuildBaselineCompare
 from autobuild import configfile
 from autobuild.executable import Executable
+from basetest import BaseTest
 
 
-class TestConfigFile(unittest.TestCase, AutobuildBaselineCompare):
+class TestConfigFile(BaseTest, AutobuildBaselineCompare):
 
     def setUp(self):
-        pass
+        BaseTest.setUp(self)
 
     def test_configuration_simple(self):
         tmp_file = self.get_tmp_file(4)
@@ -56,6 +57,7 @@ class TestConfigFile(unittest.TestCase, AutobuildBaselineCompare):
 
     def tearDown(self):
         self.cleanup_tmp_file()
+        BaseTest.tearDown(self)
 
 
 if __name__ == '__main__':

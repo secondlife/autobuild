@@ -25,7 +25,6 @@
 
 
 import os
-import subprocess
 import sys
 import unittest
 
@@ -34,10 +33,12 @@ from autobuild import common
 from autobuild.autobuild_main import Autobuild
 from baseline_compare import AutobuildBaselineCompare
 import autobuild.autobuild_tool_manifest as manifest
+from basetest import BaseTest
 
 
-class TestManifest(unittest.TestCase, AutobuildBaselineCompare):
+class TestManifest(BaseTest, AutobuildBaselineCompare):
     def setUp(self):
+        BaseTest.setUp(self)
         os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
         self.tmp_file = self.get_tmp_file(4)
         self.config = configfile.ConfigurationDescription(self.tmp_file)
@@ -76,13 +77,13 @@ class TestManifest(unittest.TestCase, AutobuildBaselineCompare):
 
     def test_autobuild_manifest(self):
         self.config.save()
-        subprocess.check_call(["autobuild", "manifest", "--config-file=" + self.tmp_file,
-                               "-p", "common", "add", "*.cpp", "*.h", "*.py"])
+        self.autobuild("manifest", "--config-file=" + self.tmp_file,
+                       "-p", "common", "add", "*.cpp", "*.h", "*.py")
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         common_manifest = self.config.get_platform('common').manifest
         assert ('*.cpp' in common_manifest) and ('*.h' in common_manifest) and ('*.py' in common_manifest)
-        subprocess.check_call(['autobuild', 'manifest', '--config-file=' + self.tmp_file,
-                               '-p', 'common', 'remove', '*.cpp'])
+        self.autobuild('manifest', '--config-file=' + self.tmp_file,
+                       '-p', 'common', 'remove', '*.cpp')
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         common_manifest = self.config.get_platform('common').manifest
         assert (not '*.cpp' in common_manifest) 
@@ -90,6 +91,7 @@ class TestManifest(unittest.TestCase, AutobuildBaselineCompare):
         
     def tearDown(self):
         self.cleanup_tmp_file()
+        BaseTest.tearDown(self)
 
 
 if __name__ == '__main__':

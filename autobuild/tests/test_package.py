@@ -24,28 +24,26 @@
 #
 
 import os
-import subprocess
 import sys
 import tarfile
 import unittest
 import autobuild.autobuild_tool_package as package
 from autobuild import configfile
+from basetest import BaseTest
 from zipfile import ZipFile
 
 
-class TestPackaging(unittest.TestCase):
+class TestPackaging(BaseTest):
     def setUp(self):
-        this_dir = os.path.abspath(os.path.dirname(__file__))
-        data_dir = os.path.join(this_dir, "data")
+        BaseTest.setUp(self)
+        data_dir = os.path.join(self.this_dir, "data")
         self.config_path = os.path.join(data_dir, "autobuild-package.xml")
         self.config = configfile.ConfigurationDescription(self.config_path)
         self.platform = 'linux'
         #self.configuration = config.get_default_build_configurations()
-        self.tar_basename = os.path.join(this_dir, "archive-test")
+        self.tar_basename = os.path.join(self.this_dir, "archive-test")
         self.tar_name = self.tar_basename + ".tar.bz2"
         self.zip_name = self.tar_basename + ".zip"
-        self.autobuild_bin = os.path.abspath(os.path.join(this_dir, os.pardir, os.pardir,
-                                                          "bin", "autobuild"))
 
     def test_package(self):
         package.package(self.config, self.config.get_build_directory(None, 'linux'), 'linux', self.tar_basename)
@@ -53,6 +51,7 @@ class TestPackaging(unittest.TestCase):
         tarball = tarfile.open(self.tar_name)
         self.assertEquals([os.path.basename(f) for f in tarball.getnames()].sort(),
                           ['file3', 'file1', 'test1.txt'].sort())
+        tarball.close()
             
     def test_autobuild_package(self):
         self.autobuild("package",
@@ -63,7 +62,8 @@ class TestPackaging(unittest.TestCase):
         tarball = tarfile.open(self.tar_name)
         self.assertEquals([os.path.basename(f) for f in tarball.getnames()].sort(),
                           ['file3', 'file1', 'test1.txt'].sort())
-        os.remove(self.tar_name)
+        tarball.close()
+        self.remove(self.tar_name)
         self.autobuild("package",
                        "--config-file=" + self.config_path,
                        "--archive-name=" + self.tar_basename,
@@ -73,21 +73,18 @@ class TestPackaging(unittest.TestCase):
         zip_file = ZipFile(self.zip_name, 'r')
         self.assertEquals([os.path.basename(f) for f in zip_file.namelist()].sort(),
                           ['file3', 'file1', 'test1.txt'].sort())
+        zip_file.close()
         self.autobuild("package",
                        "--config-file=" + self.config_path,
                        "-p", "linux",
                        "--dry-run")
-
-    def autobuild(self, *args):
-        command = (self.autobuild_bin,) + args
-        rc = subprocess.call(command)
-        assert rc == 0, "%s => %s" % (' '.join(command), rc)
     
     def tearDown(self):
         if os.path.exists(self.tar_name):
-            os.remove(self.tar_name)
+            self.remove(self.tar_name)
         if os.path.exists(self.zip_name):
-            os.remove(self.zip_name)
+            self.remove(self.zip_name)
+        BaseTest.tearDown(self)
 
 if __name__ == '__main__':
     unittest.main()

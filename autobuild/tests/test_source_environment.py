@@ -22,16 +22,17 @@
 
 import unittest
 from autobuild import autobuild_tool_source_environment
+from basetest import BaseTest
 
-class TestSourceEnvironment(unittest.TestCase):
+class TestSourceEnvironment(BaseTest):
     def setUp(self):
-        pass
+        BaseTest.setUp(self)
 
     def test_env(self):
         assert 'environment_template' in dir(autobuild_tool_source_environment)
 
     def tearDown(self):
-        pass
+        BaseTest.tearDown(self)
 
 if __name__ == '__main__':
     unittest.main()

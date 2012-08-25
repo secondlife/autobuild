@@ -35,10 +35,12 @@ from autobuild import common
 from autobuild.autobuild_main import Autobuild
 from baseline_compare import AutobuildBaselineCompare
 from autobuild.autobuild_tool_edit import AutobuildTool
+from basetest import BaseTest
 
 
-class TestEdit(unittest.TestCase, AutobuildBaselineCompare):
+class TestEdit(BaseTest, AutobuildBaselineCompare):
     def setUp(self):
+        BaseTest.setUp(self)
         os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
         self.tmp_file = self.get_tmp_file(4)
         self.edit_cmd = AutobuildTool()
@@ -92,10 +94,12 @@ class TestEdit(unittest.TestCase, AutobuildBaselineCompare):
 
     def tearDown(self):
         self.cleanup_tmp_file()
+        BaseTest.tearDown(self)
 
 
-class TestEditCmdLine(unittest.TestCase, AutobuildBaselineCompare):
+class TestEditCmdLine(BaseTest, AutobuildBaselineCompare):
     def setUp(self):
+        BaseTest.setUp(self)
         os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
         self.tmp_file = self.get_tmp_file(0)
 
@@ -103,13 +107,14 @@ class TestEditCmdLine(unittest.TestCase, AutobuildBaselineCompare):
         """
         Verify that 'autobuild edit' can be run from the command line.
         """
-        subprocess.check_call(['autobuild', 'edit', '--config-file=' + self.tmp_file,
+        subprocess.check_call([self.autobuild_bin, 'edit', '--config-file=' + self.tmp_file,
                                '--help'], stdout=open(os.devnull, "w"))
-        subprocess.check_call(['autobuild', 'edit', 'build', '--config-file=' + self.tmp_file,
-                               'name=foo', 'command=buildme.py'])
+        self.autobuild('edit', 'build', '--config-file=' + self.tmp_file,
+                       'name=foo', 'command=buildme.py')
 
     def tearDown(self):
         self.cleanup_tmp_file()
+        BaseTest.tearDown(self)
 
 
 if __name__ == '__main__':

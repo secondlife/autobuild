@@ -20,12 +20,14 @@
 # THE SOFTWARE.
 # $/LicenseInfo$
 
+import sys
 import unittest
 from autobuild.executable import Executable
+from basetest import BaseTest
 
-class TestExecutable(unittest.TestCase):
+class TestExecutable(BaseTest):
     def setUp(self):
-        pass
+        BaseTest.setUp(self)
 
     def test_simple_executable(self):
         sleepExecutable = Executable(command='sleep', arguments=['1'])
@@ -40,13 +42,15 @@ class TestExecutable(unittest.TestCase):
         assert childExecutable.get_command() == 'grep'
         assert otherChildExecutable.get_command() == 'egrep'
         assert otherChildExecutable.get_arguments() == ['foo','.']
-        result = childExecutable()
-        assert result == 0
-        result = parentExecutable()
-        assert result == 0
+        # On Windows, you can't count on grep or egrep.
+        if not sys.platform.startswith("win"):
+            result = childExecutable()
+            assert result == 0, "%s => %s" % (childExecutable._get_all_arguments([]), result)
+            result = parentExecutable()
+            assert result == 0, "%s => %s" % (parentExecutable._get_all_arguments([]), result)
  
     def tearDown(self):
-        pass
+        BaseTest.tearDown(self)
 
 if __name__ == '__main__':
     unittest.main()

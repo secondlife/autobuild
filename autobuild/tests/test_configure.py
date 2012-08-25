@@ -26,12 +26,13 @@ from autobuild import autobuild_tool_configure as configure
 import autobuild.configfile as configfile
 from autobuild.executable import Executable
 import autobuild.common as common
-import subprocess
 import os
+from basetest import BaseTest
 
 
-class TestConfigure(unittest.TestCase, AutobuildBaselineCompare):
+class TestConfigure(BaseTest, AutobuildBaselineCompare):
     def setUp(self):
+        BaseTest.setUp(self)
         os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
         self.tmp_file = self.get_tmp_file(0)
         self.config = configfile.ConfigurationDescription(self.tmp_file)
@@ -51,12 +52,12 @@ class TestConfigure(unittest.TestCase, AutobuildBaselineCompare):
         assert result == 0
     
     def test_autobuild_configure(self):
-        subprocess.check_call(['autobuild', 'configure', '--config-file=' + self.tmp_file])
-        subprocess.check_call(['autobuild', 'configure', '--config-file=' + self.tmp_file,
-                               '--', '--foo', '-b'])
+        self.autobuild('configure', '--config-file=' + self.tmp_file)
+        self.autobuild('configure', '--config-file=' + self.tmp_file, '--', '--foo', '-b')
 
     def tearDown(self):
         self.cleanup_tmp_file()
+        BaseTest.tearDown(self)
 
 if __name__ == '__main__':
     unittest.main()

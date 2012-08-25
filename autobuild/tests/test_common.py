@@ -28,10 +28,11 @@ import tempfile
 import unittest
 from zipfile import ZipFile
 from autobuild import common
+from basetest import BaseTest
 
-class TestCommon(unittest.TestCase):
+class TestCommon(BaseTest):
     def setUp(self):
-        pass
+        BaseTest.setUp(self)
 
     def test_find_executable(self):
         shell = "sh"
@@ -70,7 +71,7 @@ class TestCommon(unittest.TestCase):
 
 
     def tearDown(self):
-        pass
+        BaseTest.tearDown(self)
 
 if __name__ == '__main__':
     unittest.main()

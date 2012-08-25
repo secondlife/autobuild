@@ -25,19 +25,19 @@
 
 
 import os
-import subprocess
 import sys
-import unittest
 
 from autobuild import configfile
 from autobuild import common
 from autobuild.autobuild_main import Autobuild
 from baseline_compare import AutobuildBaselineCompare
 import autobuild.autobuild_tool_installables as installables
+from basetest import BaseTest
 
 
-class TestInstallables(unittest.TestCase, AutobuildBaselineCompare):
+class TestInstallables(BaseTest, AutobuildBaselineCompare):
     def setUp(self):
+        BaseTest.setUp(self)
         os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
         self.tmp_file = self.get_tmp_file(0)
         self.config = configfile.ConfigurationDescription(self.tmp_file)
@@ -67,7 +67,7 @@ class TestInstallables(unittest.TestCase, AutobuildBaselineCompare):
                "--archive", "http://foo.bar.com/test-1.1-darwin-20101008.tar.bz2",
                "add", "license=GPL",
                "license_file=LICENSES/test.txt", "platform=darwin"]
-        subprocess.check_call(cmd)
+        self.autobuild(*cmd[1:])
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         assert len(self.config.installables) == 1
         package_description = self.config.installables['test']
@@ -81,7 +81,7 @@ class TestInstallables(unittest.TestCase, AutobuildBaselineCompare):
                "edit", "test", "license=Apache", "hash=74688495b0871ddafcc0ca1a6db57c34",
                "url=http://foo.bar.com/test-1.1-darwin-20101008.tar.bz2",
                "hash_algorithm=sha-1", "platform=darwin"]
-        subprocess.check_call(cmd)
+        self.autobuild(*cmd[1:])
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         assert len(self.config.installables) == 1
         package_description = self.config.installables['test']
@@ -94,9 +94,10 @@ class TestInstallables(unittest.TestCase, AutobuildBaselineCompare):
         assert platform_description.archive.url == 'http://foo.bar.com/test-1.1-darwin-20101008.tar.bz2'
         cmd = ["autobuild", "installables", "--config-file=" + self.tmp_file,
                "remove", "test"]
-        subprocess.check_call(cmd)
+        self.autobuild(*cmd[1:])
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         assert len(self.config.installables) == 0
                     
     def tearDown(self):
         self.cleanup_tmp_file()
+        BaseTest.tearDown(self)

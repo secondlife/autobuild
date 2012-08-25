@@ -930,7 +930,7 @@ class TestUninstallRepository(BaseTest):
         assert os.path.exists(os.path.join(self.install_dir, "indra", "newview", "something.h"))
 
 # -------------------------------------  -------------------------------------
-class TestInstall(unittest.TestCase):
+class TestInstall(BaseTest):
     def test_0(self):
         """
         Try to download and install the packages to tests/packages

@@ -27,12 +27,13 @@ from autobuild import autobuild_tool_build as build
 import autobuild.configfile as configfile
 from autobuild.executable import Executable
 import autobuild.common as common
-import subprocess
+from basetest import BaseTest
 import os
 
 
-class TestBuild(unittest.TestCase, AutobuildBaselineCompare):
+class TestBuild(BaseTest, AutobuildBaselineCompare):
     def setUp(self):
+        BaseTest.setUp(self)
         os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
         self.tmp_file = self.get_tmp_file(0)
         self.config = configfile.ConfigurationDescription(self.tmp_file)
@@ -51,25 +52,24 @@ class TestBuild(unittest.TestCase, AutobuildBaselineCompare):
     def test_build(self):
         result = build.build(self.config, 'Release')
         assert result == 0
-    
+
     def test_autobuild_build_default(self):
-        subprocess.check_call(['autobuild', 'build', '--no-configure',
-                               '--config-file=' + self.tmp_file])
-        subprocess.check_call(['autobuild', 'build', '--config-file=' + self.tmp_file,
-                               '--', '--foo', '-b'])
+        self.autobuild('build', '--no-configure', '--config-file=' + self.tmp_file)
+        self.autobuild('build', '--config-file=' + self.tmp_file, '--', '--foo', '-b')
 
     def test_autobuild_build_all(self):
-        subprocess.check_call(['autobuild', 'build', '--config-file=' + self.tmp_file, '-a'])
+        self.autobuild('build', '--config-file=' + self.tmp_file, '-a')
 
     def test_autobuild_build_release(self):
-        subprocess.check_call(['autobuild', 'build', '--config-file=' + self.tmp_file,
-                               '-c', 'Release'])
+        self.autobuild('build', '--config-file=' + self.tmp_file, '-c', 'Release')
 
     def tearDown(self):
         self.cleanup_tmp_file()
+        BaseTest.tearDown(self)
 
-class TestEnvironment(unittest.TestCase, AutobuildBaselineCompare):
+class TestEnvironment(BaseTest, AutobuildBaselineCompare):
     def setUp(self):
+        BaseTest.setUp(self)
         os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
         self.tmp_file = self.get_tmp_file(0)
         self.config = configfile.ConfigurationDescription(self.tmp_file)
@@ -89,11 +89,11 @@ class TestEnvironment(unittest.TestCase, AutobuildBaselineCompare):
         """
         verify that the AUTOBUILD env var is set to point to something executable
         """
-        subprocess.check_call(['autobuild', 'build', '--no-configure',
-                               '--config-file=' + self.tmp_file])
+        self.autobuild('build', '--no-configure', '--config-file=' + self.tmp_file)
 
     def tearDown(self):
         self.cleanup_tmp_file()
+        BaseTest.tearDown(self)
 
 if __name__ == '__main__':
     unittest.main()

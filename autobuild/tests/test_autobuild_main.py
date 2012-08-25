@@ -23,6 +23,7 @@
 import sys
 import unittest
 import autobuild.autobuild_main
+from basetest import BaseTest
 
 captured_stdout = ''
 
@@ -35,8 +36,9 @@ class CatchStdOut:
         captured_stdout += text
         pass
 
-class TestOptions(unittest.TestCase):
+class TestOptions(BaseTest):
     def setUp(self):
+        BaseTest.setUp(self)
         global captured_stdout
         captured_stdout = ''
         self.old_stdout = sys.stdout
@@ -62,6 +64,7 @@ class TestOptions(unittest.TestCase):
         if(False):
             print '\nCaptured StdOut:\n****\n' + captured_stdout + '****\n'
         pass
+        BaseTest.tearDown(self)
 
     def test_empty_options(self):
         """test_empty_options: no options, should print usage and exit"""
