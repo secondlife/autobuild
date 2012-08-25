@@ -44,7 +44,8 @@ class TestPackaging(unittest.TestCase):
         self.tar_basename = os.path.join(this_dir, "archive-test")
         self.tar_name = self.tar_basename + ".tar.bz2"
         self.zip_name = self.tar_basename + ".zip"
-        self.autobuild_bin = os.path.abspath(os.path.join("..", "bin", "autobuild"))
+        self.autobuild_bin = os.path.abspath(os.path.join(this_dir, os.pardir, os.pardir,
+                                                          "bin", "autobuild"))
 
     def test_package(self):
         package.package(self.config, self.config.get_build_directory(None, 'linux'), 'linux', self.tar_basename)
