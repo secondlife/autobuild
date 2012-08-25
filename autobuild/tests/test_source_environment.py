@@ -21,7 +21,6 @@
 # $/LicenseInfo$
 
 import unittest
-import subprocess
 from autobuild import autobuild_tool_source_environment
 
 class TestSourceEnvironment(unittest.TestCase):

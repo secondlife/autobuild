@@ -103,12 +103,10 @@ class TestEditCmdLine(unittest.TestCase, AutobuildBaselineCompare):
         """
         Verify that 'autobuild edit' can be run from the command line.
         """
-        result = subprocess.call('autobuild edit --config-file=%s --help > /dev/null ' % \
-            self.tmp_file, shell=True)
-        assert result == 0
-        result = subprocess.call('autobuild edit build --config-file=%s name=foo command=buildme.py' % \
-            self.tmp_file, shell=True)
-        assert result == 0
+        subprocess.check_call(['autobuild', 'edit', '--config-file=' + self.tmp_file,
+                               '--help'], stdout=open(os.devnull, "w"))
+        subprocess.check_call(['autobuild', 'edit', 'build', '--config-file=' + self.tmp_file,
+                               'name=foo', 'command=buildme.py'])
 
     def tearDown(self):
         self.cleanup_tmp_file()

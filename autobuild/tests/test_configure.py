@@ -51,12 +51,9 @@ class TestConfigure(unittest.TestCase, AutobuildBaselineCompare):
         assert result == 0
     
     def test_autobuild_configure(self):
-        result = subprocess.call('autobuild configure --config-file=%s' % \
-            self.tmp_file, shell=True)
-        assert result == 0
-        result = subprocess.call('autobuild configure --config-file=%s -- --foo -b' % \
-            self.tmp_file, shell=True)
-        assert result == 0
+        subprocess.check_call(['autobuild', 'configure', '--config-file=' + self.tmp_file])
+        subprocess.check_call(['autobuild', 'configure', '--config-file=' + self.tmp_file,
+                               '--', '--foo', '-b'])
 
     def tearDown(self):
         self.cleanup_tmp_file()

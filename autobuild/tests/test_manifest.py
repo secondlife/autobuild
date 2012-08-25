@@ -76,15 +76,13 @@ class TestManifest(unittest.TestCase, AutobuildBaselineCompare):
 
     def test_autobuild_manifest(self):
         self.config.save()
-        result = subprocess.call("autobuild manifest --config-file=%s -p common add *.cpp *.h '*.py'" % \
-            self.tmp_file, shell=True)
-        assert result == 0
+        subprocess.check_call(["autobuild", "manifest", "--config-file=" + self.tmp_file,
+                               "-p", "common", "add", "*.cpp", "*.h", "*.py"])
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         common_manifest = self.config.get_platform('common').manifest
         assert ('*.cpp' in common_manifest) and ('*.h' in common_manifest) and ('*.py' in common_manifest)
-        result = subprocess.call('autobuild manifest --config-file=%s -p common remove *.cpp' % \
-            self.tmp_file, shell=True)
-        assert result == 0
+        subprocess.check_call(['autobuild', 'manifest', '--config-file=' + self.tmp_file,
+                               '-p', 'common', 'remove', '*.cpp'])
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         common_manifest = self.config.get_platform('common').manifest
         assert (not '*.cpp' in common_manifest) 

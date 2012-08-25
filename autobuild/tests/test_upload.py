@@ -291,7 +291,7 @@ class TestWithConfigFile(object):
         command = [scp, url, self.downloads + '/']
         print ' '.join(command)
         # That better run successfully
-        assert_equals(0, subprocess.call(command))
+        subprocess.check_call(command)
         # Now verify that the file we downloaded has the same contents as
         # the file we uploaded.
         assert_equals(open(os.path.join(self.downloads, os.path.basename(archive)), "rb").read(),

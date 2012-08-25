@@ -48,32 +48,39 @@ class TestPackaging(unittest.TestCase):
 
     def test_package(self):
         package.package(self.config, self.config.get_build_directory(None, 'linux'), 'linux', self.tar_basename)
-        assert os.path.exists(self.tar_name)
+        assert os.path.exists(self.tar_name), "%s does not exist" % self.tar_name
         tarball = tarfile.open(self.tar_name)
-        assert [os.path.basename(f) for f in tarball.getnames()].sort() == \
-            ['file3', 'file1', 'test1.txt'].sort()
+        self.assertEquals([os.path.basename(f) for f in tarball.getnames()].sort(),
+                          ['file3', 'file1', 'test1.txt'].sort())
             
     def test_autobuild_package(self):
-        result = subprocess.call('%s package --config-file=%s --archive-name=%s -p linux' % \
-            (self.autobuild_bin, self.config_path, self.tar_basename), shell=True)
-        print '%s package --config-file=%s --archive-name=%s -p linux' % \
-            (self.autobuild_bin, self.config_path, self.tar_basename)
-        assert result == 0
-        assert os.path.exists(self.tar_name)
+        self.autobuild("package",
+                       "--config-file=" + self.config_path,
+                       "--archive-name=" + self.tar_basename,
+                       "-p", "linux")
+        assert os.path.exists(self.tar_name), "%s does not exist" % self.tar_name
         tarball = tarfile.open(self.tar_name)
-        assert [os.path.basename(f) for f in tarball.getnames()].sort() == \
-            ['file3', 'file1', 'test1.txt'].sort()
+        self.assertEquals([os.path.basename(f) for f in tarball.getnames()].sort(),
+                          ['file3', 'file1', 'test1.txt'].sort())
         os.remove(self.tar_name)
-        result = subprocess.call('../bin/autobuild package --config-file=%s --archive-name=%s --archive-format=zip -p linux' % \
-            (self.config_path, self.tar_basename), shell=True)
-        assert result == 0
-        assert os.path.exists(self.zip_name)
+        self.autobuild("package",
+                       "--config-file=" + self.config_path,
+                       "--archive-name=" + self.tar_basename,
+                       "--archive-format=zip",
+                       "-p", "linux")
+        assert os.path.exists(self.zip_name), "%s does not exist" % self.zip_name
         zip_file = ZipFile(self.zip_name, 'r')
-        assert [os.path.basename(f) for f in zip_file.namelist()].sort() == \
-            ['file3', 'file1', 'test1.txt'].sort()
-        result = subprocess.call('../bin/autobuild package --config-file=%s -p linux --dry-run' % \
-            (self.config_path), shell=True)
-        assert result == 0
+        self.assertEquals([os.path.basename(f) for f in zip_file.namelist()].sort(),
+                          ['file3', 'file1', 'test1.txt'].sort())
+        self.autobuild("package",
+                       "--config-file=" + self.config_path,
+                       "-p", "linux",
+                       "--dry-run")
+
+    def autobuild(self, *args):
+        command = (self.autobuild_bin,) + args
+        rc = subprocess.call(command)
+        assert rc == 0, "%s => %s" % (' '.join(command), rc)
     
     def tearDown(self):
         if os.path.exists(self.tar_name):

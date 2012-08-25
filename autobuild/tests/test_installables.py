@@ -63,12 +63,11 @@ class TestInstallables(unittest.TestCase, AutobuildBaselineCompare):
 
     def test_autobuild_installables(self):
         self.config.save()
-        cmd = "autobuild installables --config-file=%s "\
-            "--archive http://foo.bar.com/test-1.1-darwin-20101008.tar.bz2 add license=GPL "\
-            "license_file=LICENSES/test.txt platform=darwin"% \
-            self.tmp_file
-        result = subprocess.call(cmd, shell=True)
-        assert result == 0
+        cmd = ["autobuild", "installables", "--config-file=" + self.tmp_file,
+               "--archive", "http://foo.bar.com/test-1.1-darwin-20101008.tar.bz2",
+               "add", "license=GPL",
+               "license_file=LICENSES/test.txt", "platform=darwin"]
+        subprocess.check_call(cmd)
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         assert len(self.config.installables) == 1
         package_description = self.config.installables['test']
@@ -78,12 +77,11 @@ class TestInstallables(unittest.TestCase, AutobuildBaselineCompare):
         platform_description = package_description.platforms['darwin']
         assert platform_description.archive is not None
         assert platform_description.archive.url == 'http://foo.bar.com/test-1.1-darwin-20101008.tar.bz2'
-        cmd = "autobuild installables --config-file=%s "\
-            "edit test license=Apache hash=74688495b0871ddafcc0ca1a6db57c34 "\
-            "url=http://foo.bar.com/test-1.1-darwin-20101008.tar.bz2 " \
-            "hash_algorithm='sha-1' platform=darwin"% \
-            self.tmp_file
-        result = subprocess.call(cmd, shell=True)
+        cmd = ["autobuild", "installables", "--config-file=" + self.tmp_file,
+               "edit", "test", "license=Apache", "hash=74688495b0871ddafcc0ca1a6db57c34",
+               "url=http://foo.bar.com/test-1.1-darwin-20101008.tar.bz2",
+               "hash_algorithm=sha-1", "platform=darwin"]
+        subprocess.check_call(cmd)
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         assert len(self.config.installables) == 1
         package_description = self.config.installables['test']
@@ -94,10 +92,9 @@ class TestInstallables(unittest.TestCase, AutobuildBaselineCompare):
         assert platform_description.archive.hash_algorithm == 'sha-1'
         assert platform_description.archive.hash == "74688495b0871ddafcc0ca1a6db57c34"
         assert platform_description.archive.url == 'http://foo.bar.com/test-1.1-darwin-20101008.tar.bz2'
-        cmd = "autobuild installables --config-file=%s remove test"% \
-            self.tmp_file
-        result = subprocess.call(cmd, shell=True)
-        assert result == 0
+        cmd = ["autobuild", "installables", "--config-file=" + self.tmp_file,
+               "remove", "test"]
+        subprocess.check_call(cmd)
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         assert len(self.config.installables) == 0
                     

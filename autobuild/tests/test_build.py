@@ -53,22 +53,17 @@ class TestBuild(unittest.TestCase, AutobuildBaselineCompare):
         assert result == 0
     
     def test_autobuild_build_default(self):
-        result = subprocess.call('autobuild build --no-configure --config-file=%s' % \
-            self.tmp_file, shell=True)
-        assert result == 0
-        result = subprocess.call('autobuild build --config-file=%s -- --foo -b' % \
-            self.tmp_file, shell=True)
-        assert result == 0
+        subprocess.check_call(['autobuild', 'build', '--no-configure',
+                               '--config-file=' + self.tmp_file])
+        subprocess.check_call(['autobuild', 'build', '--config-file=' + self.tmp_file,
+                               '--', '--foo', '-b'])
 
     def test_autobuild_build_all(self):
-        result = subprocess.call('autobuild build --config-file=%s -a' % \
-            self.tmp_file, shell=True)
-        assert result == 0
+        subprocess.check_call(['autobuild', 'build', '--config-file=' + self.tmp_file, '-a'])
 
     def test_autobuild_build_release(self):
-        result = subprocess.call('autobuild build --config-file=%s -c Release' % \
-            self.tmp_file, shell=True)
-        assert result == 0
+        subprocess.check_call(['autobuild', 'build', '--config-file=' + self.tmp_file,
+                               '-c', 'Release'])
 
     def tearDown(self):
         self.cleanup_tmp_file()
@@ -94,10 +89,8 @@ class TestEnvironment(unittest.TestCase, AutobuildBaselineCompare):
         """
         verify that the AUTOBUILD env var is set to point to something executable
         """
-
-        result = subprocess.call('autobuild build --no-configure --config-file=%s' % \
-            self.tmp_file, shell=True)
-        assert result == 0
+        subprocess.check_call(['autobuild', 'build', '--no-configure',
+                               '--config-file=' + self.tmp_file])
 
     def tearDown(self):
         self.cleanup_tmp_file()
