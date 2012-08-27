@@ -25,9 +25,15 @@ class BaseTest(unittest.TestCase):
         if sys.platform.startswith("win"):
             self.autobuild_bin += ".cmd"
 
-    def autobuild(self, *args):
+    def autobuild(self, *args, **kwds):
+        """
+        All positional args are collected as string arguments to the
+        self.autobuild_bin command. If you want to pass additional arguments
+        to subprocess.call(), pass them as keyword arguments; those are passed
+        through.
+        """
         command = (self.autobuild_bin,) + args
-        rc = subprocess.call(command)
+        rc = subprocess.call(command, **kwds)
         assert rc == 0, "%s => %s" % (' '.join(command), rc)
 
     # On Windows, need some retry logic wrapped around removing files (SIGHH)

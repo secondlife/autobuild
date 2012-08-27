@@ -107,8 +107,8 @@ class TestEditCmdLine(BaseTest, AutobuildBaselineCompare):
         """
         Verify that 'autobuild edit' can be run from the command line.
         """
-        subprocess.check_call([self.autobuild_bin, 'edit', '--config-file=' + self.tmp_file,
-                               '--help'], stdout=open(os.devnull, "w"))
+        self.autobuild('edit', '--config-file=' + self.tmp_file, '--help',
+                       stdout=open(os.devnull, "w"))
         self.autobuild('edit', 'build', '--config-file=' + self.tmp_file,
                        'name=foo', 'command=buildme.py')
 
