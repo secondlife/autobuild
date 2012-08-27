@@ -44,6 +44,14 @@ from BaseHTTPServer import HTTPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 from autobuild import autobuild_tool_install, autobuild_tool_uninstall, configfile, common
 
+# ****************************************************************************
+#   TODO
+# - Verify test for specific --install-dir (new select_directories() mechanism)
+# - Test [un]installing to/from configuration-specific build directory
+# - Test [un]installing to/from --all configurations
+# - Test [un]installing to/from build directory(ies) for specified --configuration(s)
+# ****************************************************************************
+
 mydir = os.path.dirname(__file__)
 HOST = '127.0.0.1'                      # localhost server
 PORT = 8800                             # base port, may change

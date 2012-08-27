@@ -32,6 +32,14 @@ from autobuild import configfile
 from basetest import BaseTest
 from zipfile import ZipFile
 
+# ****************************************************************************
+#   TODO
+# - Test for specific --build-dir (new select_directories() mechanism)
+# - Test packaging from configuration-specific build directory
+# - Test packaging from --all configurations
+# - Test packaging from build directory(ies) for specified --configuration(s)
+# ****************************************************************************
+
 
 class TestPackaging(BaseTest):
     def setUp(self):

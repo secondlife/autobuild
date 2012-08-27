@@ -30,6 +30,14 @@ import autobuild.common as common
 from basetest import BaseTest
 import os
 
+# ****************************************************************************
+#   TODO
+# - Test for specific --build-dir (new select_directories() mechanism)
+# - Test building to configuration-specific build directory
+# - Test building to build trees for --all configurations
+# - Test building to build directory(ies) for specified --configuration(s)
+# ****************************************************************************
+
 
 class TestBuild(BaseTest, AutobuildBaselineCompare):
     def setUp(self):
