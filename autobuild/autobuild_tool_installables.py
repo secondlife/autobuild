@@ -210,8 +210,10 @@ def _do_add(config, installable_name, arguments, archive_path):
         try:
             installable_data['hash'] = common.compute_md5(absolute_path)
             installable_data['hash_algorithm'] = 'md5'
-        except:
-            pass
+        except AutobuildError, err:
+            logger.debug("Skipped capturing hash, hash_algorithm for %s: %s" %
+                         (installable_name, err))
+
     else:
         installable_data = {}
     installable_data.update(_process_key_value_arguments(arguments))
@@ -231,8 +233,10 @@ def _archive_information(archive_path):
     try:
         (directory, data, extension) = common.split_tarname(archive_path)
         archive_data = {'name':data[0], 'version':data[1], 'platform':data[2]}
-    except:
-        raise InstallablesError('archive path %s is not cannonical' % archive_path)
+    except (ValueError, IndexError):
+        # ValueError for wrong number of values in tuple assignment
+        # IndexError for too few values for int subscript
+        raise InstallablesError('archive path %s is not canonical' % archive_path)
     if _is_uri(archive_path):
         archive_data['url'] = archive_path
     return archive_data

@@ -43,7 +43,6 @@ from autobuild_tool_install import uninstall
 
 logger = logging.getLogger('autobuild.uninstall')
 
-_CATCH_EXCEPTIONS = True
 class UninstallError(common.AutobuildError):
     pass
 
@@ -144,14 +143,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                                                          "packages"))]
 
         logger.debug("installed filenames: %s" % installed_filenames)
-        try:
-            for installed_filename in installed_filenames:
-                uninstall_packages(args, installed_filename, args.package)
-        except UninstallError,e:
-            if _CATCH_EXCEPTIONS:
-                print e
-            else:
-                raise
+        for installed_filename in installed_filenames:
+            uninstall_packages(args, installed_filename, args.package)
 
 if __name__ == '__main__':
     sys.exit("Please invoke this script using 'autobuild %s'" %

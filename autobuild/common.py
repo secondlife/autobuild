@@ -214,18 +214,21 @@ def compute_md5(path):
     """
     Returns the MD5 sum for the given file.
     """
-    if not os.path.isfile(path):
-        raise AutobuildError('%s is not a file' % path)
-
     try:
         from hashlib import md5      # Python 2.6
     except ImportError:
         from md5 import new as md5   # Python 2.5 and earlier
-    stream = open(path, 'rb')
+
+    try:
+        stream = open(path, 'rb')
+    except IOError, err:
+        raise AutobuildError("Can't compute MD5 for %s: %s" % (path, err))
+
     try:
         hasher = md5(stream.read())
-    except:
-        raise AutobuildError('error computing hash')
+    finally:
+        stream.close()
+
     return hasher.hexdigest()
 
 def does_package_match_md5(package, md5sum):

@@ -58,7 +58,6 @@ logger = logging.getLogger('autobuild.install')
 # with --quiet if need be.
 dry_run_msg = logger.warning
 
-_CATCH_EXCEPTIONS = True
 class InstallError(common.AutobuildError):
     pass
 
@@ -490,14 +489,19 @@ def install_packages(options, config_file, install_dir, args):
     # check the license properties for the packages to install
     if options.check_license:
         pre_install_license_check(packages, config_file)
-        
+
     # collect any locally built archives.
     local_archives = {}
     for archive_path in options.local_archives:
         try:
+            # split_tarname() returns a sequence like:
+            # ("/some/path", ["boost", "1.39.0", "darwin", "20100222a"], ".tar.bz2")
+            # We want just the package name, 'boost' in the example above.
             package = common.split_tarname(archive_path)[1][0]
-        except:
-            raise IntallError("cannot get package name from local archive " + archive_path)
+        except IndexError:
+            # But if the archive filename doesn't conform to our expectations,
+            # either subscript operation above might raise IndexError.
+            raise InstallError("cannot get package name from local archive " + archive_path)
         local_archives[package] = archive_path
 
     # do the actual install of the new/updated packages
@@ -614,15 +618,9 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                                                     "packages"))
 
         # get the absolute paths to the install dir and installed-packages.xml file
-        try:
-            for install_dir in install_dirs:
-                install_dir = os.path.realpath(install_dir)
-                install_packages(args, config, install_dir, args.package)
-        except InstallError,e:
-            if _CATCH_EXCEPTIONS:
-                print e
-            else:
-                raise
+        for install_dir in install_dirs:
+            install_dir = os.path.realpath(install_dir)
+            install_packages(args, config, install_dir, args.package)
 
 if __name__ == '__main__':
     sys.exit("Please invoke this script using 'autobuild %s'" %

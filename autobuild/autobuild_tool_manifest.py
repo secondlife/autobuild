@@ -82,12 +82,12 @@ def add(config, platform_name, pattern):
 
 def remove(config, platform_name, pattern):
     """
-    Removes first occurance of a pattern in the manifest which is equivalent to the given pattern.
+    Removes first occurrence of a pattern in the manifest which is equivalent to the given pattern.
     """
     platform_description = config.get_platform(platform_name)
     try:
         platform_description.manifest.remove(pattern)
-    except:
+    except ValueError: # platform_description.manifest does not contain 'pattern'
         pass
 
 

@@ -116,11 +116,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
         if not build_dirs:
             build_dirs = [config.get_build_directory(None, args.platform)]
-        try:
-            for build_dir in build_dirs:
-                package(config, build_dir, args.platform, args.archive_filename, args.archive_format, args.check_license, args.dry_run)
-        except PackageError,e:
-            print e
+        for build_dir in build_dirs:
+            package(config, build_dir, args.platform, args.archive_filename, args.archive_format, args.check_license, args.dry_run)
 
 
 class PackageError(AutobuildError):
@@ -241,8 +238,9 @@ def _create_tarfile(tarfilename, build_directory, filelist):
             try:
                 tfile.add(file)
                 logger.info('added ' + file)
-            except:
-                raise PackageError("unable to add %s to %s" % (file, tarfilename))
+            except (tarfile.TarError, IOError), err:
+                # IOError in case the specified filename can't be opened
+                raise PackageError("unable to add %s to %s: %s" % (file, tarfilename, err))
         tfile.close()
     finally:
         os.chdir(current_directory)
@@ -250,8 +248,8 @@ def _create_tarfile(tarfilename, build_directory, filelist):
     # Downstream build tools utilize this output
     print "wrote  %s" % tarfilename
     _print_hash(tarfilename)
-    
-    
+
+
 def _create_zip_archive(archive_filename, build_directory, file_list):
     if not os.path.exists(os.path.dirname(archive_filename)):
         os.makedirs(os.path.dirname(archive_filename))
@@ -288,7 +286,7 @@ def _add_file_to_zip_archive(zip_file, unnormalized_file, archive_filename, adde
             raise PackageError("%s: unable to add %s to %s: %s" %
                                (err.__class__.__name__, file, archive_filename, err))
         logger.info('added ' + file)
-    
+
 
 def _print_hash(filename):
     fp = open(filename, 'rb')

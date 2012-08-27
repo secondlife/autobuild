@@ -127,7 +127,10 @@ def _build_a_configuration(config, build_configuration, extra_arguments, dry_run
         common_build_configuration = \
             config.get_build_configuration(build_configuration.name, 'common')
         parent_build = common_build_configuration.build
-    except:
+    except Exception, e:
+        if logger.getEffectiveLevel() <= logging.DEBUG:
+            logger.exception(e)
+        logger.debug('no common platform found')
         parent_build = None
     if build_configuration.build is not None:
         build_executable = copy.copy(build_configuration.build)

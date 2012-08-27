@@ -44,10 +44,6 @@ from BaseHTTPServer import HTTPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 from autobuild import autobuild_tool_install, autobuild_tool_uninstall, configfile, common
 
-# Configure autobuild_tool_[un]install modules to let exceptions through.
-autobuild_tool_install._CATCH_EXCEPTIONS = False
-autobuild_tool_uninstall._CATCH_EXCEPTIONS = False
-
 mydir = os.path.dirname(__file__)
 HOST = '127.0.0.1'                      # localhost server
 PORT = 8800                             # base port, may change
