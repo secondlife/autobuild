@@ -204,9 +204,14 @@ def main():
     except common.AutobuildError, e:
         if logger.getEffectiveLevel() <= logging.DEBUG:
             logger.exception(str(e))
-        sys.exit("ERROR: %s\nFor more information: try re-running your command with --verbose or --debug" % e)
+        msg = ["ERROR: ", str(e)]
+        if logger.getEffectiveLevel() > logging.DEBUG:
+            msg.append("\nFor more information: try re-running your command with")
+            if logger.getEffectiveLevel() > logging.INFO:
+                msg.append(" --verbose or")
+            msg.append(" --debug")
+        sys.exit(''.join(msg))
 
- 
+
 if __name__ == "__main__":
     main()
-
