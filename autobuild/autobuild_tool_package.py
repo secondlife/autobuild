@@ -48,6 +48,7 @@ import sys
 import os
 import tarfile
 import time
+import getpass
 import glob
 import common
 import logging
@@ -236,6 +237,9 @@ def _create_tarfile(tarfilename, build_directory, filelist):
         tfile = tarfile.open(tarfilename, 'w:bz2')
         for file in filelist:
             try:
+                # Make sure permissions are set on Windows.
+                if common.get_current_platform() is "windows":
+                    print os.popen("ECHO Y| CACLS " + file + " /G " + getpass.getuser() + ":F").read()
                 tfile.add(file)
                 logger.info('added ' + file)
             except (tarfile.TarError, IOError), err:
