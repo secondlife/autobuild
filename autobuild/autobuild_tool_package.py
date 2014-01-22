@@ -54,6 +54,7 @@ import common
 import logging
 import configfile
 import autobuild_base
+import subprocess
 from connection import SCPConnection, S3Connection
 from common import AutobuildError
 from zipfile import ZipFile, ZIP_DEFLATED
