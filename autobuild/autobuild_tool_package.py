@@ -238,8 +238,14 @@ def _create_tarfile(tarfilename, build_directory, filelist):
         for file in filelist:
             try:
                 # Make sure permissions are set on Windows.
-                if common.get_current_platform() is "windows":
-                    print os.popen("ECHO Y| CACLS " + file + " /G " + getpass.getuser() + ":F").read()
+                if "windows" in common.get_current_platform():
+                    command = ["CACLS", file, "/T", "/G", getpass.getuser() + ":F"]
+                    CACLS = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                    output = CACLS.communicate("Y")[0]
+                    rc = CACLS.wait()
+                    if rc != 0:
+                        print "error: rc %s from %s:" % (rc, ' '.join(command))
+                    print output
                 tfile.add(file)
                 logger.info('added ' + file)
             except (tarfile.TarError, IOError), err:
