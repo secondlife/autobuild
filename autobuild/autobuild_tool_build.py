@@ -77,8 +77,10 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="build a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
+        parser.add_argument('--id','-i', dest='build_id', help='unique build identifier')
 
     def run(self, args):
+        common.set_build_id(args.build_id)
         config = configfile.ConfigurationDescription(args.config_file)
         current_directory = os.getcwd()
         try:

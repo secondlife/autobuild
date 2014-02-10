@@ -62,14 +62,14 @@ class TestBuild(BaseTest, AutobuildBaselineCompare):
         assert result == 0
 
     def test_autobuild_build_default(self):
-        self.autobuild('build', '--no-configure', '--config-file=' + self.tmp_file)
-        self.autobuild('build', '--config-file=' + self.tmp_file, '--', '--foo', '-b')
+        self.autobuild('build', '--no-configure', '--config-file=' + self.tmp_file, '--id=123456')
+        self.autobuild('build', '--config-file=' + self.tmp_file, '--id=123456', '--', '--foo', '-b')
 
     def test_autobuild_build_all(self):
-        self.autobuild('build', '--config-file=' + self.tmp_file, '-a')
+        self.autobuild('build', '--config-file=' + self.tmp_file, '--id=123456', '-a')
 
     def test_autobuild_build_release(self):
-        self.autobuild('build', '--config-file=' + self.tmp_file, '-c', 'Release')
+        self.autobuild('build', '--config-file=' + self.tmp_file, '-c', 'Release', '--id=123456')
 
     def tearDown(self):
         self.cleanup_tmp_file()
@@ -97,7 +97,7 @@ class TestEnvironment(BaseTest, AutobuildBaselineCompare):
         """
         verify that the AUTOBUILD env var is set to point to something executable
         """
-        self.autobuild('build', '--no-configure', '--config-file=' + self.tmp_file)
+        self.autobuild('build', '--no-configure', '--config-file=' + self.tmp_file, '--id=123456')
 
     def tearDown(self):
         self.cleanup_tmp_file()

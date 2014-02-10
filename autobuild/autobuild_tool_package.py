@@ -107,8 +107,10 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="package a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
+        parser.add_argument('--id','-i', dest='build_id', help='unique build identifier')
 
     def run(self, args):
+        build_id=common.set_build_id(args.build_id)
         logger.debug("loading " + args.autobuild_filename)
         config = configfile.ConfigurationDescription(args.autobuild_filename)
 
@@ -119,14 +121,14 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         if not build_dirs:
             build_dirs = [config.get_build_directory(None, args.platform)]
         for build_dir in build_dirs:
-            package(config, build_dir, args.platform, args.archive_filename, args.archive_format, args.check_license, args.dry_run)
+            package(config, build_dir, args.platform, build_id, args.archive_filename, args.archive_format, args.check_license, args.dry_run)
 
 
 class PackageError(AutobuildError):
     pass
 
 
-def package(config, build_directory, platform_name, archive_filename=None, archive_format=None, check_license=True, dry_run=False):
+def package(config, build_directory, platform_name, build_id, archive_filename=None, archive_format=None, check_license=True, dry_run=False):
     """
     Create an archive for the given platform.
     """
@@ -156,7 +158,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     config_directory = os.path.dirname(config.path)
     if not archive_filename:
         tardir = config_directory
-        tarname = _generate_archive_name(package_description, platform_name)
+        tarname = _generate_archive_name(package_description, build_id, platform_name)
         tarfilename = os.path.join(tardir, tarname)
     elif os.path.isabs(archive_filename):
         tarfilename = archive_filename
@@ -186,15 +188,17 @@ def _determine_archive_format(archive_format_argument, archive_description):
         return archive_description.format
 
 
-def _generate_archive_name(package_description, platform_name, suffix=''):
+def _generate_archive_name(package_description, build_id, platform_name, suffix=''):
     # We ensure that the package name and platform definition
     # do not have hyphens in them as this will confuse the
     # related split_tarname() method.
     package_name = package_description.name.replace('-', '_')
     platform_name = platform_name.replace('/', '_').replace('-', '_')
-    name = package_name + '-' + package_description.version + '-'
-    name += platform_name + '-'
-    name += time.strftime("%Y%m%d") + suffix
+    name = package_name \
+       + '-' + package_description.version \
+       + '-' + platform_name \
+       + '-' + build_id \
+       + suffix
     return name
 
 

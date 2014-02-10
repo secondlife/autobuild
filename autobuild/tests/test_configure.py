@@ -52,8 +52,8 @@ class TestConfigure(BaseTest, AutobuildBaselineCompare):
         assert result == 0
     
     def test_autobuild_configure(self):
-        self.autobuild('configure', '--config-file=' + self.tmp_file)
-        self.autobuild('configure', '--config-file=' + self.tmp_file, '--', '--foo', '-b')
+        self.autobuild('configure', '--config-file=' + self.tmp_file, '--id=123456')
+        self.autobuild('configure', '--config-file=' + self.tmp_file, '--id=123456', '--', '--foo', '-b')
 
     def tearDown(self):
         self.cleanup_tmp_file()

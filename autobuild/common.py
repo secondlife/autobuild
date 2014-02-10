@@ -37,6 +37,7 @@ Date   : 2010-04-13
 
 import os
 import sys
+import time
 import glob
 import itertools
 import logging
@@ -498,6 +499,23 @@ def select_configurations(args, config, verb, platform=None):
         configurations = config.get_default_build_configurations(platform)
     logger.debug("%s configuration(s) %s" % (verb, pprint.pformat(configurations)))
     return configurations
+
+def set_build_id(build_id_arg):
+    '''establish and return a build_id based on the --id argument, the environment, or the date'''
+    ## Accepts AUTOBUILD_BUILD_ID from the environment, and sets whatever id is established
+    ## to the environment so that recursive invocations will inherit the value set from the 
+    ## top level command line value.  This can of course also be used to substitute for the 
+    ## command line argument.
+    build_id=None
+    if build_id_arg:
+        build_id=build_id_arg
+    elif 'AUTOBUILD_BUILD_ID' in os.environ:
+        build_id=os.environ['AUTOBUILD_BUILD_ID']
+    else:
+        logger.warn("Warning: no --id or $AUTOBUILD_BUILD_ID specified; using the date, which may not be unique")
+        build_id=time.strftime("%Y%m%d")
+    os.environ['AUTOBUILD_BUILD_ID']=build_id
+    return build_id
 
 ######################################################################
 #

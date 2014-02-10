@@ -49,12 +49,12 @@ class TestPackaging(BaseTest):
         self.config = configfile.ConfigurationDescription(self.config_path)
         self.platform = 'linux'
         #self.configuration = config.get_default_build_configurations()
-        self.tar_basename = os.path.join(self.this_dir, "archive-test")
+        self.tar_basename = os.path.join(self.this_dir, "archive-test-123456")
         self.tar_name = self.tar_basename + ".tar.bz2"
         self.zip_name = self.tar_basename + ".zip"
 
     def test_package(self):
-        package.package(self.config, self.config.get_build_directory(None, 'linux'), 'linux', self.tar_basename)
+        package.package(self.config, self.config.get_build_directory(None, 'linux'), 'linux', '123456', self.tar_basename)
         assert os.path.exists(self.tar_name), "%s does not exist" % self.tar_name
         tarball = tarfile.open(self.tar_name)
         self.assertEquals([os.path.basename(f) for f in tarball.getnames()].sort(),
@@ -65,6 +65,7 @@ class TestPackaging(BaseTest):
         self.autobuild("package",
                        "--config-file=" + self.config_path,
                        "--archive-name=" + self.tar_basename,
+                       "--id=123456",
                        "-p", "linux")
         assert os.path.exists(self.tar_name), "%s does not exist" % self.tar_name
         tarball = tarfile.open(self.tar_name)
@@ -76,6 +77,7 @@ class TestPackaging(BaseTest):
                        "--config-file=" + self.config_path,
                        "--archive-name=" + self.tar_basename,
                        "--archive-format=zip",
+                       "--id=123456",
                        "-p", "linux")
         assert os.path.exists(self.zip_name), "%s does not exist" % self.zip_name
         zip_file = ZipFile(self.zip_name, 'r')
@@ -84,7 +86,7 @@ class TestPackaging(BaseTest):
         zip_file.close()
         self.autobuild("package",
                        "--config-file=" + self.config_path,
-                       "-p", "linux",
+                       "-p", "linux", '--id=123456',
                        "--dry-run")
     
     def tearDown(self):
