@@ -500,20 +500,24 @@ def select_configurations(args, config, verb, platform=None):
     logger.debug("%s configuration(s) %s" % (verb, pprint.pformat(configurations)))
     return configurations
 
-def set_build_id(build_id_arg):
-    '''establish and return a build_id based on the --id argument, the environment, or the date'''
-    ## Accepts AUTOBUILD_BUILD_ID from the environment, and sets whatever id is established
-    ## to the environment so that recursive invocations will inherit the value set from the 
-    ## top level command line value.  This can of course also be used to substitute for the 
-    ## command line argument.
+def establish_build_id(build_id_arg):
+    '''determine and return a build_id based on (in preference order): 
+       the --id argument, 
+       the AUTOBUILD_BUILD_ID environment variable,
+       the date
+    If we reach the date fallback, a warning is logged
+    In addition to returning the id value, this sets the AUTOBUILD_BUILD_ID environment
+    variable for any descendent processes so that recursive invocations will have access
+    to the same value.'''
+
     build_id=None
     if build_id_arg:
         build_id=build_id_arg
     elif 'AUTOBUILD_BUILD_ID' in os.environ:
         build_id=os.environ['AUTOBUILD_BUILD_ID']
     else:
-        logger.warn("Warning: no --id or $AUTOBUILD_BUILD_ID specified; using the date, which may not be unique")
         build_id=time.strftime("%Y%m%d")
+        logger.warn("Warning: no --id argument or AUTOBUILD_BUILD_ID environment variable specified\nUsing the date (%s), which may not be unique" % build_id)
     os.environ['AUTOBUILD_BUILD_ID']=build_id
     return build_id
 

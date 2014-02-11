@@ -110,7 +110,9 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         parser.add_argument('--id','-i', dest='build_id', help='unique build identifier')
 
     def run(self, args):
-        build_id=common.set_build_id(args.build_id)
+        build_id=common.establish_build_id(args.build_id) # sets id (even if not specified), 
+        #                                                   and stores in the AUTOBUILD_BUILD_ID environment variable
+
         logger.debug("loading " + args.autobuild_filename)
         config = configfile.ConfigurationDescription(args.autobuild_filename)
 
@@ -121,14 +123,14 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         if not build_dirs:
             build_dirs = [config.get_build_directory(None, args.platform)]
         for build_dir in build_dirs:
-            package(config, build_dir, args.platform, build_id, args.archive_filename, args.archive_format, args.check_license, args.dry_run)
+            package(config, build_dir, args.platform, build_id=build_id, archive_filename=args.archive_filename, archive_format=args.archive_format, check_license=args.check_license, dry_run=args.dry_run)
 
 
 class PackageError(AutobuildError):
     pass
 
 
-def package(config, build_directory, platform_name, build_id, archive_filename=None, archive_format=None, check_license=True, dry_run=False):
+def package(config, build_directory, platform_name, build_id=None, archive_filename=None, archive_format=None, check_license=True, dry_run=False):
     """
     Create an archive for the given platform.
     """
