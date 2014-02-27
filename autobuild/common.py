@@ -46,7 +46,7 @@ import socket
 import shutil
 import subprocess
 import tarfile
-from zipfile import ZipFile, is_zipfile
+import zipfile
 import tempfile
 import urllib2
 
@@ -301,16 +301,16 @@ def download_package(package):
     scp_or_http.cleanup()
     return result
 
-def extract_package(package, install_dir):
+def extract_package(package, install_dir, exclude=[]):
     """
     Extract the contents of a downloaded package to the specified
     directory.  Returns the list of files that were successfully
     extracted.
     """
     # Find the name of the package in the install cache
-    return install_package(get_package_in_cache(package), install_dir)
+    return install_package(get_package_in_cache(package), install_dir, exclude=exclude)
 
-def install_package(archive_path, install_dir):
+def install_package(archive_path, install_dir, exclude=[]):
     """
     Install the archive at the provided path into the given installation directory.  Returns the
     list of files that were installed.
@@ -320,12 +320,31 @@ def install_package(archive_path, install_dir):
         return False
     logger.warn("extracting from %s" % os.path.basename(archive_path))
     if tarfile.is_tarfile(archive_path):
-        return __extract_tar_file(archive_path, install_dir)
-    elif is_zipfile(archive_path):
-        return __extract_zip_archive(archive_path, install_dir)
+        return __extract_tar_file(archive_path, install_dir, exclude=exclude)
+    elif zipfile.is_zipfile(archive_path):
+        return __extract_zip_archive(archive_path, install_dir, exclude=exclude)
     else:
         logger.error("package %s is not archived in a supported format" % archive_path)
         return False
+
+def extract_metadata_from_package(archive_path, metadata_file_name):
+    """
+    Get the package metadata from the archive
+    """
+    metadata_file=None
+    if not os.path.exists(archive_path):
+        logger.error("cannot extract metadata from non-existing package: %s" % archive_path)
+        return False
+    logger.debug("extracting metadata from %s" % os.path.basename(archive_path))
+    if tarfile.is_tarfile(archive_path):
+        tar=tarfile.open(archive_path, 'r')
+        metadata_file=tar.extractfile(metadata_file_name)
+    elif zipfile.is_zipfile(archive_path):
+        zip=zipfile.ZipFile(archive_path, 'r')
+        metadata_file=zip.open(metadata_file_name,'r')
+    else:
+        logger.error("package %s is not archived in a supported format" % archive_path)
+    return metadata_file
 
 def remove_package(package):
     """
@@ -527,27 +546,18 @@ def establish_build_id(build_id_arg):
 #
 ######################################################################
 
-def __extract_tar_file(cachename, install_dir):
-
+def __extract_tar_file(cachename, install_dir, exclude=[]):
     # Attempt to extract the package from the install cache
     tar = tarfile.open(cachename, 'r')
-    try:
-        # try to call extractall in python 2.5. Phoenix 2008-01-28
-        tar.extractall(path=install_dir)
-    except AttributeError:
-        # or fallback on pre-python 2.5 behavior
-        __extractall(tar, path=install_dir)
+    extract=[member for member in tar.getmembers() if member.name not in exclude ]
+    tar.extractall(path=install_dir, members=extract)
+    return [member.name for member in extract]
 
-    return tar.getnames()
-
-def __extract_zip_archive(cachename, install_dir):
-    zip_archive = ZipFile(cachename, 'r')
-    try:
-        zip_archive.extractall(path=install_dir)
-        return zip_archive.namelist()
-    except AttributeError:
-        logger.error("zip extraction not supported by this python version.")
-        return False
+def __extract_zip_archive(cachename, install_dir, exclude=[]):
+    zip_archive = zipfile.ZipFile(cachename, 'r')
+    extract=[member for member in zip_archive.namelist() if member not in exclude ]
+    zip_archive.extractall(path=install_dir, members=extract)
+    return extract
 
 class __SCPOrHTTPHandler(urllib2.BaseHandler):
     """
@@ -601,7 +611,7 @@ class __SCPOrHTTPHandler(urllib2.BaseHandler):
 #
 # *NOTE: PULLED FROM PYTHON 2.5 tarfile.py Phoenix 2008-01-28
 #
-def __extractall(tar, path=".", members=None):
+def __extractall(tar, path=".", members=None, exclude=[]):
     """Extract all members from the archive to the current working
        directory and set owner, modification time and permissions on
        directories afterwards. `path' specifies a different directory
@@ -622,7 +632,7 @@ def __extractall(tar, path=".", members=None):
             except EnvironmentError:
                 pass
             directories.append(tarinfo)
-        else:
+        elif path not in exclude:
             tar.extract(tarinfo, path)
 
     # Reverse sort directories.

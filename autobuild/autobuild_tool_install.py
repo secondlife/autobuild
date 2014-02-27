@@ -109,7 +109,7 @@ def handle_query_args(options, config_file, installed_file):
     Returns True if an argument was handled.
     """
     if options.list_installed:
-        return print_list("Installed", installed_file.installables.keys())
+        return print_list("Installed", installed_file.dependencies.keys())
 
     if options.list_archives:
         return print_list("Packages", config_file.installables.keys())
@@ -120,7 +120,7 @@ def handle_query_args(options, config_file, installed_file):
         return print_list("Licenses", licenses)
 
     if options.export_manifest:
-        for package in installed_file.installables.itervalues():
+        for package in installed_file.dependencies.itervalues():
             item = pprint.pformat(package).rstrip() # trim final newline
             sys.stdout.writelines((item, ",\n")) # permit parsing -- bad syntax otherwise
         return True
@@ -160,10 +160,19 @@ def post_install_license_check(packages, config_file, installed_file):
         if license_file.startswith('http://'):
             continue
         # otherwise, assert that the license file is in the archive
-        if not os.path.exists(os.path.join(installed_file.installables[package.name].install_dir,
+        if not os.path.exists(os.path.join(installed_file.dependencies[package.name].install_dir,
                                            license_file)):
             raise InstallError("nonexistent license_file for %s: %s "
                                "(you can use --skip-license-check)" % (pname, license_file))
+
+def check_package_for_duplicate_files(metadata, install_dir):
+    duplicate_files=[]
+    for packaged_file in metadata.manifest:
+        if os.path.exists(os.path.join(install_dir,packaged_file)):
+            duplicate_files.append(packaged_file)
+    if duplicate_files:
+        raise InstallError("package '%s' contains %d conflicting files: %s" \
+                           % ( metadata.package_description.name, len(duplicate_files), duplicate_files))
 
 def do_install(packages, config_file, installed_file, platform, install_dir, dry_run, as_source=[], local_archives=[]):
     """
@@ -193,7 +202,7 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
         # local source changes makes any further autobuild operations on that
         # repository ill-advised.
         try:
-            installed = installed_file.installables[pname]
+            installed = installed_file.dependencies[pname]
         except KeyError:
             # New install, so honor --as-source switch.
             source_install = (pname in as_source)
@@ -263,7 +272,7 @@ def _install_source(package, installed_config, config_file, dry_run):
     # Copy PackageDescription metadata from the autobuild.xml entry.
     inst_pkg = package.copy()
     # Set it as the installed package.
-    installed_config.installables[package.name] = inst_pkg
+    installed_config.dependencies[package.name] = inst_pkg
     inst_pkg.as_source = True
     inst_pkg.install_dir = sourcepath
     # But clear platforms: we only use platforms for tarball installs.
@@ -274,27 +283,38 @@ def _install_local(platform, package, package_path, install_dir, installed_file,
     package_name = package.name
     
     if dry_run:
-        dry_run_msg("Dry run mode: not installing %s" % package.name)
+        dry_run_msg("Dry run mode: not checking or installing %s" % package.name)
         return False
 
     # If this package has already been installed, first uninstall the older
     # version.
     uninstall(package_name, installed_file)
 
+    metadata_file_name=configfile.PACKAGE_METADATA_FILE
+    metadata_file=common.extract_metadata_from_package(package_path, metadata_file_name)
+    if not metadata_file:
+        ### TBD allow if 'legacy' specified, otherwise:
+        raise InstallError("package '%s' does not contain metadata (%s)" % (package.name, metadata_file_name))
+    else:
+        metadata=configfile.MetadataDescription(stream=metadata_file)
+
     logger.warn("installing %s from local archive" % package.name)
 
+    # before installing, check the manifest data in the metadata for conf
+    check_package_for_duplicate_files(metadata, install_dir) # raises InstallError if it fails
+    
     # check that the install dir exists...
     if not os.path.exists(install_dir):
         logger.debug("creating " + install_dir)
         os.makedirs(install_dir)
 
     # extract the files from the package
-    files = common.install_package(package_path, install_dir)
+    files = common.install_package(package_path, install_dir, exclude=[metadata_file_name])
     if not files:
         return False
     for f in files:
         logger.debug("extracted: " + f)
-    
+
     installed_package = package.copy()
     if platform not in package.platforms:
         installed_platform = configfile.PlatformDescription(dict(name=platform))
@@ -304,7 +324,8 @@ def _install_local(platform, package, package_path, install_dir, installed_file,
         installed_platform.archive = configfile.ArchiveDescription()
     installed_platform.archive.url = "file://" + os.path.abspath(package_path)
     installed_platform.archive.hash = common.compute_md5(package_path)
-    _update_installed_package_files(installed_package, platform, installed_file, install_dir, files)
+    _update_installed_package_files(metadata, installed_package, \
+                                    platform=platform, installed_file=installed_file, install_dir=install_dir, files=files)
     return True
 
 def _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
@@ -321,7 +342,7 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     if not archive.url:
         raise InstallError("no url specified for package %s for platform %s" % (package_name, platform))
     # Is this package already installed?
-    installed = installed_file.installables.get(package.name)
+    installed = installed_file.dependencies.get(package.name)
     inst_plat = installed and installed.get_platform(platform)
     inst_archive = inst_plat and inst_plat.archive
     # Rely on ArchiveDescription's equality-comparison method to discover
@@ -372,24 +393,32 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
         logger.debug("creating " + install_dir)
         os.makedirs(install_dir)
 
+    metadata_file_name=configfile.PACKAGE_METADATA_FILE
+    metadata_file=common.extract_metadata_from_package(archive.url, metadata_file_name)
+    if not metadata_file:
+        ### TBD allow if 'legacy' specified, otherwise:
+        raise InstallError("package '%s' does not contain metadata (%s)" % (package.name, metadata_file_name))
+    else:
+        metadata=configfile.MetadataDescription(stream=metadata_file)
+
     logger.warn("installing %s from archive" % package.name)
     # extract the files from the package
-    files = common.extract_package(archive.url, install_dir)
+    files = common.extract_package(archive.url, install_dir, exclude=[metadata_file_name])
     for f in files:
         logger.debug("extracted: " + f)
         
-    _update_installed_package_files(package, platform, installed_file, install_dir, files)
+    _update_installed_package_files(metadata, package, 
+                                    platform=platform, installed_file=installed_file, install_dir=install_dir, files=files)
     return True
 
-def _update_installed_package_files(package, platform, installed_file, install_dir, files):
-    installed_package = package.copy()
-    installed_file.installables[package.name] = installed_package
-    installed_package.as_source = False
+def _update_installed_package_files(metadata, package, \
+                                    platform=None, installed_file=None, install_dir=None, files=None):
+    installed_package = metadata
     installed_package.install_dir = install_dir
-    installed_package.platforms.clear()
-    installed_platform = package.get_platform(platform).copy()
-    installed_package.platforms[platform] = installed_platform
-    installed_platform.manifest = files
+
+    installed_platform = package.get_platform(platform)
+    installed_package.archive = installed_platform.archive
+    installed_file.dependencies[metadata.package_description.name] = installed_package
 
 def uninstall(package_name, installed_config):
     """
@@ -404,7 +433,7 @@ def uninstall(package_name, installed_config):
     try:
         # Not only retrieve this package's installed PackageDescription, but
         # remove it from installed_config at the same time.
-        package = installed_config.installables.pop(package_name)
+        package = installed_config.dependencies.pop(package_name)
     except KeyError:
         # If the package has never yet been installed, we're good.
         logger.debug("%s not installed, no uninstall needed" % package_name)
@@ -477,7 +506,7 @@ def install_packages(options, config_file, install_dir, args):
 
     # load the list of already installed packages
     logger.debug("loading " + installed_filename)
-    installed_file = configfile.ConfigurationDescription(installed_filename)
+    installed_file = configfile.Dependencies(installed_filename)
 
     # handle any arguments to query for information
     if handle_query_args(options, config_file, installed_file):

@@ -78,11 +78,20 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
         parser.add_argument('--id','-i', dest='build_id', help='unique build identifier')
+        parser.add_argument( '--install-dir',
+                             default=None,
+                             dest='select_dir',          # see common.select_directories()
+                             help='Where installed files were unpacked.')
+        parser.add_argument( '--installed-manifest',
+                             default=configfile.INSTALLED_CONFIG_FILE,
+                             dest='installed_filename',
+                             help='The file used to record what is installed.')
 
     def run(self, args):
-        common.establish_build_id(args.build_id) # sets id (even if not specified), 
-        #                                          and stores in the AUTOBUILD_BUILD_ID environment variable
+        build_id=common.establish_build_id(args.build_id) # sets id (even if not specified), 
+        #                                                   and stores in the AUTOBUILD_BUILD_ID environment variable
         config = configfile.ConfigurationDescription(args.config_file)
+        platform = common.get_current_platform()
         current_directory = os.getcwd()
         try:
             configure_first = not args.do_not_configure
@@ -90,6 +99,13 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             if not build_configurations:
                 logger.warn("no applicable build configurations found, autobuild cowardly refuses to build nothing!")
                 logger.warn("did you remember to mark a build command as default? try passing 'default=true' to your 'autobuild edit build' command")
+            # packages were written into 'packages' subdir of build directory by default
+            install_dirs = common.select_directories(args, config, "metadata", "getting installed packages",
+                                                     lambda cnf:
+                                                     os.path.join(config.get_build_directory(cnf, platform), "packages"))
+
+            # get the absolute paths to the install dir and installed-packages.xml file
+            install_dir = os.path.realpath(install_dirs[0])
 
             for build_configuration in build_configurations:
                 build_directory = config.make_build_directory(build_configuration, args.dry_run)
@@ -103,8 +119,32 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                         raise BuildError("configuring default configuration returned %d" % (result))
                 result = _build_a_configuration(config, build_configuration,
                     args.build_extra_arguments, args.dry_run)
+                # always make clean copy of the build metadata regardless of result
+                metadata_file_name=configfile.PACKAGE_METADATA_FILE
+                logger.debug("metadata file name: %s" % metadata_file_name)
+                if not args.dry_run and os.path.exists(metadata_file_name):
+                    os.unlink(metadata_file_name)
                 if result != 0:
                     raise BuildError("building default configuration returned %d" % (result))
+
+                if not args.dry_run:
+                    # Create the metadata record for inclusion in the package
+                    metadata_file=configfile.MetadataDescription(path=metadata_file_name, create_quietly=True)
+                    # include the package description from the configuration
+                    metadata_file.package_description=config.package_description
+                    metadata_file.package_description.platforms=None # omit data on platform configurations
+                    metadata_file.platform=platform
+                    metadata_file.configuration=build_configuration.name
+                    metadata_file.build_id=build_id
+                    # get the record of any installed packages
+                    logger.debug("installed files in " + args.installed_filename)
+                    # load the list of already installed packages
+                    installed_pathname = os.path.join(install_dir, args.installed_filename)
+                    if os.path.exists(installed_pathname):
+                        metadata_file.add_dependencies(installed_pathname)
+                    else:
+                        logger.debug("no installed files found (%s)" % installed_pathname)
+                    metadata_file.save()
         finally:
             os.chdir(current_directory)
 

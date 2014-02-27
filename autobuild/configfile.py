@@ -44,8 +44,14 @@ logger = logging.getLogger('autobuild.configfile')
 AUTOBUILD_CONFIG_FILE=os.environ.get("AUTOBUILD_CONFIG_FILE","autobuild.xml")
 AUTOBUILD_CONFIG_VERSION="1.2"
 AUTOBUILD_CONFIG_TYPE="autobuild"
+
+AUTOBUILD_INSTALLED_VERSION="1"
+AUTOBUILD_INSTALLED_TYPE="installed"
 INSTALLED_CONFIG_FILE="installed-packages.xml"
 
+AUTOBUILD_METADATA_VERSION="1"
+AUTOBUILD_METADATA_TYPE="metadata"
+PACKAGE_METADATA_FILE="autobuild-package.xml"
 
 # FIXME: remove when refactor is complete
 class ConfigFile:
@@ -228,6 +234,150 @@ class ConfigurationDescription(common.Serialized):
             logger.warn("Configuration file '%s' not found" % self.path)
         else:
             raise ConfigurationError("cannot create configuration file %s" % self.path)
+
+    
+class Dependencies(common.Serialized):
+    """
+    The record of packages installed in a build tree.
+    
+    Attributes:
+        dependencies - a map of MetadataDescriptions, indexed by package name
+    """
+    
+    def __init__(self, path):
+        self.version = AUTOBUILD_INSTALLED_VERSION
+        self.type = AUTOBUILD_INSTALLED_TYPE
+        self.dependencies = {}
+        self.__load(path=path)
+ 
+    def save(self):
+        """
+        Save the configuration state to the input file.
+        """
+        file(self.path, 'wb').write(llsd.format_pretty_xml(_compact_to_dict(self)))
+            
+    def __load(self, path=None):
+        if os.path.isabs(path):
+            self.path = path
+        else:
+            abs_path = os.path.abspath(path)
+            found_path = common.search_up_for_file(abs_path)
+            if found_path is not None:
+                self.path = found_path
+            else:
+                self.path = abs_path
+        if os.path.isfile(self.path):
+            installed_xml = file(self.path, 'rb').read()
+            if not installed_xml:
+                logger.warn("Installed file '%s' is empty" % self.path)
+                return
+            logger.debug("Installed file '%s'" % self.path)
+            try:
+                saved_data = llsd.parse(installed_xml)
+            except llsd.LLSDParseError:
+                raise AutobuildError("Installed file %s is not valid. Aborting..." % self.path)
+            if not ( ( saved_data.has_key('version') and saved_data['version'] == self.version )\
+                     and ( saved_data.has_key('type')) and (saved_data['type'] == AUTOBUILD_INSTALLED_TYPE)):
+                raise AutobuildError(self.path + ' not an autobuild installed file')
+
+            dependencies = saved_data.pop('dependencies', {})
+            for (name, package) in dependencies.iteritems():
+                self.dependencies[name] = package
+            self.update(saved_data)
+        elif not os.path.exists(self.path):
+            logger.warn("Installed packages file '%s' not found" % self.path)
+        else:
+            raise ConfigurationError("cannot create installed file %s" % self.path)
+
+class MetadataDescription(common.Serialized):
+    """
+    The autobuild-package-<platform>.xml metadata file,
+    which has a subset of the same data as the configuration, but specific to what is actually in the package
+    (as opposed to what might be in all versions of the package)
+    
+    Attributes:
+        package_description
+        dependencies
+        build_id
+        platform
+        configuration
+        manifest
+        legacy*
+        install_type*
+        install_dir*
+        type
+        version
+
+    * not used except when the MetadataDescription is in the Dependencies
+    """
+    path = None
+    
+    def __init__(self, path=None, stream=None, parsed_llsd=None, create_quietly=False):
+        self.version = AUTOBUILD_METADATA_VERSION
+        self.type = AUTOBUILD_METADATA_TYPE
+        self.build_id = None
+        self.platform = None
+        self.configuration = None
+        self.package_description = None
+        self.manifest = []
+        self.dependencies = {}
+        self.archive = None
+        self.install_type = None
+        self.install_dir = None
+        self.legacy = False
+
+        metadata_xml=None
+        if path:
+            self.path=path
+            if os.path.isfile(self.path):
+                metadata_xml = file(self.path, 'rb').read()
+                if not metadata_xml:
+                    logger.warn("Metadata file '%s' is empty" % self.path)
+                    return
+            elif not os.path.exists(self.path):
+                if not create_quietly:
+                    logger.warn("Configuration file '%s' not found" % self.path)
+        elif stream:
+            metadata_xml=stream.read()
+        if metadata_xml:
+            try:
+                parsed_llsd = llsd.parse(metadata_xml)
+            except llsd.LLSDParseError:
+                raise AutobuildError("Metadata file %s is corrupt. Aborting..." % self.path)
+
+        if parsed_llsd:
+            self.__load(parsed_llsd)
+            self.update(parsed_llsd)
+
+    def __load(self, parsed_llsd):
+        if   (not parsed_llsd.has_key('version')) or (parsed_llsd['version'] != self.version) \
+          or (not parsed_llsd.has_key('type')) or (parsed_llsd['type'] != 'metadata'):
+            raise ConfigurationError("missing or incompatible metadata")
+        else:
+            package_description = parsed_llsd.pop('package_description', None)
+            if package_description:
+                self.package_description = PackageDescription(package_description)
+            else:
+                raise ConfigurationError("metadata is missing package_description")
+            dependencies = parsed_llsd.pop('dependencies', {})
+            for (name, package) in dependencies.iteritems():
+                self.dependencies[name] = MetadataDescription(parsed_llsd=package)
+            self.manifest = parsed_llsd.pop('manifest', [])
+
+    def add_dependencies(self, installed_pathname):
+        logger.debug("loading " + installed_pathname)
+        dependencies = Dependencies(installed_pathname)
+        for (name, package) in dependencies.dependencies.iteritems():
+            del package['install_dir']
+            del package['manifest']
+            self.dependencies[name] = package
+
+    def save(self):
+        """
+        Save the metadata.
+        """
+        if self.path:
+            file(self.path, 'wb').write(llsd.format_pretty_xml(_compact_to_dict(self)))
 
 class PackageDescription(common.Serialized):
     """

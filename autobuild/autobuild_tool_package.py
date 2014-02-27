@@ -55,6 +55,7 @@ import logging
 import configfile
 import autobuild_base
 import subprocess
+import pprint
 from connection import SCPConnection, S3Connection
 from common import AutobuildError
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -107,12 +108,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="package a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
-        parser.add_argument('--id','-i', dest='build_id', help='unique build identifier')
 
     def run(self, args):
-        build_id=common.establish_build_id(args.build_id) # sets id (even if not specified), 
-        #                                                   and stores in the AUTOBUILD_BUILD_ID environment variable
-
         logger.debug("loading " + args.autobuild_filename)
         config = configfile.ConfigurationDescription(args.autobuild_filename)
 
@@ -123,14 +120,14 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         if not build_dirs:
             build_dirs = [config.get_build_directory(None, args.platform)]
         for build_dir in build_dirs:
-            package(config, build_dir, args.platform, build_id=build_id, archive_filename=args.archive_filename, archive_format=args.archive_format, check_license=args.check_license, dry_run=args.dry_run)
+            package(config, build_dir, args.platform, archive_filename=args.archive_filename, archive_format=args.archive_format, check_license=args.check_license, dry_run=args.dry_run)
 
 
 class PackageError(AutobuildError):
     pass
 
 
-def package(config, build_directory, platform_name, build_id=None, archive_filename=None, archive_format=None, check_license=True, dry_run=False):
+def package(config, build_directory, platform_name, archive_filename=None, archive_format=None, check_license=True, dry_run=False):
     """
     Create an archive for the given platform.
     """
@@ -155,8 +152,28 @@ def package(config, build_directory, platform_name, build_id=None, archive_filen
             files.extend(_get_file_list(config.get_platform('common'), build_directory))
         except configfile.ConfigurationError:
             pass # We don't have a common platform defined, that is ok.
-    if check_license:
-        _check_or_add_license(package_description, build_directory, files)
+    
+    _check_or_add_license(package_description, build_directory, files)
+
+    # add the manifest files to the metadata file (list does not include itself)
+    metadata_file_name=configfile.PACKAGE_METADATA_FILE
+    logger.debug("metadata file name: %s" % metadata_file_name)
+    metadata_file_path=os.path.abspath(os.path.join(build_directory, metadata_file_name))
+    metadata_file=configfile.MetadataDescription(path=metadata_file_path)
+    metadata_file.manifest=files
+    if metadata_file.build_id:
+        build_id=metadata_file.build_id
+    else:
+        raise PackageError("no build_id in metadata - rerun build")
+    if metadata_file.platform != platform_name:
+        raise PackageError("build platform (%s) does not match current platform (%s)" \
+                           % (metadata_file.platform, platform_name))
+    if not dry_run:
+        metadata_file.save()
+
+    # add the metadata file name to the list of files _after_ putting that list in the metadata
+    files.append(metadata_file_name)
+
     config_directory = os.path.dirname(config.path)
     if not archive_filename:
         tardir = config_directory
@@ -165,7 +182,7 @@ def package(config, build_directory, platform_name, build_id=None, archive_filen
     elif os.path.isabs(archive_filename):
         tarfilename = archive_filename
     else:
-        tarfilename = os.path.abs(os.path.join(config_directory, archive_filename))
+        tarfilename = os.path.abspath(os.path.join(config_directory, archive_filename))
     logger.debug(tarfilename)
     if dry_run:
         for f in files:
@@ -179,7 +196,6 @@ def package(config, build_directory, platform_name, build_id=None, archive_filen
             _create_zip_archive(tarfilename + '.zip', build_directory, files)
         else:
             raise PackageError("archive format %s is not supported" % format)
-
 
 def _determine_archive_format(archive_format_argument, archive_description):
     if archive_format_argument is not None:
@@ -224,8 +240,6 @@ def _check_or_add_license(package_description, build_directory, filelist):
     licensefile = package_description.license_file
     if not licensefile:
         licensefile = 'LICENSES/%s.txt' % package_description.name
-    if licensefile.startswith('http://'):
-        pass # No need to add.
     elif os.path.normcase(os.path.normpath(licensefile)) in \
              [os.path.normcase(os.path.normpath(f)) for f in filelist]:
         pass # Already found.
@@ -233,7 +247,6 @@ def _check_or_add_license(package_description, build_directory, filelist):
         filelist.append(licensefile) # Can add to to the package.
     else:
         raise PackageError('cannot add license file %s' % licensefile)
-
 
 def _create_tarfile(tarfilename, build_directory, filelist):
     if not os.path.exists(os.path.dirname(tarfilename)):
