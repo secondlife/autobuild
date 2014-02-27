@@ -229,7 +229,7 @@ class ConfigurationDescription(common.Serialized):
                     update.updaters[saved_data['version']](saved_data, self)
                 else:
                     raise ConfigurationError("cannot update version %s file %s" %
-                                             (saved_data.version, self.path))
+                                             (saved_data['version'], self.path))
         elif not os.path.exists(self.path):
             logger.warn("Configuration file '%s' not found" % self.path)
         else:
@@ -325,6 +325,7 @@ class MetadataDescription(common.Serialized):
         self.install_type = None
         self.install_dir = None
         self.legacy = False
+        self.as_source = False
 
         metadata_xml=None
         if path:
@@ -371,6 +372,10 @@ class MetadataDescription(common.Serialized):
             del package['install_dir']
             del package['manifest']
             self.dependencies[name] = package
+
+    def is_current_metadata(self):
+        return (    ('type' in installed and installed['type'] == AUTOBUILD_METADATA_TYPE) \
+                and ('version' in installed and installed['version'] == AUTOBUILD_METADATA_VERSION))
 
     def save(self):
         """
@@ -428,7 +433,6 @@ class PackageDescription(common.Serialized):
         self.license = None
         self.license_file = None
         self.version = None
-        self.as_source = False
         self.install_dir = None
         if isinstance(arg, dict):
             self.__init_from_dict(dict(arg))

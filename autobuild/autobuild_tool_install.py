@@ -209,7 +209,7 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
         else:
             # Existing install. If pname was previously installed --as-source,
             # do not mess with it now.
-            source_install = installed.as_source
+            source_install = None # installed.as_source
             if source_install:
                 logger.warn("%s previously installed --as-source, not updating" % pname)
                 continue
@@ -294,9 +294,11 @@ def _install_local(platform, package, package_path, install_dir, installed_file,
     metadata_file=common.extract_metadata_from_package(package_path, metadata_file_name)
     if not metadata_file:
         ### TBD allow if 'legacy' specified, otherwise:
-        raise InstallError("package '%s' does not contain metadata (%s)" % (package.name, metadata_file_name))
+        logger.error("package '%s' does not contain metadata (%s)" % (package.name, metadata_file_name))
+        legacy=True
     else:
         metadata=configfile.MetadataDescription(stream=metadata_file)
+        legacy=None
 
     logger.warn("installing %s from local archive" % package.name)
 
@@ -324,6 +326,8 @@ def _install_local(platform, package, package_path, install_dir, installed_file,
         installed_platform.archive = configfile.ArchiveDescription()
     installed_platform.archive.url = "file://" + os.path.abspath(package_path)
     installed_platform.archive.hash = common.compute_md5(package_path)
+    metadata.legacy=legacy
+    metadata.install_type='local'
     _update_installed_package_files(metadata, installed_package, \
                                     platform=platform, installed_file=installed_file, install_dir=install_dir, files=files)
     return True
@@ -343,16 +347,21 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
         raise InstallError("no url specified for package %s for platform %s" % (package_name, platform))
     # Is this package already installed?
     installed = installed_file.dependencies.get(package.name)
-    inst_plat = installed and installed.get_platform(platform)
-    inst_archive = inst_plat and inst_plat.archive
+    ##TBD inst_plat = installed and installed.get_platform(platform)
+    ##TBD inst_archive = inst_plat and inst_plat.archive
     # Rely on ArchiveDescription's equality-comparison method to discover
     # whether the installed ArchiveDescription matches the requested one. This
     # test also handles the case when inst_plat.archive is None (not yet
     # installed).
-    if archive == inst_archive:
-        logger.info("%s up to date" % package.name)
-        return False
-
+    logger.debug("installed %s" % pprint.pformat(installed))
+    if installed:
+        if installed['install_type'] == 'local':
+            logger.warn("""skipping %s package because it was installed locally from %s
+  To allow new installation, run 
+  autobuild uninstall %s""" % ( package_name, installed['archive']['url'], package_name ))
+            return
+    
+    # compute the cache name for this package from its url
     cachefile = common.get_package_in_cache(archive.url)
 
     # download the package, if it's not already in our cache
@@ -388,18 +397,19 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     # version.
     uninstall(package.name, installed_file)
 
+    metadata_file_name=configfile.PACKAGE_METADATA_FILE
+    metadata_file=common.extract_metadata_from_package(cachefile, metadata_file_name)
+    if not metadata_file:
+        logger.error("package '%s' does not contain metadata (%s)" % (package.name, metadata_file_name))
+        legacy=True
+    else:
+        metadata=configfile.MetadataDescription(stream=metadata_file)
+        legacy=None
+
     # check that the install dir exists...
     if not os.path.exists(install_dir):
         logger.debug("creating " + install_dir)
         os.makedirs(install_dir)
-
-    metadata_file_name=configfile.PACKAGE_METADATA_FILE
-    metadata_file=common.extract_metadata_from_package(archive.url, metadata_file_name)
-    if not metadata_file:
-        ### TBD allow if 'legacy' specified, otherwise:
-        raise InstallError("package '%s' does not contain metadata (%s)" % (package.name, metadata_file_name))
-    else:
-        metadata=configfile.MetadataDescription(stream=metadata_file)
 
     logger.warn("installing %s from archive" % package.name)
     # extract the files from the package
@@ -407,6 +417,15 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     for f in files:
         logger.debug("extracted: " + f)
         
+    installed_package = package.copy()
+    if platform not in package.platforms:
+        installed_platform = configfile.PlatformDescription(dict(name=platform))
+    else:
+        installed_platform = installed_package.get_platform(platform)
+    if installed_platform.archive is None:
+        installed_platform.archive = configfile.ArchiveDescription()
+    metadata.legacy=legacy
+    metadata.install_type='package'
     _update_installed_package_files(metadata, package, 
                                     platform=platform, installed_file=installed_file, install_dir=install_dir, files=files)
     return True
@@ -433,26 +452,23 @@ def uninstall(package_name, installed_config):
     try:
         # Not only retrieve this package's installed PackageDescription, but
         # remove it from installed_config at the same time.
-        package = installed_config.dependencies.pop(package_name)
+        package = configfile.MetadataDescription(parsed_llsd=installed_config.dependencies.pop(package_name))
     except KeyError:
         # If the package has never yet been installed, we're good.
         logger.debug("%s not installed, no uninstall needed" % package_name)
         return
 
-    if package.as_source:
+    ##TBDif package.as_source:
         # Only delete files for a tarball install.
-        logger.warning("%s installed --as-source, not removing" % package_name)
-        return
+        ##TBDlogger.warning("%s installed --as-source, not removing" % package_name)
+        ##return
 
     logger.warn("uninstalling %s" % (package_name))
     logger.debug("uninstalling %s from %s" % (package_name, package.install_dir))
-    # The platforms attribute should contain exactly one PlatformDescription.
-    # We don't especially care about its key name.
-    _, platform = package.platforms.popitem()
     # Tarballs that name directories name them before the files they contain,
     # so the unpacker will create the directory before creating files in it.
     # For exactly that reason, we must remove things in reverse order.
-    for f in reversed(platform.manifest):
+    for f in reversed(package.manifest):
         # Some tarballs contain funky directory name entries (".//"). Use
         # realpath() to dewackify them.
         fn = os.path.normpath(os.path.join(package.install_dir, f))

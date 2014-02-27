@@ -62,7 +62,7 @@ This is because there may be local source changes in that repository.
 def uninstall_packages(options, installed_filename, args):
     # load the list of already installed packages
     logger.debug("loading " + installed_filename)
-    installed_file = configfile.ConfigurationDescription(installed_filename)
+    installed_file = configfile.Dependencies(installed_filename)
 
     for package in args:
         uninstall(package, installed_file)
@@ -133,10 +133,11 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             # relative to install_dir. Therefore we must figure out install_dir.
 
             # write packages into 'packages' subdir of build directory by default
+            config=LazyConfig(args.install_filename)
             installed_filenames = \
                  [os.path.realpath(os.path.join(install_dir, installed_filename))
                   for install_dir in
-                  common.select_directories(args, LazyConfig(args.install_filename),
+                  common.select_directories(args, config,
                                             "install", "uninstalling",
                                             lambda cnf:
                                             os.path.join(config.make_build_directory(cnf, args.dry_run),
