@@ -338,10 +338,16 @@ def extract_metadata_from_package(archive_path, metadata_file_name):
     logger.debug("extracting metadata from %s" % os.path.basename(archive_path))
     if tarfile.is_tarfile(archive_path):
         tar=tarfile.open(archive_path, 'r')
-        metadata_file=tar.extractfile(metadata_file_name)
+        try:
+            metadata_file=tar.extractfile(metadata_file_name)
+        except KeyError, err:
+            pass # returning None will indicate that it was not there
     elif zipfile.is_zipfile(archive_path):
-        zip=zipfile.ZipFile(archive_path, 'r')
-        metadata_file=zip.open(metadata_file_name,'r')
+        try:
+            zip=zipfile.ZipFile(archive_path, 'r')
+            metadata_file=zip.open(metadata_file_name,'r')
+        except KeyError, err:
+            pass # returning None will indicate that it was not there
     else:
         logger.error("package %s is not archived in a supported format" % archive_path)
     return metadata_file

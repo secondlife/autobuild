@@ -278,16 +278,17 @@ class Dependencies(common.Serialized):
                 raise AutobuildError("Installed file %s is not valid. Aborting..." % self.path)
             if not ( ( saved_data.has_key('version') and saved_data['version'] == self.version )\
                      and ( saved_data.has_key('type')) and (saved_data['type'] == AUTOBUILD_INSTALLED_TYPE)):
-                raise AutobuildError(self.path + ' not an autobuild installed file')
+                raise AutobuildError(self.path + ' is not compatible with this version of autobuild.'
+                                     +'\nClearing your build directory and rebuilding should correct it.')
 
             dependencies = saved_data.pop('dependencies', {})
             for (name, package) in dependencies.iteritems():
                 self.dependencies[name] = package
             self.update(saved_data)
         elif not os.path.exists(self.path):
-            logger.warn("Installed packages file '%s' not found" % self.path)
+            logger.warn("Installed packages file '%s' not found; creating." % self.path)
         else:
-            raise ConfigurationError("cannot create installed file %s" % self.path)
+            raise ConfigurationError("cannot create installed packages file %s" % self.path)
 
 class MetadataDescription(common.Serialized):
     """
@@ -312,7 +313,7 @@ class MetadataDescription(common.Serialized):
     """
     path = None
     
-    def __init__(self, path=None, stream=None, parsed_llsd=None, create_quietly=False):
+    def __init__(self, path=None, stream=None, parsed_llsd=None, convert_platform=None, create_quietly=False):
         self.version = AUTOBUILD_METADATA_VERSION
         self.type = AUTOBUILD_METADATA_TYPE
         self.build_id = None

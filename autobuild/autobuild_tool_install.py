@@ -293,9 +293,7 @@ def _install_local(platform, package, package_path, install_dir, installed_file,
     metadata_file_name=configfile.PACKAGE_METADATA_FILE
     metadata_file=common.extract_metadata_from_package(package_path, metadata_file_name)
     if not metadata_file:
-        ### TBD allow if 'legacy' specified, otherwise:
-        logger.error("package '%s' does not contain metadata (%s)" % (package.name, metadata_file_name))
-        legacy=True
+        raise InstallError("package '%s' does not contain metadata (%s)" % (package.name, metadata_file_name))
     else:
         metadata=configfile.MetadataDescription(stream=metadata_file)
         legacy=None
@@ -353,13 +351,16 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     # whether the installed ArchiveDescription matches the requested one. This
     # test also handles the case when inst_plat.archive is None (not yet
     # installed).
-    logger.debug("installed %s" % pprint.pformat(installed))
     if installed:
         if installed['install_type'] == 'local':
             logger.warn("""skipping %s package because it was installed locally from %s
   To allow new installation, run 
   autobuild uninstall %s""" % ( package_name, installed['archive']['url'], package_name ))
             return
+        elif installed['archive'] == archive:
+            logger.debug("%s is already installed")
+            return
+        # otherwise, fall down to below and it will be uninstalled
     
     # compute the cache name for this package from its url
     cachefile = common.get_package_in_cache(archive.url)
@@ -400,8 +401,7 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     metadata_file_name=configfile.PACKAGE_METADATA_FILE
     metadata_file=common.extract_metadata_from_package(cachefile, metadata_file_name)
     if not metadata_file:
-        logger.error("package '%s' does not contain metadata (%s)" % (package.name, metadata_file_name))
-        legacy=True
+        raise InstallError("package '%s' does not contain metadata (%s)" % (package.name, metadata_file_name))
     else:
         metadata=configfile.MetadataDescription(stream=metadata_file)
         legacy=None
