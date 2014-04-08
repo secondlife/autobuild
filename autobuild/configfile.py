@@ -373,10 +373,6 @@ class MetadataDescription(common.Serialized):
             del package['manifest']
             self.dependencies[name] = package
 
-    def is_current_metadata(self):
-        return (    ('type' in installed and installed['type'] == AUTOBUILD_METADATA_TYPE) \
-                and ('version' in installed and installed['version'] == AUTOBUILD_METADATA_VERSION))
-
     def save(self):
         """
         Save the metadata.
