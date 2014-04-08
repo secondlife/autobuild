@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<llsd>
+<map>
+    <key>build_id</key>
+    <string>123456</string>
+    <key>configuration</key>
+    <string>default</string>
+    <key>manifest</key>
+    <array>
+      <string>include/file1</string>
+      <string>LICENSES/test1.txt</string>
+    </array>
+    <key>package_description</key>
+    <map>
+      <key>license</key>
+      <string>GPL</string>
+      <key>license_file</key>
+      <string>LICENSES/test1.txt</string>
+      <key>name</key>
+      <string>test1</string>
+      <key>version</key>
+      <string>1.0</string>
+    </map>
+    <key>platform</key>
+    <string>common</string>
+    <key>type</key>
+    <string>metadata</string>
+    <key>version</key>
+    <string>1</string>
+  </map>
+</llsd>

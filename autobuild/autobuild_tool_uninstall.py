@@ -50,13 +50,8 @@ __help = """\
 This autobuild command uninstalls package files.
 
 The command will remove the packages specified on the command line from the
-installed-packages.xml file. For each package installed from an archive (vs.
-an --as_source package), it will additionally delete every file originally
+installed-packages.xml file, and delete every file originally
 installed by that archive.
-
-Uninstalling a package installed --as_source only forgets the package's entry
-in installed-packages.xml; it doesn't delete the package's source repository.
-This is because there may be local source changes in that repository.
 """
 
 def uninstall_packages(options, installed_filename, args):

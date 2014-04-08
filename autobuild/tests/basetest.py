@@ -32,6 +32,7 @@ import sys
 import errno
 import subprocess
 import time
+import shutil
 import unittest
 
 class BaseTest(unittest.TestCase):
@@ -80,3 +81,20 @@ class BaseTest(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+def clean_file(pathname):
+    try:
+        os.remove(pathname)
+    except OSError, err:
+        if err.errno != errno.ENOENT:
+            print >>sys.stderr, "*** Can't remove %s: %s" % (pathname, err)
+            # But no exception, we're still trying to clean up.
+
+def clean_dir(pathname):
+    try:
+        shutil.rmtree(pathname)
+    except OSError, err:
+        # Nonexistence is fine.
+        if err.errno != errno.ENOENT:
+            print >>sys.stderr, "*** Can't remove %s: %s" % (pathname, err)
+

@@ -22,12 +22,15 @@
 
 
 import unittest
+import logging
+import pprint
 from baseline_compare import AutobuildBaselineCompare
 from autobuild import autobuild_tool_build as build
 import autobuild.configfile as configfile
 from autobuild.executable import Executable
 import autobuild.common as common
-from basetest import BaseTest
+import basetest
+import tempfile
 import os
 
 # ****************************************************************************
@@ -37,17 +40,20 @@ import os
 # - Test building to build trees for --all configurations
 # - Test building to build directory(ies) for specified --configuration(s)
 # ****************************************************************************
+logger = logging.getLogger("autobuild.test_build")
 
-
-class TestBuild(BaseTest, AutobuildBaselineCompare):
+class TestBuild(basetest.BaseTest, AutobuildBaselineCompare):
     def setUp(self):
-        BaseTest.setUp(self)
+        basetest.BaseTest.setUp(self)
         os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
         self.tmp_file = self.get_tmp_file(0)
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         package = configfile.PackageDescription('test')
+        package.license="LGPL"
+        package.version="0"
         platform = configfile.PlatformDescription()
-        platform.build_directory = "."
+        self.tmp_build_dir=tempfile.mkdtemp(prefix=os.path.dirname(self.tmp_file)+"/build-")
+        platform.build_directory = self.tmp_build_dir
         build_configuration = configfile.BuildConfigurationDescription()
         build_configuration.build = Executable(command="noop.py")
         build_configuration.default = True
@@ -55,6 +61,7 @@ class TestBuild(BaseTest, AutobuildBaselineCompare):
         platform.configurations['Release'] = build_configuration
         package.platforms[common.get_current_platform()] = platform
         self.config.package_description = package
+        logger.debug("config: %s" % pprint.pprint(self.config))
         self.config.save()
 
     def test_build(self):
@@ -73,17 +80,20 @@ class TestBuild(BaseTest, AutobuildBaselineCompare):
 
     def tearDown(self):
         self.cleanup_tmp_file()
-        BaseTest.tearDown(self)
+        if self.tmp_build_dir:
+            basetest.clean_dir(self.tmp_build_dir)
+        basetest.BaseTest.tearDown(self)
 
-class TestEnvironment(BaseTest, AutobuildBaselineCompare):
+class TestEnvironment(basetest.BaseTest, AutobuildBaselineCompare):
     def setUp(self):
-        BaseTest.setUp(self)
+        basetest.BaseTest.setUp(self)
         os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
         self.tmp_file = self.get_tmp_file(0)
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         package = configfile.PackageDescription('test')
         platform = configfile.PlatformDescription()
-        platform.build_directory = "."
+        self.tmp_build_dir=tempfile.mkdtemp(prefix=os.path.dirname(self.tmp_file)+"/build-")
+        platform.build_directory = self.tmp_build_dir
         build_configuration = configfile.BuildConfigurationDescription()
         build_configuration.build = Executable(command="envtest.py")
         build_configuration.default = True
@@ -101,7 +111,9 @@ class TestEnvironment(BaseTest, AutobuildBaselineCompare):
 
     def tearDown(self):
         self.cleanup_tmp_file()
-        BaseTest.tearDown(self)
+        if self.tmp_build_dir:
+            basetest.clean_dir(self.tmp_build_dir)
+        basetest.BaseTest.tearDown(self)
 
 if __name__ == '__main__':
     unittest.main()

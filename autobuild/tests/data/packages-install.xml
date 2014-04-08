@@ -18,46 +18,42 @@
             <key>archive</key>
             <map>
               <key>hash</key>
-              <string>d11e7fb3686f16b243821fa0f9d35f4c</string>
+              <string>649fc61a43327a9b2bc258c295f07704</string>
               <key>hash_algorithm</key>
               <string>md5</string>
               <key>url</key>
-              <uri>http://s3.amazonaws.com/viewer-source-downloads/install_pkgs/argparse-1.1-common-20100415.tar.bz2</uri>
+              <uri>http://127.0.0.1:$PORT/argparse-1.1-common-111.tar.bz2</uri>
             </map>
             <key>name</key>
             <string>common</string>
           </map>
         </map>
       </map>
-      <key>tut_test</key>
+      <key>bogus</key>
       <map>
-        <key>copyright</key>
-        <string>Copyright 2002-2006 Vladimir Dyuzhev, Copyright 2007 Denis Kononenko, Copyright 2008 Michal Rzechonek</string>
-        <key>description</key>
-        <string>C++ Template Unit Test</string>
         <key>license</key>
-        <string>tut</string>
+        <string>N/A</string>
         <key>license_file</key>
-        <string>LICENSES/tut.txt</string>
+        <string>LICENSES/bogus.txt</string>
         <key>name</key>
-        <string>tut_test</string>
+        <string>bogus</string>
         <key>platforms</key>
         <map>
-          <key>darwin</key>
+          <key>common</key>
           <map>
             <key>archive</key>
             <map>
               <key>hash</key>
-              <string>80bd604cf194e9d9c21c4d7977cbd596</string>
+              <string>c35c7517f6a3cba894befb9c6a327cef</string>
               <key>hash_algorithm</key>
               <string>md5</string>
               <key>url</key>
-              <uri>http://s3.amazonaws.com/viewer-source-downloads/install_pkgs/tut_test-2009-08-30-common-20100324.tar.bz2</uri>
+              <string>http://127.0.0.1:$PORT/bogus-0.1-common-111.tar.bz2</string>
             </map>
-            <key>name</key>
-            <string>darwin</string>
           </map>
         </map>
+        <key>version</key>
+        <string>0.1</string>
       </map>
     </map>
     <key>type</key>

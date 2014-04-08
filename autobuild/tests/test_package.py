@@ -25,6 +25,7 @@
 
 import os
 import sys
+import logging
 import tarfile
 import unittest
 import autobuild.autobuild_tool_package as package
@@ -40,55 +41,64 @@ from zipfile import ZipFile
 # - Test packaging from build directory(ies) for specified --configuration(s)
 # ****************************************************************************
 
+logger=logging.getLogger("autobuild.test_package")
 
 class TestPackaging(BaseTest):
     def setUp(self):
         BaseTest.setUp(self)
         data_dir = os.path.join(self.this_dir, "data")
-        self.config_path = os.path.join(data_dir, "autobuild-package.xml")
+        self.config_path = os.path.join(data_dir, "autobuild-package-config.xml")
         self.config = configfile.ConfigurationDescription(self.config_path)
-        self.platform = 'linux'
+        self.platform = 'common'
         #self.configuration = config.get_default_build_configurations()
-        self.tar_basename = os.path.join(self.this_dir, "archive-test-123456")
+        self.tar_basename = os.path.join(data_dir, "test1-1.0-common-123456")
         self.tar_name = self.tar_basename + ".tar.bz2"
         self.zip_name = self.tar_basename + ".zip"
+        self.expected_files=['include/file1','LICENSES/test1.txt','autobuild-package.xml']
+        self.expected_files.sort()
+
+    def tar_has_expected(self,tar):
+        tarball = tarfile.open(tar, 'r:bz2')
+        packaged_files=tarball.getnames()
+        packaged_files.sort()
+        self.assertEquals(packaged_files, self.expected_files)
+        tarball.close()
+
+    def zip_has_expected(self,zip):
+        zip_file = ZipFile(zip,'r')
+        packaged_files=zip_file.namelist()
+        packaged_files.sort()
+        self.assertEquals(packaged_files, self.expected_files)
+        zip_file.close()
 
     def test_package(self):
-        package.package(self.config, self.config.get_build_directory(None, 'linux'), 'linux', '123456', self.tar_basename)
+        logger.setLevel(logging.DEBUG)
+        package.package(self.config, self.config.get_build_directory(None, 'common'), 'common', archive_format='tbz2')
         assert os.path.exists(self.tar_name), "%s does not exist" % self.tar_name
-        tarball = tarfile.open(self.tar_name)
-        self.assertEquals([os.path.basename(f) for f in tarball.getnames()].sort(),
-                          ['file3', 'file1', 'test1.txt'].sort())
-        tarball.close()
-            
+        self.tar_has_expected(self.tar_name)
+
     def test_autobuild_package(self):
         self.autobuild("package",
                        "--config-file=" + self.config_path,
-                       "--archive-name=" + self.tar_basename,
-                       "--id=123456",
-                       "-p", "linux")
+                       "-p", "common")
         assert os.path.exists(self.tar_name), "%s does not exist" % self.tar_name
-        tarball = tarfile.open(self.tar_name)
-        self.assertEquals([os.path.basename(f) for f in tarball.getnames()].sort(),
-                          ['file3', 'file1', 'test1.txt'].sort())
-        tarball.close()
+        self.tar_has_expected(self.tar_name)
         self.remove(self.tar_name)
         self.autobuild("package",
                        "--config-file=" + self.config_path,
-                       "--archive-name=" + self.tar_basename,
                        "--archive-format=zip",
-                       "--id=123456",
-                       "-p", "linux")
+                       "-p", "common")
         assert os.path.exists(self.zip_name), "%s does not exist" % self.zip_name
-        zip_file = ZipFile(self.zip_name, 'r')
-        self.assertEquals([os.path.basename(f) for f in zip_file.namelist()].sort(),
-                          ['file3', 'file1', 'test1.txt'].sort())
-        zip_file.close()
+        self.zip_has_expected(self.zip_name)
+        self.remove(self.zip_name)
+
         self.autobuild("package",
                        "--config-file=" + self.config_path,
-                       "-p", "linux", '--id=123456',
+                       "-p", "common",
                        "--dry-run")
-    
+        assert not os.path.exists(self.zip_name), "%s created by dry run" % self.zip_name
+        assert not os.path.exists(self.tar_name), "%s created by dry run" % self.tar_name
+
     def tearDown(self):
         if os.path.exists(self.tar_name):
             self.remove(self.tar_name)

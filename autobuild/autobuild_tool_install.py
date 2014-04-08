@@ -174,16 +174,15 @@ def check_package_for_duplicate_files(metadata, install_dir):
         raise InstallError("package '%s' contains %d conflicting files: %s" \
                            % ( metadata.package_description.name, len(duplicate_files), duplicate_files))
 
-def do_install(packages, config_file, installed_file, platform, install_dir, dry_run, as_source=[], local_archives=[]):
+def do_install(packages, config_file, installed_file, platform, install_dir, dry_run, local_archives=[]):
     """
     Install the specified list of packages. By default this will download the
     packages to the local cache, extract the contents of those
-    archives to the install dir, and update the installed_file config.  For packages
-    listed in the optional 'as_source' list, the source will be downloaded in place
-    of the prebuilt binary. For packages listed in the local_archives, the local archive will be
+    archives to the install dir, and update the installed_file config.  
+    For packages listed in the local_archives, the local archive will be
     installed in place of the configured one.
     """
-    # Decide whether to check out (or update) source, or download a tarball
+    # Decide whether to install a local package or download a tarball
     installed_pkgs = []
     for pname in packages:
         try:
@@ -194,90 +193,14 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
 
         logger.warn("checking package %s" % pname)
         
-        # The --as-source command-line switch only affects the installation of
-        # new packages. When we first install a package, we remember whether
-        # it's --as-source. Every subsequent 'autobuild install' affecting
-        # that package must honor the original --as-source setting. After an
-        # initial --as-source install, it's HANDS OFF! The possibility of
-        # local source changes makes any further autobuild operations on that
-        # repository ill-advised.
-        try:
-            installed = installed_file.dependencies[pname]
-        except KeyError:
-            # New install, so honor --as-source switch.
-            source_install = (pname in as_source)
-        else:
-            # Existing install. If pname was previously installed --as-source,
-            # do not mess with it now.
-            source_install = None # installed.as_source
-            if source_install:
-                logger.warn("%s previously installed --as-source, not updating" % pname)
-                continue
-
         # Existing tarball install, or new package install of either kind
-        if source_install:
-            if _install_source(package, installed_file, config_file, dry_run):
-                installed_pkgs.append(pname)
-        elif pname in local_archives:
+        if pname in local_archives:
             if _install_local(platform, package, local_archives[pname], install_dir, installed_file, dry_run):
                 installed_pkgs.append(pname)
         else:
             if _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
                 installed_pkgs.append(pname)
     return installed_pkgs
-
-def _install_source(package, installed_config, config_file, dry_run):
-    if dry_run:
-        dry_run_msg("Dry run mode: not installing %s source for %s from %s" %
-                    (package.sourcetype, package.name, package.source))
-        return False
-
-    for attr, desc in (("source", "source url"),
-                       ("sourcetype", "source repository type"),
-                       ("source_directory", "source_directory")):
-        # Never mind being None -- these attributes might not even exist for a
-        # given package!
-        if not getattr(package, attr, None):
-            raise InstallError("no %s specified for %s" % (desc, package.name))
-
-    # Question: package.source_directory is specific to each
-    # PackageDescription; do we need to further qualify the pathname with the
-    # package.name?
-    sourcepath = config_file.absolute_path(os.path.join(package.source_directory, package.name))
-    if os.path.isdir(sourcepath):
-        raise InstallError("trying to install %s --as-source over existing directory %s" %
-                           (package.name, sourcepath))
-    # But make sure parent directory exists...
-    parent = os.path.dirname(sourcepath)
-    try:
-        os.makedirs(parent)
-    except OSError, err:
-        if err.errno != errno.EEXIST:
-            raise
-    logger.warn("checking out %s from %s to %s" % (package.name, package.source, sourcepath))
-    if package.sourcetype == 'svn':
-        command = ['svn', 'checkout', package.source, sourcepath]
-        logger.debug(' '.join(command))
-        if subprocess.call(command) != 0:
-            raise InstallError("error checking out %s" % package.name)
-    elif package.sourcetype == 'hg':
-        command = ['hg', 'clone', '-q', package.source, sourcepath]
-        logger.debug(' '.join(command))
-        if subprocess.call(command) != 0:
-            raise InstallError("error cloning %s" % package.name)
-    else:
-        raise InstallError("unsupported repository type %s for %s" %
-                           (package.sourcetype, package.name))
-
-    # Copy PackageDescription metadata from the autobuild.xml entry.
-    inst_pkg = package.copy()
-    # Set it as the installed package.
-    installed_config.dependencies[package.name] = inst_pkg
-    inst_pkg.as_source = True
-    inst_pkg.install_dir = sourcepath
-    # But clear platforms: we only use platforms for tarball installs.
-    inst_pkg.platforms.clear()
-    return True
 
 def _install_local(platform, package, package_path, install_dir, installed_file, dry_run):
     package_name = package.name
@@ -444,9 +367,6 @@ def uninstall(package_name, installed_config):
     Uninstall specified package_name: remove related files and delete
     package_name from the installed_config ConfigurationDescription.
 
-    For a package_name installed with --as-source, simply remove the
-    PackageDescription from installed_config.
-
     Saving the modified installed_config is the caller's responsibility.
     """
     try:
@@ -457,11 +377,6 @@ def uninstall(package_name, installed_config):
         # If the package has never yet been installed, we're good.
         logger.debug("%s not installed, no uninstall needed" % package_name)
         return
-
-    ##TBDif package.as_source:
-        # Only delete files for a tarball install.
-        ##TBDlogger.warning("%s installed --as-source, not removing" % package_name)
-        ##return
 
     logger.warn("uninstalling %s" % (package_name))
     logger.debug("uninstalling %s from %s" % (package_name, package.install_dir))
@@ -551,7 +466,7 @@ def install_packages(options, config_file, install_dir, args):
 
     # do the actual install of the new/updated packages
     packages = do_install(packages, config_file, installed_file, options.platform, install_dir,
-                          options.dry_run, as_source=options.as_source, local_archives=local_archives)
+                          options.dry_run, local_archives=local_archives)
 
     # check the license_file properties for actually-installed packages
     if options.check_license and not options.dry_run:
@@ -630,12 +545,6 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             default=False,
             dest='export_manifest',
             help="Print the install manifest to stdout and exit.")
-        parser.add_argument(
-            '--as-source',
-            action='append',
-            dest='as_source',
-            default=[],
-            help="Get the source for this package instead of prebuilt binary.")
         parser.add_argument(
             '--local',
             action='append',

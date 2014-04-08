@@ -52,9 +52,6 @@ class _Update_1_1(object):
         'license':'license', \
         'licensefile':'license_file', \
         'homepage':'homepage', \
-        'source':'source', \
-        'sourcetype':'source_type', \
-        'sourcedir':'source_directory', \
         'version':'version', \
     }
     

@@ -326,7 +326,6 @@ class MetadataDescription(common.Serialized):
         self.install_type = None
         self.install_dir = None
         self.legacy = False
-        self.as_source = False
 
         metadata_xml=None
         if path:
@@ -354,7 +353,7 @@ class MetadataDescription(common.Serialized):
     def __load(self, parsed_llsd):
         if   (not parsed_llsd.has_key('version')) or (parsed_llsd['version'] != self.version) \
           or (not parsed_llsd.has_key('type')) or (parsed_llsd['type'] != 'metadata'):
-            raise ConfigurationError("missing or incompatible metadata")
+            raise ConfigurationError("missing or incompatible metadata %s" % pprint.pprint(parsed_llsd))
         else:
             package_description = parsed_llsd.pop('package_description', None)
             if package_description:
@@ -396,37 +395,18 @@ class PackageDescription(common.Serialized):
         license
         license_file
         homepage
-        source
-        source_type
-        source_directory
         version
         patches
         platforms**
-        as_source*
         install_dir*
 
-    *As of 2010-10-18, the as_source and install_dir attributes are only used
-    in PackageDescription objects stored in INSTALLED_CONFIG_FILE. Certain
-    packages can be installed either by checking out source or by extracting a
-    tarball, so AUTOBUILD_CONFIG_FILE provides enough information for either.
-    It's up to the user to decide which approach to use. autobuild must store
-    that choice, though. Since a user can specify a different --install-dir
-    for different runs, INSTALLED_CONFIG_FILE also records the actual base
-    directory into which that package is installed.
+    The install_dir attribute is only used
+    in PackageDescription objects stored in INSTALLED_CONFIG_FILE. 
 
     **Usage of PackageDescription.platforms is also a little different for a
     PackageDescription in INSTALLED_CONFIG_FILE's ConfigurationDescription
     .installables. When a package isn't installed at all, it should have no
     PackageDescription entry in INSTALLED_CONFIG_FILE. When it is installed:
-
-    - If PackageDescription.as_source is true, we expect its platforms
-      collection to be empty.
-
-    - If as_source is false, there should be exactly one platforms entry whose
-      key is the specific platform name (rather than 'common'). That
-      PlatformDescription describes the package actually installed on THIS
-      platform. For this use case, in effect a PackageDescription's lone
-      PlatformDescription simply extends the PackageDescription.
     """
     
     def __init__(self, arg):

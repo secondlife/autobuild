@@ -1,0 +1,34 @@
+<?xml version="1.0" ?>
+<llsd>
+  <map>
+    <key>installables</key>
+    <map>
+      <key>nolicenseconfig</key>
+      <map>
+        <key>name</key>
+        <string>nolicenseconfig</string>
+        <key>platforms</key>
+        <map>
+          <key>common</key>
+          <map>
+            <key>archive</key>
+            <map>
+              <key>hash</key>
+              <string>b19a8d8920569a6c67b72c3dc1df493a</string>
+              <key>hash_algorithm</key>
+              <string>md5</string>
+              <key>url</key>
+              <string>http://127.0.0.1:$PORT/nolicense-0.1-common-111.tar.bz2</string>
+            </map>
+          </map>
+        </map>
+        <key>version</key>
+        <string>0.1</string>
+      </map>
+    </map>
+    <key>type</key>
+    <string>autobuild</string>
+    <key>version</key>
+    <string>1.2</string>
+  </map>
+</llsd>

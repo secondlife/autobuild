@@ -17,7 +17,7 @@
         <key>common</key>
         <map>
           <key>build_directory</key>
-          <undef />
+          <string>package-test</string>
           <key>configurations</key>
           <map>
           </map>

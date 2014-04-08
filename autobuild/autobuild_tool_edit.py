@@ -51,7 +51,7 @@ class AutobuildTool(AutobuildBase):
             description="Manage build and package configuration.")
      
     def register(self, parser):
-        parser.description = "edit the definition of the current package, for specifying the commands to run for the various build steps (configure and build subcommands), versioning and licensing information (package and source-info subcommands), etc."
+        parser.description = "edit the definition of the current package, for specifying the commands to run for the various build steps (configure and build subcommands), versioning and licensing information (package subcommand), etc."
         subparsers = parser.add_subparsers(title='subcommands', dest='subparser_name')
 
         for (cmd,callable) in self._get_command_callables().items():
@@ -89,7 +89,6 @@ class AutobuildTool(AutobuildBase):
                                 'build':        Build,
                                 'package':      Package,
                                 'platform':     Platform,
-                                'source-info':  SourceInfo,
                             }
         return self.arguments
 
@@ -366,18 +365,6 @@ class Package(_package):
                 return
         print "Cancelling delete."
 
-
-class SourceInfo(_package):
-
-    ARGUMENTS = ['source', 'source_type', 'source_directory',]
-
-    ARG_DICT = {    
-                    'source':           {'help':'Source URL for code repository'},
-                    'source_type':      {'help':'Repository type (hg, svn, etc.)'},
-                    'source_directory': {'help':'Location to which source should be installed, relative to autobuild.xml'},
-                }
-
-    HELP = "Information about the package source, for installation as source by other packages."
 
 
 def _process_key_value_arguments(arguments):
