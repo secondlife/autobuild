@@ -31,7 +31,6 @@ Build configuration includes:
 """
 
 import sys
-import shlex
 from StringIO import StringIO
 import argparse
 
@@ -40,31 +39,32 @@ from autobuild_base import AutobuildBase
 from common import AutobuildError, get_current_platform
 from interactive import InteractiveCommand
 
-CONFIG_NAME_DEFAULT='default'
-DEFAULT_CONFIG_CMD=''
-DEFAULT_BUILD_CMD=''
+CONFIG_NAME_DEFAULT = 'default'
+DEFAULT_CONFIG_CMD = ''
+DEFAULT_BUILD_CMD = ''
+
 
 class AutobuildTool(AutobuildBase):
 
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
-            description="Manage build and package configuration.")
+                    description="Manage build and package configuration.")
      
     def register(self, parser):
         parser.description = "edit the definition of the current package, for specifying the commands to run for the various build steps (configure and build subcommands), versioning and licensing information (package subcommand), etc."
         subparsers = parser.add_subparsers(title='subcommands', dest='subparser_name')
 
-        for (cmd,callable) in self._get_command_callables().items():
+        for (cmd, callable) in self._get_command_callables().items():
             parser = subparsers.add_parser(cmd, help=callable.HELP, formatter_class=argparse.RawTextHelpFormatter)
             parser.add_argument('argument', 
-                nargs='*', 
-                help=_arg_help_str(callable.ARGUMENTS, callable.ARG_DICT))
+                                nargs='*',
+                                help=_arg_help_str(callable.ARGUMENTS, callable.ARG_DICT))
             parser.add_argument('--delete', 
-                action='store_true')
+                                action='store_true')
             parser.add_argument('--config-file',
-                dest='config_file',
-                default=configfile.AUTOBUILD_CONFIG_FILE,
-                help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
+                                dest='config_file',
+                                default=configfile.AUTOBUILD_CONFIG_FILE,
+                                help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
             parser.set_defaults(func=callable.run_cmd)
 
     def run(self, args):
@@ -83,13 +83,12 @@ class AutobuildTool(AutobuildBase):
         try:
             self.arguments
         except AttributeError:
-            self.arguments = {
-                                'archive':      Archive,
-                                'configure':    Configure,
-                                'build':        Build,
-                                'package':      Package,
-                                'platform':     Platform,
-                            }
+            self.arguments = {'archive':      Archive,
+                              'configure':    Configure,
+                              'build':        Build,
+                              'package':      Package,
+                              'platform':     Platform,
+                              }
         return self.arguments
 
 
@@ -104,13 +103,13 @@ class _config(InteractiveCommand):
 
     ARGUMENTS = ['name', 'platform', 'command', 'options', 'arguments', 'filters', 'default']
 
-    ARG_DICT = {    'name':     {'help':'Name of config'}, 
-                    'platform': {'help':'Platform of config'},
-                    'command':  {'help':'Command to execute'}, 
-                    'options':  {'help':'Options for command'},
-                    'arguments':{'help':'Arguments for command'},
-                    'filters':  {'help':'Filter command output'},
-                    'default':  {'help':'Run by default'},
+    ARG_DICT = {'name':      {'help': 'Name of config'},
+                'platform':  {'help': 'Platform of config'},
+                'command':   {'help': 'Command to execute'},
+                'options':   {'help': 'Options for command'},
+                'arguments': {'help': 'Arguments for command'},
+                'filters':   {'help': 'Filter command output'},
+                'default':   {'help': 'Run by default'},
                 }
 
     def __init__(self, config):
@@ -166,18 +165,19 @@ class _config(InteractiveCommand):
         configuration = platform_description.configurations.get(name)
         return configuration
 
+
 class Build(_config):
 
     HELP = "Configure 'autobuild build'"
 
-    def run(self, platform=get_current_platform(), name=CONFIG_NAME_DEFAULT, 
-              command=DEFAULT_BUILD_CMD, options='', arguments='', default=None):
+    def run(self, platform=get_current_platform(), name=CONFIG_NAME_DEFAULT,
+            command=DEFAULT_BUILD_CMD, options='', arguments='', default=None):
         """
         Updates the build command.
         """
-        new_command = { 'command':command, 
-                        'options':listify_str(options), 
-                        'arguments':listify_str(arguments)}
+        new_command = {'command':   command,
+                       'options':   listify_str(options),
+                       'arguments': listify_str(arguments)}
         build_config_desc = self.create_or_update_build_config_desc(name, platform, default=default, build=new_command) 
 
     def delete(self, name='', platform='', **kwargs):
@@ -193,14 +193,14 @@ class Configure(_config):
 
     HELP = "Configure 'autobuild configure'"
 
-    def run(self, platform=get_current_platform(), name=CONFIG_NAME_DEFAULT, 
-                  command=DEFAULT_CONFIG_CMD, options='', arguments='', default=None):
+    def run(self, platform=get_current_platform(), name=CONFIG_NAME_DEFAULT,
+            command=DEFAULT_CONFIG_CMD, options='', arguments='', default=None):
         """
         Updates the configure command.
         """
-        new_command = { 'command':command, 
-                        'options':listify_str(options), 
-                        'arguments':listify_str(arguments)}
+        new_command = {'command': command,
+                       'options': listify_str(options),
+                       'arguments': listify_str(arguments)}
         build_config_desc = self.create_or_update_build_config_desc(name, platform, default=default, configure=new_command)
 
     def delete(self, name='', platform='', **kwargs):
@@ -214,10 +214,10 @@ class Configure(_config):
 
 class Platform(InteractiveCommand):
 
-    ARGUMENTS = ['name', 'build_directory',]
+    ARGUMENTS = ['name', 'build_directory', ]
 
-    ARG_DICT = {    'name':             {'help':'Name of platform'}, 
-                    'build_directory':  {'help':'Build directory'},
+    ARG_DICT = {'name':             {'help': 'Name of platform'},
+                'build_directory':  {'help': 'Build directory'},
                 }
 
     HELP = "Platform-specific configuration"
@@ -259,9 +259,9 @@ class Archive(InteractiveCommand):
 
     ARGUMENTS = ['format', 'hash_algorithm', 'platform']
 
-    ARG_DICT = {    'format':             {'help':'Archive format (e.g zip or tbz2)'}, 
-                    'hash_algorithm':  {'help':'The algorithm for computing the archive hash (e.g. md5)'},
-                    'platform': {'help':'The name of the platform archive to be configured'}
+    ARG_DICT = {'format':         {'help': 'Archive format (e.g zip or tbz2)'},
+                'hash_algorithm': {'help': 'The algorithm for computing the archive hash (e.g. md5)'},
+                'platform':       {'help': 'The name of the platform archive to be configured'}
                 }
 
     HELP = "Platform-specific archive configuration"
@@ -341,14 +341,14 @@ class _package(InteractiveCommand):
 class Package(_package):
 
     ARGUMENTS = ['name', 'description', 'copyright', 'license', 'license_file',
-                 'version',]
+                 'version', ]
 
-    ARG_DICT = {    'name':             {'help':'Name of package'},
-                    'description':      {'help':'Package description'},
-                    'copyright':        {'help':'Copyright string (as appropriate for your package)'},
-                    'license':          {'help':'Type of license (as appropriate for your package)'},
-                    'license_file':     {'help':'Path to license file relative to package root, if known'},
-                    'version':          {'help':'Version'},
+    ARG_DICT = {'name':             {'help': 'Name of package'},
+                'description':      {'help': 'Package description'},
+                'copyright':        {'help': 'Copyright string (as appropriate for your package)'},
+                'license':          {'help': 'Type of license (as appropriate for your package)'},
+                'license_file':     {'help': 'Path to license file relative to package root, if known'},
+                'version':          {'help': 'Version'},
                 }
 
     HELP = "Information about the package"
@@ -364,7 +364,6 @@ class Package(_package):
                 self.config.package_description = None
                 return
         print "Cancelling delete."
-
 
 
 def _process_key_value_arguments(arguments):

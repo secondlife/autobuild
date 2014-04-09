@@ -29,10 +29,8 @@ that may installed by autobuild.
 """
 
 import sys
-import os
 import common
 import pprint
-import argparse
 import configfile
 import autobuild_base
 import re
@@ -54,28 +52,27 @@ class InstallablesError(AutobuildError):
 class AutobuildTool(autobuild_base.AutobuildBase):
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
-            description="Manipulate installable package entries in the autobuild configuration.")
+                    description="Manipulate installable package entries in the autobuild configuration.")
      
     def register(self, parser):
         parser.description = "specify installables as dependencies of the current pacakge for use by the 'autobuild install' command."
         parser.add_argument('--config-file',
-            dest='config_file',
-            default=configfile.AUTOBUILD_CONFIG_FILE,
-            help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
-        parser.add_argument('-a','--archive',
-            dest='archive',
-            default=None,
-            help="infer installable attributes from the given archive")
-        parser.add_argument(
-            '-i','--interactive', 
-            action='store_true',
-            default=False,
-            dest='interactive',
-            help="run as an interactive session")
+                            dest='config_file',
+                            default=configfile.AUTOBUILD_CONFIG_FILE,
+                            help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
+        parser.add_argument('-a', '--archive',
+                            dest='archive',
+                            default=None,
+                            help="infer installable attributes from the given archive")
+        parser.add_argument('-i', '--interactive',
+                            action='store_true',
+                            default=False,
+                            dest='interactive',
+                            help="run as an interactive session")
         parser.add_argument('command', nargs='?', default='print',
-            help="installable command: add, remove, edit, or print")
+                            help="installable command: add, remove, edit, or print")
         parser.add_argument('name', nargs='?', default=None,
-            help="the name of the installable")
+                            help="the name of the installable")
         parser.add_argument('argument', nargs='*', help='a key=value pair specifying an attribute')
 
         parser.epilog = "EXAMPLE: autobuild edit indra_common platform=linux hash=<md5 hash> url=<url>"
@@ -101,7 +98,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             config.save()
 
 
-_PACKAGE_ATTRIBUTES =  ['descripition', 'copyright', 'license', 'license_file', 'version']
+_PACKAGE_ATTRIBUTES = ['descripition', 'copyright', 'license', 'license_file', 'version']
 _ARCHIVE_ATTRIBUTES = ['hash', 'hash_algorithm', 'url']
 
 
@@ -112,7 +109,7 @@ def add(config, installable_name, installable_data):
     _check_name(installable_name)
     installable_data = installable_data.copy()
     if installable_name in config.installables:
-        raise InstallablesError('package %s already exists, use edit instead' %  installable_name)
+        raise InstallablesError('package %s already exists, use edit instead' % installable_name)
     package_description = configfile.PackageDescription(installable_name)
     if 'platform' in installable_data:
         platform_description = configfile.PlatformDescription()
@@ -195,12 +192,12 @@ def _do_add(config, installable_name, arguments, archive_path):
         installable_data = _archive_information(archive_path.strip())
         archive_installable_name = installable_data.pop('name')
         if installable_name:
-            if(_key_value_regexp.match(installable_name)):
+            if _key_value_regexp.match(installable_name):
                 arguments.append(installable_name)
                 installable_name = archive_installable_name
             elif archive_installable_name != installable_name:
                 raise InstallablesError('archive name %s does not match provided name %s' %
-                    (archive_installable_name, installable_name))
+                                        (archive_installable_name, installable_name))
             else:
                 pass
         else:
@@ -224,6 +221,8 @@ def _do_edit(config, installable_name, arguments):
 
 
 uri_regex = re.compile(r'\w+://')
+
+
 def _is_uri(path):
     return bool(uri_regex.match(path))
 
@@ -231,7 +230,7 @@ def _is_uri(path):
 def _archive_information(archive_path):
     try:
         (directory, data, extension) = common.split_tarname(archive_path)
-        archive_data = {'name':data[0], 'version':data[1], 'platform':data[2]}
+        archive_data = {'name': data[0], 'version': data[1], 'platform': data[2]}
     except (ValueError, IndexError):
         # ValueError for wrong number of values in tuple assignment
         # IndexError for too few values for int subscript

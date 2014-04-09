@@ -27,17 +27,15 @@ class AutobuildTool(AutobuildBase):
 
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
-            description="Print configuration.")
+                    description="Print configuration.")
 
     def register(self, parser):
         parser.description = "provide a human-readable view of the package definition in the current package."
         parser.add_argument('--config-file',
-            dest='config_file',
-            default=configfile.AUTOBUILD_CONFIG_FILE,
-            help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
+                            dest='config_file',
+                            default=configfile.AUTOBUILD_CONFIG_FILE,
+                            help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
 
     def run(self, args):
         config = configfile.ConfigurationDescription(args.config_file)
         configfile.pretty_print(config)
-
-

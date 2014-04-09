@@ -45,28 +45,28 @@ class ConfigurationError(AutobuildError):
 class AutobuildTool(autobuild_base.AutobuildBase):
     def get_details(self):
         return dict(name='configure',
-            description="Configures platform targets.")
+                    description="Configures platform targets.")
      
     def register(self, parser):
         parser.usage = "%(prog)s [-h] [--dry-run] [-c CONFIGURATION][-a][--config-file FILE] [-- OPT [OPT ...]]"
         parser.description = "configure the build directory to prepare for either the 'autobuild build' command or a manual build. (not all packages will require this step)"
         parser.add_argument('--config-file',
-            dest='config_file',
-            default=configfile.AUTOBUILD_CONFIG_FILE,
-            help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
+                            dest='config_file',
+                            default=configfile.AUTOBUILD_CONFIG_FILE,
+                            help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
         parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
                             help="build a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
-        parser.add_argument('--all','-a',dest='all', default=False, action="store_true",
-            help="build all configurations")
-        parser.add_argument('--id','-i', dest='build_id', help='unique build identifier')
+        parser.add_argument('--all', '-a', dest='all', default=False, action="store_true",
+                            help="build all configurations")
+        parser.add_argument('--id', '-i', dest='build_id', help='unique build identifier')
         parser.add_argument('additional_options', nargs="*", metavar='OPT',
-            help="an option to pass to the configuration command" )
+                            help="an option to pass to the configuration command")
 
     def run(self, args):
-        common.establish_build_id(args.build_id) # sets id (even if not specified), 
-        #                                          and stores in the AUTOBUILD_BUILD_ID environment variable
+        common.establish_build_id(args.build_id)  # sets id (even if not specified),
+                                                  # and stores in the AUTOBUILD_BUILD_ID environment variable
         config = configfile.ConfigurationDescription(args.config_file)
         current_directory = os.getcwd()
         try:
@@ -77,9 +77,9 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 if not args.dry_run:
                     os.chdir(build_directory)
                 result = _configure_a_configuration(config, build_configuration,
-                    args.additional_options, args.dry_run)
+                                                    args.additional_options, args.dry_run)
                 if result != 0:
-                    raise ConfigurationError("default configuration returned %d" % (result))
+                    raise ConfigurationError("default configuration returned %d" % result)
         finally:
             os.chdir(current_directory)
 

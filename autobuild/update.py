@@ -45,19 +45,19 @@ class _Update_1_1(object):
     """
     Converts a 1.1 version configuration to the latest version.
     """
-    package_properties = { \
-        'name':'name',
-        'copyright':'copyright', \
-        'description':'description', \
-        'license':'license', \
-        'licensefile':'license_file', \
-        'homepage':'homepage', \
-        'version':'version', \
+    package_properties = {
+        'name': 'name',
+        'copyright': 'copyright',
+        'description': 'description',
+        'license': 'license',
+        'licensefile': 'license_file',
+        'homepage': 'homepage',
+        'version': 'version',
     }
     
     archive_properties = {
-        'md5sum':'hash', \
-        'url':'url', \
+        'md5sum': 'hash',
+        'url': 'url',
     }
     
     def __call__(self, old_config, config):
@@ -89,7 +89,7 @@ class _Update_1_1(object):
                 package[value] = old_package[key]
     
     def _insert_archives(self, old_archives, package):
-        for (platform_name, old_archive) in  old_archives.iteritems():
+        for (platform_name, old_archive) in old_archives.iteritems():
             platform = self._get_platform(platform_name, package)
             archive = configfile.ArchiveDescription()
             platform.archive = archive
@@ -108,7 +108,7 @@ class _Update_1_1(object):
                 build_configuration.name = default_configuration
                 platform.configurations[default_configuration] = build_configuration
             if 'command' in old_command:
-                tokens = shlex.split(old_command['command']);
+                tokens = shlex.split(old_command['command'])
                 command = tokens.pop(0)
                 # It is pretty much impossible to infer where the options end and the arguments 
                 # begin since we don't know which options take values, so make everyting an

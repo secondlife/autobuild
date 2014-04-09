@@ -65,25 +65,26 @@ PLATFORM_LINUX   = 'linux'
 PLATFORM_SOLARIS = 'solaris'
 PLATFORM_UNKNOWN = 'unknown'
 
-PLATFORMS = [
-             PLATFORM_DARWIN,
+PLATFORMS = [PLATFORM_DARWIN,
              PLATFORM_WINDOWS,
              PLATFORM_LINUX,
              PLATFORM_SOLARIS,
-            ]
+             ]
+
 
 def get_current_platform():
     """
     Return appropriate the autobuild name for the current platform.
     """
     platform_map = {
-        'darwin': PLATFORM_DARWIN,
-        'linux2': PLATFORM_LINUX,
-        'win32' : PLATFORM_WINDOWS,
-        'cygwin' : PLATFORM_WINDOWS,
-        'solaris' : PLATFORM_SOLARIS
+        'darwin':  PLATFORM_DARWIN,
+        'linux2':  PLATFORM_LINUX,
+        'win32':   PLATFORM_WINDOWS,
+        'cygwin':  PLATFORM_WINDOWS,
+        'solaris': PLATFORM_SOLARIS
         }
     return os.environ.get('AUTOBUILD_PLATFORM_OVERRIDE', platform_map.get(sys.platform, PLATFORM_UNKNOWN))
+
 
 def get_current_user():
     """
@@ -94,13 +95,15 @@ def get_current_user():
         import getpass
         return getpass.getuser()
     except ImportError:
+        import getpass
         import ctypes
         MAX_PATH = 260                  # according to a recent WinDef.h
         name = ctypes.create_unicode_buffer(MAX_PATH)
-        namelen = ctypes.c_int(len(name)) # len in chars, NOT bytes
+        namelen = ctypes.c_int(len(name))  # len in chars, NOT bytes
         if not ctypes.windll.advapi32.GetUserNameW(name, ctypes.byref(namelen)):
             raise ctypes.WinError()
         return name.value
+
 
 def get_default_scp_command():
     """
@@ -109,6 +112,7 @@ def get_default_scp_command():
     scp = find_executable(['pscp', 'scp'], ['.exe'])
     return scp
 
+
 def get_autobuild_environment():
     """
     Return an environment under which to execute autobuild subprocesses.
@@ -116,24 +120,27 @@ def get_autobuild_environment():
     return dict(os.environ, AUTOBUILD=os.environ.get(
         'AUTOBUILD', get_autobuild_executable_path()))
 
+
 def get_install_cache_dir():
     """
     In general, the package archives do not change much, so find a 
     host/user specific location to cache files.
     """
     cache = os.getenv('AUTOBUILD_INSTALLABLE_CACHE')
-    if cache == None:
+    if cache is None:
         cache = get_temp_dir("install.cache")
     else:
         if not os.path.exists(cache):
             os.makedirs(cache, mode=0755)
     return cache
 
+
 def get_s3_url():
     """
     Return the base URL for Amazon S3 package locations.
     """
     return "http://s3.amazonaws.com/viewer-source-downloads/install_pkgs"
+
 
 def get_temp_dir(basename):
     """
@@ -151,12 +158,14 @@ def get_temp_dir(basename):
         os.makedirs(tmpdir, mode=0755)
     return tmpdir
 
+
 def get_autobuild_executable_path():
     if get_current_platform() == PLATFORM_WINDOWS:
         path = "%s.cmd" % sys.argv[0]
     else:
         path = sys.argv[0]
     return os.path.realpath(os.path.abspath(path))
+
 
 def find_executable(executables, exts=None):
     """
@@ -196,6 +205,7 @@ def find_executable(executables, exts=None):
                     return path[0]
     return None
 
+
 def get_package_in_cache(package):
     """
     Return the filename of the package in the local cache.
@@ -204,12 +214,14 @@ def get_package_in_cache(package):
     filename = os.path.basename(package)
     return os.path.join(get_install_cache_dir(), filename)
 
+
 def is_package_in_cache(package):
     """
     Return True if the specified package has already been downloaded
     to the local package cache.
     """
     return os.path.exists(get_package_in_cache(package))
+
 
 def compute_md5(path):
     """
@@ -232,6 +244,7 @@ def compute_md5(path):
 
     return hasher.hexdigest()
 
+
 def does_package_match_md5(package, md5sum):
     """
     Returns True if the MD5 sum of the downloaded package archive
@@ -248,8 +261,8 @@ def download_package(package):
     """
 
     # download timeout so a download doesn't hang
-    download_timeout_seconds  = 120
-    download_timeout_retries  = 5
+    download_timeout_seconds = 120
+    download_timeout_retries = 5
 
     # save the old timeout
     old_download_timeout = socket.getdefaulttimeout()
@@ -283,15 +296,18 @@ def download_package(package):
         try:
             file(cachename, 'wb').write(urllib2.urlopen(package).read())
             break
-        except (socket.timeout, urllib2.URLError), e :
-            if tries >= download_timeout_retries :
+        except (socket.timeout, urllib2.URLError), e:
+            if tries >= download_timeout_retries:
                 result = False
-                logger.exception("  error %s from class %s downloading package: %s" % ( e, e.__class__.__name__, package) )
+                logger.exception("  error %s from class %s downloading package: %s"
+                                 % (e, e.__class__.__name__, package))
                 break
-            logger.info("  error %s from class %s downloading package: %s. Retrying." % ( e, e.__class__.__name__, package) )
+            logger.info("  error %s from class %s downloading package: %s. Retrying."
+                        % (e, e.__class__.__name__, package))
             continue
         except Exception, e:
-            logger.exception("error %s from class %s downloading package: %s. " % ( e, e.__class__.__name__, package) )
+            logger.exception("error %s from class %s downloading package: %s. "
+                             % (e, e.__class__.__name__, package))
             result = False
             break
 
@@ -301,6 +317,7 @@ def download_package(package):
     scp_or_http.cleanup()
     return result
 
+
 def extract_package(package, install_dir, exclude=[]):
     """
     Extract the contents of a downloaded package to the specified
@@ -309,6 +326,7 @@ def extract_package(package, install_dir, exclude=[]):
     """
     # Find the name of the package in the install cache
     return install_package(get_package_in_cache(package), install_dir, exclude=exclude)
+
 
 def install_package(archive_path, install_dir, exclude=[]):
     """
@@ -327,30 +345,32 @@ def install_package(archive_path, install_dir, exclude=[]):
         logger.error("package %s is not archived in a supported format" % archive_path)
         return False
 
+
 def extract_metadata_from_package(archive_path, metadata_file_name):
     """
     Get the package metadata from the archive
     """
-    metadata_file=None
+    metadata_file = None
     if not os.path.exists(archive_path):
         logger.error("cannot extract metadata from non-existing package: %s" % archive_path)
         return False
     logger.debug("extracting metadata from %s" % os.path.basename(archive_path))
     if tarfile.is_tarfile(archive_path):
-        tar=tarfile.open(archive_path, 'r')
+        tar = tarfile.open(archive_path, 'r')
         try:
-            metadata_file=tar.extractfile(metadata_file_name)
+            metadata_file = tar.extractfile(metadata_file_name)
         except KeyError, err:
-            pass # returning None will indicate that it was not there
+            pass  # returning None will indicate that it was not there
     elif zipfile.is_zipfile(archive_path):
         try:
-            zip=zipfile.ZipFile(archive_path, 'r')
-            metadata_file=zip.open(metadata_file_name,'r')
+            zip = zipfile.ZipFile(archive_path, 'r')
+            metadata_file = zip.open(metadata_file_name, 'r')
         except KeyError, err:
-            pass # returning None will indicate that it was not there
+            pass  # returning None will indicate that it was not there
     else:
         logger.error("package %s is not archived in a supported format" % archive_path)
     return metadata_file
+
 
 def remove_package(package):
     """
@@ -401,7 +421,8 @@ def split_tarname(pathname):
     # Detect that and recombine.
     if len(fileparts) > 4:
         fileparts[1:-2] = ['-'.join(fileparts[1:-2])]
-    return (dir, fileparts, ext)
+    return dir, fileparts, ext
+
 
 def search_up_for_file(path):
     """
@@ -427,13 +448,13 @@ class Serialized(dict, object):
     """
 
     def __getattr__(self, name):
-        if self.has_key(name):
+        if name in self:
             return self[name]
         else:
             raise AttributeError("object has no attribute '%s'" % name)
 
     def __setattr__(self, name, value):
-        if self.__class__.__dict__.has_key(name):
+        if name in self.__class__.__dict__:
             self.__dict__[name] = value
         else:
             self[name] = value
@@ -444,6 +465,7 @@ class Serialized(dict, object):
         instead of letting dict.copy() return a simple dict.
         """
         return self.__class__(self)
+
 
 def select_directories(args, config, desc, verb, dir_from_config, platform=None):
     """
@@ -483,6 +505,7 @@ def select_directories(args, config, desc, verb, dir_from_config, platform=None)
 
     return [dir_from_config(conf)
             for conf in select_configurations(args, config, verb, platform)]
+
 
 def select_configurations(args, config, verb, platform=None):
     """
@@ -525,25 +548,27 @@ def select_configurations(args, config, verb, platform=None):
     logger.debug("%s configuration(s) %s" % (verb, pprint.pformat(configurations)))
     return configurations
 
+
 def establish_build_id(build_id_arg):
-    '''determine and return a build_id based on (in preference order): 
+    """determine and return a build_id based on (in preference order):
        the --id argument, 
        the AUTOBUILD_BUILD_ID environment variable,
        the date
     If we reach the date fallback, a warning is logged
     In addition to returning the id value, this sets the AUTOBUILD_BUILD_ID environment
     variable for any descendent processes so that recursive invocations will have access
-    to the same value.'''
+    to the same value.
+    """
 
-    build_id=None
+    build_id = None
     if build_id_arg:
-        build_id=build_id_arg
+        build_id = build_id_arg
     elif 'AUTOBUILD_BUILD_ID' in os.environ:
-        build_id=os.environ['AUTOBUILD_BUILD_ID']
+        build_id = os.environ['AUTOBUILD_BUILD_ID']
     else:
-        build_id=time.strftime("%Y%m%d")
+        build_id = time.strftime("%Y%m%d")
         logger.warn("Warning: no --id argument or AUTOBUILD_BUILD_ID environment variable specified\nUsing the date (%s), which may not be unique" % build_id)
-    os.environ['AUTOBUILD_BUILD_ID']=build_id
+    os.environ['AUTOBUILD_BUILD_ID'] = build_id
     return build_id
 
 ######################################################################
@@ -552,18 +577,21 @@ def establish_build_id(build_id_arg):
 #
 ######################################################################
 
+
 def __extract_tar_file(cachename, install_dir, exclude=[]):
     # Attempt to extract the package from the install cache
     tar = tarfile.open(cachename, 'r')
-    extract=[member for member in tar.getmembers() if member.name not in exclude ]
+    extract = [member for member in tar.getmembers() if member.name not in exclude]
     tar.extractall(path=install_dir, members=extract)
     return [member.name for member in extract]
 
+
 def __extract_zip_archive(cachename, install_dir, exclude=[]):
     zip_archive = zipfile.ZipFile(cachename, 'r')
-    extract=[member for member in zip_archive.namelist() if member not in exclude ]
+    extract = [member for member in zip_archive.namelist() if member not in exclude]
     zip_archive.extractall(path=install_dir, members=extract)
     return extract
+
 
 class __SCPOrHTTPHandler(urllib2.BaseHandler):
     """
@@ -588,7 +616,7 @@ class __SCPOrHTTPHandler(urllib2.BaseHandler):
             raise
 
     def do_http(self, remote):
-        url = remote.split(':',1)
+        url = remote.split(':', 1)
         if not url[1].startswith('/'):
             # in case it's in a homedir or something
             url.insert(1, '/')
@@ -613,6 +641,7 @@ class __SCPOrHTTPHandler(urllib2.BaseHandler):
     def cleanup(self):
         if self._dir:
             shutil.rmtree(self._dir)
+
 
 #
 # *NOTE: PULLED FROM PYTHON 2.5 tarfile.py Phoenix 2008-01-28
@@ -658,6 +687,7 @@ def __extractall(tar, path=".", members=None, exclude=[]):
             else:
                 tar._dbg(1, "tarfile: %s" % e)
 
+
 #
 # Dependent package bootstrapping
 #
@@ -674,35 +704,27 @@ class Bootstrap(object):
     # specify the name and md5sum for all dependent pkgs on S3
     # and a valid path in the archive to check it is installed
     deps = {
-        'llbase': {
-            'windows' : {
-                'filename' : "llbase-0.2.0-windows-20100225.tar.bz2",
-                'md5sum'   : "436c1abe6be73b287b8d0b29cf3cc764",
-                },
-            'darwin' : {
-                'filename' : "llbase-0.2.0-darwin-20100225.tar.bz2",
-                'md5sum'   : "9d29c1e8c1b26894a5e317ae5d1a6e30",
-                },
-            'linux' : {
-                'filename' : "llbase-0.2.0-linux-20100225.tar.bz2",
-                'md5sum'   : "a5d3edb6b43c46e9392c1c96e51cc3e7",
-                },
-            'pathcheck' : "lib/python2.5/llbase"
-            },
-        'boto': {
-            'common' : {
-                'filename' : "boto-1.9b-common-20100414.tar.bz2",
-                'md5sum'   : "4c300c070320eb35b6b2baf0364c2e1f",
-                },
-            'pathcheck' : "lib/python2.5/boto"
-            },
-        'argparse': {
-            'common' : {
-                'filename' : "argparse-1.1-common-20100415.tar.bz2",
-                'md5sum'   : "d11e7fb3686f16b243821fa0f9d35f4c",
-                },
-            'pathcheck' : "lib/python2.5/argparse.py"
-            },
+        'llbase': {'windows': {'filename': "llbase-0.2.0-windows-20100225.tar.bz2",
+                               'md5sum':   "436c1abe6be73b287b8d0b29cf3cc764",
+                               },
+                   'darwin': {'filename': "llbase-0.2.0-darwin-20100225.tar.bz2",
+                              'md5sum':   "9d29c1e8c1b26894a5e317ae5d1a6e30",
+                              },
+                   'linux': {'filename': "llbase-0.2.0-linux-20100225.tar.bz2",
+                             'md5sum':   "a5d3edb6b43c46e9392c1c96e51cc3e7",
+                             },
+                   'pathcheck': "lib/python2.5/llbase"
+                   },
+        'boto': {'common': {'filename': "boto-1.9b-common-20100414.tar.bz2",
+                            'md5sum':   "4c300c070320eb35b6b2baf0364c2e1f",
+                            },
+                 'pathcheck': "lib/python2.5/boto"
+                 },
+        'argparse': {'common': {'filename': "argparse-1.1-common-20100415.tar.bz2",
+                                'md5sum':   "d11e7fb3686f16b243821fa0f9d35f4c",
+                                },
+                     'pathcheck': "lib/python2.5/argparse.py"
+                     },
         }
 
     def __init__(self):
@@ -730,19 +752,19 @@ class Bootstrap(object):
         for name in self.deps:
 
             # get the package specs for this platform
-            if self.deps[name].has_key(platform):
+            if platform in self.deps[name]:
                 specs = self.deps[name][platform]
-            elif self.deps[name].has_key('common'):
+            elif 'common' in self.deps[name]:
                 specs = self.deps[name]['common']
             else:
-                raise AutobuildError("no package defined for %s for %s" %
-                                   (name, platform))
+                raise AutobuildError("no package defined for %s for %s"
+                                     % (name, platform))
 
             # get the url and md5 for this package dependency
             md5sum = specs['md5sum']
             # *NOTE - don't use os.path.join(): does the wrong thing on windows
             url = "%s/%s" % (get_s3_url(), specs['filename'])
-            pathcheck = self.deps[name].get('pathcheck', "")
+            pathcheck = self.deps[name].get('pathcheck', None)
 
             # download & extract the package, if not done already
             if not is_package_in_cache(url):

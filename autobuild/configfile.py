@@ -41,21 +41,23 @@ import logging
 
 logger = logging.getLogger('autobuild.configfile')
 
-AUTOBUILD_CONFIG_FILE=os.environ.get("AUTOBUILD_CONFIG_FILE","autobuild.xml")
-AUTOBUILD_CONFIG_VERSION="1.2"
-AUTOBUILD_CONFIG_TYPE="autobuild"
+AUTOBUILD_CONFIG_FILE = os.environ.get("AUTOBUILD_CONFIG_FILE", "autobuild.xml")
+AUTOBUILD_CONFIG_VERSION = "1.2"
+AUTOBUILD_CONFIG_TYPE = "autobuild"
 
-AUTOBUILD_INSTALLED_VERSION="1"
-AUTOBUILD_INSTALLED_TYPE="installed"
-INSTALLED_CONFIG_FILE="installed-packages.xml"
+AUTOBUILD_INSTALLED_VERSION = "1"
+AUTOBUILD_INSTALLED_TYPE = "installed"
+INSTALLED_CONFIG_FILE = "installed-packages.xml"
 
-AUTOBUILD_METADATA_VERSION="1"
-AUTOBUILD_METADATA_TYPE="metadata"
-PACKAGE_METADATA_FILE="autobuild-package.xml"
+AUTOBUILD_METADATA_VERSION = "1"
+AUTOBUILD_METADATA_TYPE = "metadata"
+PACKAGE_METADATA_FILE = "autobuild-package.xml"
+
 
 # FIXME: remove when refactor is complete
 class ConfigFile:
     pass
+
 
 class ConfigurationError(AutobuildError):
     pass
@@ -106,7 +108,7 @@ class ConfigurationDescription(common.Serialized):
             return build_configuration
         else:
             raise ConfigurationError("no configuration for build configuration '%s' found; one may be created using 'autobuild edit build'" % 
-                build_configuration_name)
+                                     build_configuration_name)
    
     def get_build_directory(self, configuration, platform_name=get_current_platform()):
         """
@@ -209,12 +211,12 @@ class ConfigurationDescription(common.Serialized):
                 saved_data = llsd.parse(autobuild_xml)
             except llsd.LLSDParseError:
                 raise AutobuildError("Config file %s is corrupt. Aborting..." % self.path)
-            if not saved_data.has_key('version'):
+            if not 'version' in saved_data:
                 raise AutobuildError("incompatible configuration file %s\n"
                     "if this is a legacy format autobuild.xml file, please try the workaround found here:\n"
                     "https://wiki.lindenlab.com/wiki/Autobuild/Incompatible_Configuration_File_Error" % self.path)
             if saved_data['version'] == self.version:
-                if (not saved_data.has_key('type')) or (saved_data['type'] != 'autobuild'):
+                if (not 'type' in saved_data) or (saved_data['type'] != 'autobuild'):
                     raise AutobuildError(self.path + ' not an autobuild configuration file')
                 package_description = saved_data.pop('package_description', None)
                 if package_description is not None:
@@ -276,10 +278,10 @@ class Dependencies(common.Serialized):
                 saved_data = llsd.parse(installed_xml)
             except llsd.LLSDParseError:
                 raise AutobuildError("Installed file %s is not valid. Aborting..." % self.path)
-            if not ( ( saved_data.has_key('version') and saved_data['version'] == self.version )\
-                     and ( saved_data.has_key('type')) and (saved_data['type'] == AUTOBUILD_INSTALLED_TYPE)):
+            if not (('version' in saved_data and saved_data['version'] == self.version)
+                    and ('type' in saved_data) and (saved_data['type'] == AUTOBUILD_INSTALLED_TYPE)):
                 raise AutobuildError(self.path + ' is not compatible with this version of autobuild.'
-                                     +'\nClearing your build directory and rebuilding should correct it.')
+                                     + '\nClearing your build directory and rebuilding should correct it.')
 
             dependencies = saved_data.pop('dependencies', {})
             for (name, package) in dependencies.iteritems():
@@ -289,6 +291,7 @@ class Dependencies(common.Serialized):
             logger.warn("Installed packages file '%s' not found; creating." % self.path)
         else:
             raise ConfigurationError("cannot create installed packages file %s" % self.path)
+
 
 class MetadataDescription(common.Serialized):
     """
@@ -327,9 +330,9 @@ class MetadataDescription(common.Serialized):
         self.install_dir = None
         self.legacy = False
 
-        metadata_xml=None
+        metadata_xml = None
         if path:
-            self.path=path
+            self.path = path
             if os.path.isfile(self.path):
                 metadata_xml = file(self.path, 'rb').read()
                 if not metadata_xml:
@@ -339,7 +342,7 @@ class MetadataDescription(common.Serialized):
                 if not create_quietly:
                     logger.warn("Configuration file '%s' not found" % self.path)
         elif stream:
-            metadata_xml=stream.read()
+            metadata_xml = stream.read()
         if metadata_xml:
             try:
                 parsed_llsd = llsd.parse(metadata_xml)
@@ -351,8 +354,8 @@ class MetadataDescription(common.Serialized):
             self.update(parsed_llsd)
 
     def __load(self, parsed_llsd):
-        if   (not parsed_llsd.has_key('version')) or (parsed_llsd['version'] != self.version) \
-          or (not parsed_llsd.has_key('type')) or (parsed_llsd['type'] != 'metadata'):
+        if (not 'version' in parsed_llsd) or (parsed_llsd['version'] != self.version) \
+                or (not 'type' in parsed_llsd) or (parsed_llsd['type'] != 'metadata'):
             raise ConfigurationError("missing or incompatible metadata %s" % pprint.pprint(parsed_llsd))
         else:
             package_description = parsed_llsd.pop('package_description', None)
@@ -380,6 +383,7 @@ class MetadataDescription(common.Serialized):
         if self.path:
             file(self.path, 'wb').write(llsd.format_pretty_xml(_compact_to_dict(self)))
 
+
 class PackageDescription(common.Serialized):
     """
     Contains the metadata for a single package.
@@ -406,7 +410,7 @@ class PackageDescription(common.Serialized):
     """
     
     def __init__(self, arg):
-        self.platforms={}
+        self.platforms = {}
         self.license = None
         self.license_file = None
         self.version = None
@@ -427,7 +431,7 @@ class PackageDescription(common.Serialized):
             return self.platforms.get("common")
 
     def __init_from_dict(self, dictionary):
-        platforms = dictionary.pop('platforms',{})
+        platforms = dictionary.pop('platforms', {})
         for (key, value) in platforms.items():
             self.platforms[key] = PlatformDescription(value)
         self.update(dictionary)
@@ -445,7 +449,7 @@ class PlatformDescription(common.Serialized):
         configurations
     """
     
-    def __init__(self, dictionary = None):
+    def __init__(self, dictionary=None):
         self.configurations = {}
         self.manifest = []
         self.build_directory = None
@@ -454,7 +458,7 @@ class PlatformDescription(common.Serialized):
             self.__init_from_dict(dict(dictionary))
    
     def __init_from_dict(self, dictionary):
-        configurations = dictionary.pop('configurations',{})
+        configurations = dictionary.pop('configurations', {})
         for (key, value) in configurations.iteritems():
             self.configurations[key] = BuildConfigurationDescription(value)
         archive = dictionary.pop('archive', None)
@@ -475,7 +479,7 @@ class BuildConfigurationDescription(common.Serialized):
     
     build_steps = ['configure', 'build']
     
-    def __init__(self, dictionary = None):
+    def __init__(self, dictionary=None):
         self.configure = None
         self.build = None
         self.default = False
@@ -498,7 +502,7 @@ class BuildConfigurationDescription(common.Serialized):
 
 class ArchiveDescription(common.Serialized):
     """
-    Describes a dowloadable archive of artifacts for this package.
+    Describes a downloadable archive of artifacts for this package.
     
     Attributes:
         format
@@ -508,7 +512,7 @@ class ArchiveDescription(common.Serialized):
     """
     # Implementations for various values of hash_algorithm should be found in
     # hash_algorithms.py.
-    def __init__(self, dictionary = None):
+    def __init__(self, dictionary=None):
         self.format = None
         self.hash = None
         self.hash_algorithm = None
@@ -578,7 +582,7 @@ def pretty_print_string(description):
 def _compact_to_dict(obj):
     if isinstance(obj, dict):
         result = {}
-        for (key,value) in obj.items():
+        for (key, value) in obj.items():
             if value:
                 result[key] = _compact_to_dict(value)
         return result

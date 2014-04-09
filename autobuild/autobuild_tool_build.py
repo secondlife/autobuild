@@ -26,7 +26,6 @@ Builds the source for a package.
 """
 
 import os
-import sys
 
 # autobuild modules:
 import common
@@ -35,7 +34,6 @@ import autobuild_base
 import configfile
 import logging
 from common import AutobuildError
-from autobuild_tool_configure import configure
 from autobuild_tool_configure import _configure_a_configuration
 
 
@@ -61,35 +59,35 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                        [-c CONFIGURATION] [--dry-run] -- [OPT [OPT ...]]"""
         parser.description = "build the current package and copy its output artifacts into the build directory for use by the 'autobuild package' command."
         parser.add_argument('--config-file',
-            dest='config_file',
-            default=configfile.AUTOBUILD_CONFIG_FILE,
-            help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
+                            dest='config_file',
+                            default=configfile.AUTOBUILD_CONFIG_FILE,
+                            help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
         parser.add_argument('--no-configure',
-            dest='do_not_configure',
-            default=False,
-            action="store_true",
-            help="do not configure before building")
+                            dest='do_not_configure',
+                            default=False,
+                            action="store_true",
+                            help="do not configure before building")
         parser.add_argument('build_extra_arguments', nargs="*", metavar='OPT',
-            help="an option to pass to the build command" )
-        parser.add_argument('--all','-a',dest='all', default=False, action="store_true",
-            help="build all configurations")
+                            help="an option to pass to the build command")
+        parser.add_argument('--all', '-a', dest='all', default=False, action="store_true",
+                            help="build all configurations")
         parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
                             help="build a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
-        parser.add_argument('--id','-i', dest='build_id', help='unique build identifier')
-        parser.add_argument( '--install-dir',
-                             default=None,
-                             dest='select_dir',          # see common.select_directories()
-                             help='Where installed files were unpacked.')
-        parser.add_argument( '--installed-manifest',
-                             default=configfile.INSTALLED_CONFIG_FILE,
-                             dest='installed_filename',
-                             help='The file used to record what is installed.')
+        parser.add_argument('--id', '-i', dest='build_id', help='unique build identifier')
+        parser.add_argument('--install-dir',
+                            default=None,
+                            dest='select_dir',          # see common.select_directories()
+                            help='Where installed files were unpacked.')
+        parser.add_argument('--installed-manifest',
+                            default=configfile.INSTALLED_CONFIG_FILE,
+                            dest='installed_filename',
+                            help='The file used to record what is installed.')
 
     def run(self, args):
-        build_id=common.establish_build_id(args.build_id) # sets id (even if not specified), 
-        #                                                   and stores in the AUTOBUILD_BUILD_ID environment variable
+        build_id = common.establish_build_id(args.build_id)  # sets id (even if not specified),
+                                                             # and stores in the AUTOBUILD_BUILD_ID environment variable
         config = configfile.ConfigurationDescription(args.config_file)
         platform = common.get_current_platform()
         current_directory = os.getcwd()
@@ -114,28 +112,28 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                     os.chdir(build_directory)
                 if configure_first:
                     result = _configure_a_configuration(config, build_configuration,
-                        args.build_extra_arguments, args.dry_run)
+                                                        args.build_extra_arguments, args.dry_run)
                     if result != 0:
-                        raise BuildError("configuring default configuration returned %d" % (result))
+                        raise BuildError("configuring default configuration returned %d" % result)
                 result = _build_a_configuration(config, build_configuration,
-                    args.build_extra_arguments, args.dry_run)
+                                                args.build_extra_arguments, args.dry_run)
                 # always make clean copy of the build metadata regardless of result
-                metadata_file_name=configfile.PACKAGE_METADATA_FILE
+                metadata_file_name = configfile.PACKAGE_METADATA_FILE
                 logger.debug("metadata file name: %s" % metadata_file_name)
                 if not args.dry_run and os.path.exists(metadata_file_name):
                     os.unlink(metadata_file_name)
                 if result != 0:
-                    raise BuildError("building default configuration returned %d" % (result))
+                    raise BuildError("building default configuration returned %d" % result)
 
                 if not args.dry_run:
                     # Create the metadata record for inclusion in the package
-                    metadata_file=configfile.MetadataDescription(path=metadata_file_name, create_quietly=True)
+                    metadata_file = configfile.MetadataDescription(path=metadata_file_name, create_quietly=True)
                     # include the package description from the configuration
-                    metadata_file.package_description=config.package_description
-                    metadata_file.package_description.platforms=None # omit data on platform configurations
-                    metadata_file.platform=platform
-                    metadata_file.configuration=build_configuration.name
-                    metadata_file.build_id=build_id
+                    metadata_file.package_description = config.package_description
+                    metadata_file.package_description.platforms = None  # omit data on platform configurations
+                    metadata_file.platform = platform
+                    metadata_file.configuration = build_configuration.name
+                    metadata_file.build_id = build_id
                     # get the record of any installed packages
                     logger.debug("installed files in " + args.installed_filename)
                     # load the list of already installed packages

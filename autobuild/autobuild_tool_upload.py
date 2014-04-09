@@ -31,7 +31,6 @@ import logging
 import os
 import common
 from autobuild_base import AutobuildBase
-from configfile import ConfigFile, AUTOBUILD_CONFIG_FILE
 from connection import SCPConnection, S3Connection, S3ConnectionError, SCPConnectionError
 
 
@@ -56,10 +55,10 @@ class AutobuildTool(AutobuildBase):
                             help="specify the archive to upload to install-packages.lindenlab.com "
                                  "or to S3, as indicated by config file")
         parser.add_argument('--upload-to-s3',
-            action='store_true',
-            default=False,
-            dest='upload_to_s3',
-            help="upload this archive to amazon S3")
+                            action='store_true',
+                            default=False,
+                            dest='upload_to_s3',
+                            help="upload this archive to amazon S3")
         parser.add_argument('--credentials', default="~/.s3curl",
                             dest='credentials',
                             help="The file containing s3 credentials. Currently this option is ignored and the default is hardcoded.  The default is $HOME/.s3curl (or %%USERPROFILE%%/.s3curl on windows).  see below for details")
@@ -165,4 +164,4 @@ def _upload_to_s3(tarfiles, dry_run=False):
 
 # provide this line to make the tool work standalone too (which all tools should)
 if __name__ == "__main__":
-    sys.exit( AutobuildTool().main( sys.argv[1:] ) )
+    sys.exit(AutobuildTool().main(sys.argv[1:]))

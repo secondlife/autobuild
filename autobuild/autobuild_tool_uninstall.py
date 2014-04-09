@@ -34,7 +34,6 @@ Date   : 2010-10-19
 
 import os
 import sys
-import errno
 import common
 import logging
 import configfile
@@ -42,6 +41,7 @@ import autobuild_base
 from autobuild_tool_install import uninstall
 
 logger = logging.getLogger('autobuild.uninstall')
+
 
 class UninstallError(common.AutobuildError):
     pass
@@ -53,6 +53,7 @@ The command will remove the packages specified on the command line from the
 installed-packages.xml file, and delete every file originally
 installed by that archive.
 """
+
 
 def uninstall_packages(options, installed_filename, args):
     # load the list of already installed packages
@@ -66,6 +67,7 @@ def uninstall_packages(options, installed_filename, args):
     installed_file.save()
     return 0
 
+
 # define the entry point to this autobuild tool
 class AutobuildTool(autobuild_base.AutobuildBase):
     def get_details(self):
@@ -74,36 +76,37 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
     def register(self, parser):
         parser.description = "uninstall artifacts installed by the 'autobuild install' command."
-        parser.add_argument(
-            'package',
-            nargs='*',
-            help='List of packages to uninstall.')
+        parser.add_argument('package',
+                            nargs='*',
+                            help='List of packages to uninstall.')
         # Sigh, the ONLY reason we need to read the autobuild.xml file is to
         # find the default --install-dir.
-        parser.add_argument(
-            '--config-file',
-            default=configfile.AUTOBUILD_CONFIG_FILE,
-            dest='install_filename',
-            help="The file used to describe what should be installed\n  (defaults to $AUTOBUILD_CONFIG_FILE or \"autobuild.xml\").")
-        parser.add_argument(
-            '--installed-manifest',
-            default=configfile.INSTALLED_CONFIG_FILE,
-            dest='installed_filename',
-            help='The file used to record what is installed.')
+        parser.add_argument('--config-file',
+                            default=configfile.AUTOBUILD_CONFIG_FILE,
+                            dest='install_filename',
+                            help="The file used to describe what should be installed\n  (defaults to $AUTOBUILD_CONFIG_FILE or \"autobuild.xml\").")
+        parser.add_argument('--installed-manifest',
+                            default=configfile.INSTALLED_CONFIG_FILE,
+                            dest='installed_filename',
+                            help='The file used to record what is installed.')
         # The only reason we need to know --install-dir is because the default
         # --installed-manifest is relative.
-        parser.add_argument(
-            '--install-dir',
-            default=None,
-            dest='select_dir',          # see common.select_directories()
-            help='Where to find the default --installed-manifest file.')
-        parser.add_argument('--all','-a',dest='all', default=False, action="store_true",
-            help="uninstall packages for all configurations")
-        parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
+        parser.add_argument('--install-dir',
+                            default=None,
+                            dest='select_dir',          # see common.select_directories()
+                            help='Where to find the default --installed-manifest file.')
+        parser.add_argument('--all', '-a',
+                            dest='all',
+                            default=False,
+                            action="store_true",
+                            help="uninstall packages for all configurations")
+        parser.add_argument('--configuration', '-c',
+                            nargs='?',
+                            action="append",
+                            dest='configurations',
                             help="uninstall packages for a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
-
 
     def run(self, args):
         installed_filename = args.installed_filename
@@ -118,6 +121,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 def __init__(self, filename):
                     self.filename = filename
                     self.config = None
+
                 def __getattr__(self, attr):
                     if self.config is None:
                         logger.debug("loading " + self.filename)
@@ -128,15 +132,15 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             # relative to install_dir. Therefore we must figure out install_dir.
 
             # write packages into 'packages' subdir of build directory by default
-            config=LazyConfig(args.install_filename)
+            config = LazyConfig(args.install_filename)
             installed_filenames = \
-                 [os.path.realpath(os.path.join(install_dir, installed_filename))
-                  for install_dir in
-                  common.select_directories(args, config,
-                                            "install", "uninstalling",
-                                            lambda cnf:
-                                            os.path.join(config.make_build_directory(cnf, args.dry_run),
-                                                         "packages"))]
+                [os.path.realpath(os.path.join(install_dir, installed_filename))
+                 for install_dir in
+                 common.select_directories(args, config,
+                                           "install", "uninstalling",
+                                           lambda cnf:
+                                           os.path.join(config.make_build_directory(cnf, args.dry_run),
+                                                        "packages"))]
 
         logger.debug("installed filenames: %s" % installed_filenames)
         for installed_filename in installed_filenames:

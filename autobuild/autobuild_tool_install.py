@@ -48,8 +48,6 @@ import logging
 import common
 import configfile
 import autobuild_base
-from llbase import llsd
-import subprocess
 import hash_algorithms
 
 logger = logging.getLogger('autobuild.install')
@@ -57,6 +55,7 @@ logger = logging.getLogger('autobuild.install')
 # default run (no log-level switches specified), but can still be suppressed
 # with --quiet if need be.
 dry_run_msg = logger.warning
+
 
 class InstallError(common.AutobuildError):
     pass
@@ -103,6 +102,7 @@ def print_list(label, array):
     print "%s: %s" % (label, list)
     return True
 
+
 def handle_query_args(options, config_file, installed_file):
     """
     Handle any arguments to query for package information.
@@ -121,11 +121,12 @@ def handle_query_args(options, config_file, installed_file):
 
     if options.export_manifest:
         for package in installed_file.dependencies.itervalues():
-            item = pprint.pformat(package).rstrip() # trim final newline
-            sys.stdout.writelines((item, ",\n")) # permit parsing -- bad syntax otherwise
+            item = pprint.pformat(package).rstrip()  # trim final newline
+            sys.stdout.writelines((item, ",\n"))  # permit parsing -- bad syntax otherwise
         return True
 
     return False
+
 
 def pre_install_license_check(packages, config_file):
     """
@@ -142,6 +143,7 @@ def pre_install_license_check(packages, config_file):
         if not license:
             raise InstallError("no license specified for %s. Aborting... "
                                "(you can use --skip-license-check)" % pname)
+
 
 def post_install_license_check(packages, config_file, installed_file):
     """
@@ -165,14 +167,16 @@ def post_install_license_check(packages, config_file, installed_file):
             raise InstallError("nonexistent license_file for %s: %s "
                                "(you can use --skip-license-check)" % (pname, license_file))
 
+
 def check_package_for_duplicate_files(metadata, install_dir):
-    duplicate_files=[]
+    duplicate_files = []
     for packaged_file in metadata.manifest:
-        if os.path.exists(os.path.join(install_dir,packaged_file)):
+        if os.path.exists(os.path.join(install_dir, packaged_file)):
             duplicate_files.append(packaged_file)
     if duplicate_files:
-        raise InstallError("package '%s' contains %d conflicting files: %s" \
-                           % ( metadata.package_description.name, len(duplicate_files), duplicate_files))
+        raise InstallError("package '%s' contains %d conflicting files: %s"
+                           % (metadata.package_description.name, len(duplicate_files), duplicate_files))
+
 
 def do_install(packages, config_file, installed_file, platform, install_dir, dry_run, local_archives=[]):
     """
@@ -202,6 +206,7 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
                 installed_pkgs.append(pname)
     return installed_pkgs
 
+
 def _install_local(platform, package, package_path, install_dir, installed_file, dry_run):
     package_name = package.name
     
@@ -213,18 +218,18 @@ def _install_local(platform, package, package_path, install_dir, installed_file,
     # version.
     uninstall(package_name, installed_file)
 
-    metadata_file_name=configfile.PACKAGE_METADATA_FILE
-    metadata_file=common.extract_metadata_from_package(package_path, metadata_file_name)
+    metadata_file_name = configfile.PACKAGE_METADATA_FILE
+    metadata_file = common.extract_metadata_from_package(package_path, metadata_file_name)
     if not metadata_file:
         raise InstallError("package '%s' does not contain metadata (%s)" % (package.name, metadata_file_name))
     else:
-        metadata=configfile.MetadataDescription(stream=metadata_file)
-        legacy=None
+        metadata = configfile.MetadataDescription(stream=metadata_file)
+        legacy = None
 
     logger.warn("installing %s from local archive" % package.name)
 
     # before installing, check the manifest data in the metadata for conf
-    check_package_for_duplicate_files(metadata, install_dir) # raises InstallError if it fails
+    check_package_for_duplicate_files(metadata, install_dir)  # raises InstallError if it fails
     
     # check that the install dir exists...
     if not os.path.exists(install_dir):
@@ -247,18 +252,21 @@ def _install_local(platform, package, package_path, install_dir, installed_file,
         installed_platform.archive = configfile.ArchiveDescription()
     installed_platform.archive.url = "file://" + os.path.abspath(package_path)
     installed_platform.archive.hash = common.compute_md5(package_path)
-    metadata.legacy=legacy
-    metadata.install_type='local'
-    _update_installed_package_files(metadata, installed_package, \
-                                    platform=platform, installed_file=installed_file, install_dir=install_dir, files=files)
+    metadata.legacy = legacy
+    metadata.install_type = 'local'
+    _update_installed_package_files(metadata, installed_package,
+                                    platform=platform, installed_file=installed_file,
+                                    install_dir=install_dir, files=files)
     return True
+
 
 def _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
     # Check that we have a platform-specific or common url to use.
     req_plat = package.get_platform(platform)
     package_name = getattr(package, 'name', '(undefined)')
     if not req_plat:
-        logger.warning("package %s has no installation information configured for platform %s" % (package_name, platform))
+        logger.warning("package %s has no installation information configured for platform %s"
+                       % (package_name, platform))
         return False
     archive = req_plat.archive
     if not archive:
@@ -278,7 +286,7 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
         if installed['install_type'] == 'local':
             logger.warn("""skipping %s package because it was installed locally from %s
   To allow new installation, run 
-  autobuild uninstall %s""" % ( package_name, installed['archive']['url'], package_name ))
+  autobuild uninstall %s""" % (package_name, installed['archive']['url'], package_name))
             return
         elif installed['archive'] == archive:
             logger.debug("%s is already installed")
@@ -321,13 +329,13 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     # version.
     uninstall(package.name, installed_file)
 
-    metadata_file_name=configfile.PACKAGE_METADATA_FILE
-    metadata_file=common.extract_metadata_from_package(cachefile, metadata_file_name)
+    metadata_file_name = configfile.PACKAGE_METADATA_FILE
+    metadata_file = common.extract_metadata_from_package(cachefile, metadata_file_name)
     if not metadata_file:
         raise InstallError("package '%s' does not contain metadata (%s)" % (package.name, metadata_file_name))
     else:
-        metadata=configfile.MetadataDescription(stream=metadata_file)
-        legacy=None
+        metadata = configfile.MetadataDescription(stream=metadata_file)
+        legacy = None
 
     # check that the install dir exists...
     if not os.path.exists(install_dir):
@@ -347,13 +355,15 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
         installed_platform = installed_package.get_platform(platform)
     if installed_platform.archive is None:
         installed_platform.archive = configfile.ArchiveDescription()
-    metadata.legacy=legacy
-    metadata.install_type='package'
+    metadata.legacy = legacy
+    metadata.install_type = 'package'
     _update_installed_package_files(metadata, package, 
-                                    platform=platform, installed_file=installed_file, install_dir=install_dir, files=files)
+                                    platform=platform, installed_file=installed_file,
+                                    install_dir=install_dir, files=files)
     return True
 
-def _update_installed_package_files(metadata, package, \
+
+def _update_installed_package_files(metadata, package,
                                     platform=None, installed_file=None, install_dir=None, files=None):
     installed_package = metadata
     installed_package.install_dir = install_dir
@@ -361,6 +371,7 @@ def _update_installed_package_files(metadata, package, \
     installed_platform = package.get_platform(platform)
     installed_package.archive = installed_platform.archive
     installed_file.dependencies[metadata.package_description.name] = installed_package
+
 
 def uninstall(package_name, installed_config):
     """
@@ -378,7 +389,7 @@ def uninstall(package_name, installed_config):
         logger.debug("%s not installed, no uninstall needed" % package_name)
         return
 
-    logger.warn("uninstalling %s" % (package_name))
+    logger.warn("uninstalling %s" % package_name)
     logger.debug("uninstalling %s from %s" % (package_name, package.install_dir))
     # Tarballs that name directories name them before the files they contain,
     # so the unpacker will create the directory before creating files in it.
@@ -428,6 +439,7 @@ def uninstall(package_name, installed_config):
             else:
                 # no idea what this exception is, better let it propagate
                 raise
+
 
 def install_packages(options, config_file, install_dir, args):
     logger.debug("installing to directory: " + install_dir)
@@ -482,6 +494,7 @@ def install_packages(options, config_file, install_dir, args):
             raise
     installed_file.save()
     return 0
+
 
 # define the entry point to this autobuild tool
 class AutobuildTool(autobuild_base.AutobuildBase):
@@ -545,15 +558,20 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             default=False,
             dest='export_manifest',
             help="Print the install manifest to stdout and exit.")
-        parser.add_argument(
-            '--local',
-            action='append',
-            dest='local_archives',
-            default=[],
-            help="Install this locally built archive in place of the configured installable.")
-        parser.add_argument('--all','-a',dest='all', default=False, action="store_true",
-            help="install packages for all configurations")
-        parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations',
+        parser.add_argument('--local',
+                            action='append',
+                            dest='local_archives',
+                            default=[],
+                            help="Install this locally built archive in place of the configured installable.")
+        parser.add_argument('--all', '-a',
+                            dest='all',
+                            default=False,
+                            action="store_true",
+                            help="install packages for all configurations")
+        parser.add_argument('--configuration', '-c',
+                            nargs='?',
+                            action="append",
+                            dest='configurations',
                             help="install packages for a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
@@ -565,11 +583,11 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
         # write packages into 'packages' subdir of build directory by default
         install_dirs = \
-             common.select_directories(args, config,
-                                       "install", "installing packages for",
-                                       lambda cnf:
-                                       os.path.join(config.make_build_directory(cnf, args.dry_run),
-                                                    "packages"))
+            common.select_directories(args, config,
+                                      "install", "installing packages for",
+                                      lambda cnf:
+                                      os.path.join(config.make_build_directory(cnf, args.dry_run),
+                                                   "packages"))
 
         # get the absolute paths to the install dir and installed-packages.xml file
         for install_dir in install_dirs:

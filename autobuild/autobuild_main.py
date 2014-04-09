@@ -25,11 +25,13 @@ import os
 import common
 import argparse
 import logging
+from common import AutobuildError
 
 ## Environment variable name used for default log level verbosity
 AUTOBUILD_LOGLEVEL = 'AUTOBUILD_LOGLEVEL'
 
-class run_help(argparse.Action):
+
+class RunHelp(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         parser.parent.search_for_and_import_tools(parser.parent.tools_list)
         parser.parent.register_tools(parser.parent.tools_list)
@@ -46,8 +48,8 @@ class Autobuild(object):
                                  version='%%(prog)s %s' % common.AUTOBUILD_VERSION_STRING)
 
         self.subparsers = self.parser.add_subparsers(title='Sub Commands',
-            description='Valid Sub Commands',
-            help='Sub Command help')
+                                                     description='Valid Sub Commands',
+                                                     help='Sub Command help')
 
     def listdir(self, dir):
         files = os.listdir(dir)
@@ -58,7 +60,7 @@ class Autobuild(object):
     def register_tool(self, tool):
         newtool = tool.AutobuildTool()
         details = newtool.get_details()
-        self.new_tool_subparser = self.subparsers.add_parser(details['name'], help=details['description']);
+        self.new_tool_subparser = self.subparsers.add_parser(details['name'], help=details['description'])
         newtool.register(self.new_tool_subparser)
         return newtool
 
@@ -68,14 +70,14 @@ class Autobuild(object):
     
     def search_for_and_import_tools(self, tools_list):
         autobuild_package_dir = os.path.dirname(__file__)
-        all_files=self.listdir(autobuild_package_dir)
+        all_files = self.listdir(autobuild_package_dir)
         for file_name in all_files:
             if(file_name.endswith('.py') and
-                file_name != '__init__.py' and
-                file_name.startswith('autobuild_tool_')):
-                module_name=file_name[:-3]
-                possible_tool_module = __import__(module_name, globals(), locals(), []);
-                if(getattr(possible_tool_module, 'AutobuildTool', None)):
+               file_name != '__init__.py' and
+               file_name.startswith('autobuild_tool_')):
+                module_name = file_name[:-3]
+                possible_tool_module = __import__(module_name, globals(), locals(), [])
+                if getattr(possible_tool_module, 'AutobuildTool', None):
                     tools_list.append(possible_tool_module)
 
     def try_to_import_tool(self, tool, tools_list):
@@ -84,8 +86,8 @@ class Autobuild(object):
         tool_file_name = tool_module_name + '.py'
         full_tool_path = os.path.join(autobuild_package_dir, tool_file_name)
         if os.path.exists(full_tool_path):
-            possible_tool_module = __import__(tool_module_name, globals(), locals(), []);
-            if(getattr(possible_tool_module, 'AutobuildTool', None)):
+            possible_tool_module = __import__(tool_module_name, globals(), locals(), [])
+            if getattr(possible_tool_module, 'AutobuildTool', None):
                 tools_list.append(possible_tool_module)
                 instance = self.register_tool(possible_tool_module)
                 return instance
@@ -105,13 +107,13 @@ class Autobuild(object):
         except KeyError:
             environment_level = ''
 
-        if environment_level == '--quiet' or environment_level == '-q' :
+        if environment_level == '--quiet' or environment_level == '-q':
             return logging.ERROR
         elif environment_level == '':
             return logging.WARNING
-        elif environment_level == '--verbose' or environment_level == '-v' :
+        elif environment_level == '--verbose' or environment_level == '-v':
             return logging.INFO
-        elif environment_level == '--debug' or environment_level == '-d' :
+        elif environment_level == '--debug' or environment_level == '-d':
             return logging.DEBUG
         else:
             raise AutobuildError("invalid %s value '%s'" % (AUTOBUILD_LOGLEVEL, environment_level))
@@ -135,7 +137,6 @@ class Autobuild(object):
         else:
             raise common.AutobuildError("invalid effective log level %s" % logging.getLevelName(level))
 
-
     def main(self, args_in):
     
         logger = logging.getLogger('autobuild')
@@ -146,8 +147,8 @@ class Autobuild(object):
         
         self.parser.parent = self
         self.parser.add_argument('-h', '--help',
-            help='find all valid Autobuild Tools and show help', action=run_help,
-            nargs='?', default=argparse.SUPPRESS)
+                                 help='find all valid Autobuild Tools and show help', action=RunHelp,
+                                 nargs='?', default=argparse.SUPPRESS)
         
         argdefs = (
             (('-n', '--dry-run',),
@@ -156,18 +157,18 @@ class Autobuild(object):
             ## NOTE: if the mapping of verbosity controls (--{quiet,verbose,debug})
             ##       is changed here, it must be changed to match in set_recursive_loglevel
             ##       and get_default_loglevel_from_environment methods above.
-             (('-q', '--quiet',),
-                dict(help='minimal output', action='store_const',
-                     const=logging.ERROR, dest='logging_level', default=default_loglevel)),
-             (('-v', '--verbose',),
-                dict(help='verbose output', action='store_const', const=logging.INFO, dest='logging_level')),
-             (('-d', '--debug',),
-                dict(help='debug output', action='store_const', const=logging.DEBUG, dest='logging_level')),
+            (('-q', '--quiet',),
+             dict(help='minimal output', action='store_const',
+                  const=logging.ERROR, dest='logging_level', default=default_loglevel)),
+            (('-v', '--verbose',),
+             dict(help='verbose output', action='store_const', const=logging.INFO, dest='logging_level')),
+            (('-d', '--debug',),
+             dict(help='debug output', action='store_const', const=logging.DEBUG, dest='logging_level')),
         )
         for args, kwds in argdefs:
             self.parser.add_argument(*args, **kwds)
             
-        tool_to_run = -1;
+        tool_to_run = -1
 
         for arg in args_in:
             if arg[0] != '-':
@@ -190,6 +191,7 @@ class Autobuild(object):
 
         return 0
 
+
 def main():
     # find the path to the actual autobuild exectuable and ensure it's in PATH
     # so that build commands can find it and other scripts distributed with autobuild.
@@ -198,7 +200,7 @@ def main():
     logger = logging.getLogger('autobuild')
     try:
         os.environ['PATH'] = os.environ.get('PATH') + os.pathsep + script_path
-        sys.exit( Autobuild().main(sys.argv[1:]) )
+        sys.exit(Autobuild().main(sys.argv[1:]))
     except KeyboardInterrupt, e:
         sys.exit("Aborted...")
     except common.AutobuildError, e:
