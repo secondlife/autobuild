@@ -44,10 +44,8 @@ following metadata in the autobuild.xml file:
 """
 
 import hashlib
-import sys
 import os
 import tarfile
-import time
 import getpass
 import glob
 import common
@@ -55,8 +53,6 @@ import logging
 import configfile
 import autobuild_base
 import subprocess
-import pprint
-from connection import SCPConnection, S3Connection
 from common import AutobuildError
 from zipfile import ZipFile, ZIP_DEFLATED
 
@@ -71,39 +67,36 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
     def register(self, parser):
         parser.description = "package the artifacts produced by the 'autobuild build' command into a package archive for distribution."
-        parser.add_argument(
-            '--config-file',
-            default=configfile.AUTOBUILD_CONFIG_FILE,
-            dest='autobuild_filename',
-            help="the file used to describe how to build the package\n  (defaults to $AUTOBUILD_CONFIG_FILE or \"autobuild.xml\")")
-        parser.add_argument(
-            '--archive-name',
-            default=None,
-            dest='archive_filename',
-            help='the filename of the archive that autobuild will create')
-        parser.add_argument(
-            '-p', '--platform', 
-            default=common.get_current_platform(),
-            dest='platform',
-            help='override the working platform')
-        parser.add_argument(
-            '--skip-license-check', 
-            action='store_false',
-            default=True,
-            dest='check_license',
-            help="do not perform the license check")
-        parser.add_argument(
-            '--archive-format',
-            default=None,
-            dest='archive_format',
-            help='the format of the archive (tbz2 or zip)')
-        parser.add_argument(
-            '--build-dir',
-            default=None,
-            dest='select_dir',          # see common.select_directories()
-            help='Package specific build directory.')
-        parser.add_argument('--all','-a',dest='all', default=False, action="store_true",
-            help="package all configurations")
+        parser.add_argument('--config-file',
+                            default=configfile.AUTOBUILD_CONFIG_FILE,
+                            dest='autobuild_filename',
+                            help="the file used to describe how to build the package\n  (defaults to $AUTOBUILD_CONFIG_FILE or \"autobuild.xml\")")
+        parser.add_argument('--archive-name',
+                            default=None,
+                            dest='archive_filename',
+                            help='the filename of the archive that autobuild will create')
+        parser.add_argument('-p', '--platform',
+                            default=common.get_current_platform(),
+                            dest='platform',
+                            help='override the working platform')
+        parser.add_argument('--skip-license-check',
+                            action='store_false',
+                            default=True,
+                            dest='check_license',
+                            help="do not perform the license check")
+        parser.add_argument('--archive-format',
+                            default=None,
+                            dest='archive_format',
+                            help='the format of the archive (tbz2 or zip)')
+        parser.add_argument('--build-dir',
+                            default=None,
+                            dest='select_dir',  # see common.select_directories()
+                            help='Package specific build directory.')
+        parser.add_argument('--all', '-a',
+                            action="store_true",
+                            default=False,
+                            dest='all',
+                            help="package all configurations")
         parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
                             help="package a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
@@ -120,7 +113,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         if not build_dirs:
             build_dirs = [config.get_build_directory(None, args.platform)]
         for build_dir in build_dirs:
-            package(config, build_dir, args.platform, archive_filename=args.archive_filename, archive_format=args.archive_format, check_license=args.check_license, dry_run=args.dry_run)
+            package(config, build_dir, args.platform, archive_filename=args.archive_filename,
+                    archive_format=args.archive_format, check_license=args.check_license, dry_run=args.dry_run)
 
 
 class PackageError(AutobuildError):
@@ -147,27 +141,27 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     logger.info("packaging from dir %s" % build_directory)
     platform_description = config.get_platform(platform_name)
     files = _get_file_list(platform_description, build_directory)
-    if(platform_name != 'common'):
+    if platform_name != 'common':
         try:
             files.extend(_get_file_list(config.get_platform('common'), build_directory))
         except configfile.ConfigurationError:
-            pass # We don't have a common platform defined, that is ok.
+            pass  # We don't have a common platform defined, that is ok.
     
     _check_or_add_license(package_description, build_directory, files)
 
     # add the manifest files to the metadata file (list does not include itself)
-    metadata_file_name=configfile.PACKAGE_METADATA_FILE
+    metadata_file_name = configfile.PACKAGE_METADATA_FILE
     logger.debug("metadata file name: %s" % metadata_file_name)
-    metadata_file_path=os.path.abspath(os.path.join(build_directory, metadata_file_name))
-    metadata_file=configfile.MetadataDescription(path=metadata_file_path)
-    metadata_file.manifest=files
+    metadata_file_path = os.path.abspath(os.path.join(build_directory, metadata_file_name))
+    metadata_file = configfile.MetadataDescription(path=metadata_file_path)
+    metadata_file.manifest = files
     if metadata_file.build_id:
-        build_id=metadata_file.build_id
+        build_id = metadata_file.build_id
     else:
         raise PackageError("no build_id in metadata - rerun build")
     if metadata_file.platform != platform_name:
-        raise PackageError("build platform (%s) does not match current platform (%s)" \
-                           % (metadata_file.platform, platform_name))
+        raise PackageError("build platform (%s) does not match current platform (%s)"
+                           % metadata_file.platform, platform_name)
     if not dry_run:
         metadata_file.save()
 
@@ -197,6 +191,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
         else:
             raise PackageError("archive format %s is not supported" % format)
 
+
 def _determine_archive_format(archive_format_argument, archive_description):
     if archive_format_argument is not None:
         return archive_format_argument
@@ -213,10 +208,10 @@ def _generate_archive_name(package_description, build_id, platform_name, suffix=
     package_name = package_description.name.replace('-', '_')
     platform_name = platform_name.replace('/', '_').replace('-', '_')
     name = package_name \
-       + '-' + package_description.version \
-       + '-' + platform_name \
-       + '-' + build_id \
-       + suffix
+           + '-' + package_description.version \
+           + '-' + platform_name \
+           + '-' + build_id \
+           + suffix
     return name
 
 
@@ -241,12 +236,13 @@ def _check_or_add_license(package_description, build_directory, filelist):
     if not licensefile:
         licensefile = 'LICENSES/%s.txt' % package_description.name
     elif os.path.normcase(os.path.normpath(licensefile)) in \
-             [os.path.normcase(os.path.normpath(f)) for f in filelist]:
-        pass # Already found.
+            [os.path.normcase(os.path.normpath(f)) for f in filelist]:
+        pass  # Already found.
     elif os.path.isfile(os.path.join(build_directory, licensefile)):
-        filelist.append(licensefile) # Can add to to the package.
+        filelist.append(licensefile)  # Can add to to the package.
     else:
         raise PackageError('cannot add license file %s' % licensefile)
+
 
 def _create_tarfile(tarfilename, build_directory, filelist):
     if not os.path.exists(os.path.dirname(tarfilename)):
@@ -323,9 +319,9 @@ def _print_hash(filename):
     m = hashlib.md5()
     while True:
         d = fp.read(65536)
-        if not d: break
+        if not d:
+            break
         m.update(d)
     # Not using logging, since this output should be produced unconditionally on stdout
     # Downstream build tools utilize this output
-    print "md5    %s" % m.hexdigest()    
-    
+    print "md5    %s" % m.hexdigest()

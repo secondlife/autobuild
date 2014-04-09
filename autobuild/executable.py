@@ -29,11 +29,11 @@ Date   : 2010-09-29
 """
 
 import os
-import sys
 import subprocess
 import re
 
 import common
+
 
 class ExecutableError(common.AutobuildError):
     pass
@@ -72,14 +72,15 @@ class Executable(common.Serialized):
     def __call__(self, options=[], environment=os.environ):
         filters = self.get_filters()
         if filters:
-            filters_re = [ re.compile(filter, re.MULTILINE) for filter in filters ]
-            process = subprocess.Popen(' '.join(self._get_all_arguments(options)), shell=True, env=environment, stdout=subprocess.PIPE)
+            filters_re = [re.compile(filter, re.MULTILINE) for filter in filters]
+            process = subprocess.Popen(' '.join(self._get_all_arguments(options)),
+                                       shell=True, env=environment, stdout=subprocess.PIPE)
             for line in process.stdout:
                 if any(regex.search(line) for regex in filters_re):
                     continue
                 line = line.replace("\r\n", "\n")
                 line = line.replace("\r", "\n")
-                print line, # Trailing , prevents an extra newline
+                print line,  # Trailing , prevents an extra newline
             return process.wait()
         else:
             return subprocess.call(' '.join(self._get_all_arguments(options)), shell=True, env=environment)

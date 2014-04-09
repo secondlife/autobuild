@@ -28,7 +28,7 @@ Manifests specify by platform the files that should be bundled into
 an archive when packaging the build product.
 """
 
-import os
+import sys
 
 import autobuild_base
 from common import get_current_platform, AutobuildError
@@ -38,18 +38,18 @@ import configfile
 class AutobuildTool(autobuild_base.AutobuildBase):
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
-            description="Manipulate manifest entries to the autobuild configuration.")
+                    description="Manipulate manifest entries to the autobuild configuration.")
      
     def register(self, parser):
         parser.description = "specify manifest of artifacts to be packaged by the 'autobuild package' command."
         parser.add_argument('--config-file',
-            dest='config_file',
-            default=configfile.AUTOBUILD_CONFIG_FILE,
-            help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
-        parser.add_argument('--platform','-p', default=get_current_platform(),
-            help="the platform manifest to manipulate")
+                            dest='config_file',
+                            default=configfile.AUTOBUILD_CONFIG_FILE,
+                            help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
+        parser.add_argument('--platform', '-p', default=get_current_platform(),
+                            help="the platform manifest to manipulate")
         parser.add_argument('command', nargs='?', default='print',
-            help="manifest command: add, remove, clear, or print")
+                            help="manifest command: add, remove, clear, or print")
         parser.add_argument('pattern', nargs='*', help='a file pattern')
 
     def run(self, args):
@@ -87,7 +87,7 @@ def remove(config, platform_name, pattern):
     platform_description = config.get_platform(platform_name)
     try:
         platform_description.manifest.remove(pattern)
-    except ValueError: # platform_description.manifest does not contain 'pattern'
+    except ValueError:  # platform_description.manifest does not contain 'pattern'
         pass
 
 
@@ -116,4 +116,4 @@ def print_manifest(config, platform_name):
 
 
 if __name__ == "__main__":
-    sys.exit( AutobuildTool().main( sys.argv[1:] ) )
+    sys.exit(AutobuildTool().main(sys.argv[1:]))

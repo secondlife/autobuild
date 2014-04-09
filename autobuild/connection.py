@@ -43,18 +43,22 @@ logger = logging.getLogger('autobuild.connection')
 
 AutobuildError = common.AutobuildError
 
+
 class ConnectionError(AutobuildError):
-    def __init__(self,msg):
+    def __init__(self, msg):
         self.msg = msg
 
     def __str__(self):
         return repr(self.msg)
 
+
 class S3ConnectionError(ConnectionError):
     pass
 
+
 class SCPConnectionError(ConnectionError):
     pass
+
 
 #
 # Talking to remote servers
@@ -63,7 +67,7 @@ class SCPConnectionError(ConnectionError):
 class Connection(object):
     """Shared methods for managing connections.
     """
-    def fileExists(self, url):
+    def file_exists(self, url):
         """Test to see if file exists on server.  Returns boolean.
         """
         try:
@@ -74,6 +78,7 @@ class Connection(object):
             raise
         else:
             return True
+
 
 class SCPConnection(Connection):
     """Manage uploading files.  Never overwrite existing files.
@@ -103,7 +108,7 @@ class SCPConnection(Connection):
             if dry_run:
                 logger.warning(" ".join(command))
             else:
-                rc = subprocess.call(command) # interactive -- possible password req'd
+                rc = subprocess.call(command)  # interactive -- possible password req'd
                 if rc != 0:
                     raise SCPConnectionError("Failed to upload (rc %s): %s" % (rc, uploadables))
         return uploaded
@@ -118,7 +123,7 @@ class SCPConnection(Connection):
         self.setDestination(server, dest_dir)
         self.loadFile(filename)
         try:
-            return self.fileExists(self.url)
+            return self.file_exists(self.url)
         except urllib2.HTTPError, err:
             print >>sys.stderr, "\nChecking %s: %s: %s" % (self.url, err.__class__.__name__, err)
             raise
@@ -127,9 +132,9 @@ class SCPConnection(Connection):
         """Set destination to dest_dir on server."""
         if server:
             self.server = server
-        if dest_dir != None:  # allow: == ""
+        if dest_dir is not None:  # allow: == ""
             self.dest_dir = dest_dir
-        if not self.server or self.dest_dir == None:
+        if not self.server or self.dest_dir is None:
             raise SCPConnectionError("Both server and dest_dir must be set.")
         self.scp_dest = ':'.join([self.server, self.dest_dir])
 
@@ -232,7 +237,8 @@ class S3Connection(Connection):
         key = self._get_key(filename)
         return "%s%s/%s" % (self.amazonS3_server, self.bucket.name, self._get_key(filename).name)
 
-def _load_s3curl_credentials(account_name = 'lindenlab', credentials_file=None):
+
+def _load_s3curl_credentials(account_name='lindenlab', credentials_file=None):
     """
     Helper function for loading 'lindenlab' s3 credentials from s3curl.pl's ~/.s3curl config file
     see the README file in the s3curl distribution (http://developer.amazonwebservices.com/connect/entry.jspa?externalID=128)

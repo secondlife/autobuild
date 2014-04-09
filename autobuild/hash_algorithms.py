@@ -35,6 +35,7 @@ from common import AutobuildError
 # here by means of the @hash_algorithm decorator.
 REGISTERED_ALGORITHMS = {}
 
+
 class hash_algorithm(object):
     """
     This decorator is used to register each supported hash algorithm in

@@ -35,6 +35,7 @@ from StringIO import StringIO
 import configfile
 from common import AutobuildError
 
+
 class InteractiveCommand(object):
     """
     Class describing characteristics of a particular command.
@@ -114,7 +115,7 @@ class InteractiveCommand(object):
                     sys.exit(0)
 
         print "These fields will be changed:"
-        print "%s" % input_values
+        print input_values
         if delete:
             if self._confirm_delete():
                 self.delete(**input_values)
@@ -162,5 +163,3 @@ class InteractiveCommand(object):
         if really_delete in ['y', 'Y', 'yes', 'Yes', 'YES']:
             return True
         return False
-
-

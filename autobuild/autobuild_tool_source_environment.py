@@ -55,6 +55,7 @@ if os.path.exists(helper):
         pass
     # *TODO - restore original sys.path value
 
+
 def load_vsvars(vsver):
     vsvars_path = os.path.join(os.environ["VS%sCOMNTOOLS" % vsver], "vsvars32.bat")
     temp_script_name = tempfile.mktemp(suffix=".cmd")
@@ -77,7 +78,7 @@ def load_vsvars(vsver):
         # name that cmd.exe can understand
         cmdline = ["cygpath", "-d", "%s" % temp_script_name]
         logger.debug(cmdline)
-        os.chmod(temp_script_name, stat.S_IREAD|stat.S_IWRITE|stat.S_IEXEC)
+        os.chmod(temp_script_name, stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
         (temp_script_name, _) = subprocess.Popen(cmdline, stdout=subprocess.PIPE).communicate()
         temp_script_name = temp_script_name.rstrip()
 
@@ -102,11 +103,11 @@ def load_vsvars(vsver):
 
     # translate paths from windows to cygwin format
     vsvars['VSPATH'] = ":".join(
-        ['"$(cygpath -u \'%s\')"' % p for p in vsvars['VSPATH'].split(';') ]
+        ['"$(cygpath -u \'%s\')"' % p for p in vsvars['VSPATH'].split(';')]
     )
 
     # fix for broken builds on windows (don't let anything escape the closing quote)
-    for (k,v) in vsvars.iteritems():
+    for (k, v) in vsvars.iteritems():
         vsvars[k] = v.rstrip('\\')
 
     return vsvars
@@ -253,14 +254,14 @@ if common.get_current_platform() is "windows":
     """
     environment_template = "%s\n%s" % (environment_template, windows_template)
 
+
 def do_source_environment(args):
-    var_mapping = {
-            'AUTOBUILD_EXECUTABLE_PATH':common.get_autobuild_executable_path(),
-            'AUTOBUILD_VERSION_STRING':common.AUTOBUILD_VERSION_STRING,
-            'AUTOBUILD_PLATFORM':common.get_current_platform(),
-            'MAKEFLAGS':"",
-            'DISTCC_HOSTS':"",
-        }
+    var_mapping = {'AUTOBUILD_EXECUTABLE_PATH': common.get_autobuild_executable_path(),
+                   'AUTOBUILD_VERSION_STRING': common.AUTOBUILD_VERSION_STRING,
+                   'AUTOBUILD_PLATFORM': common.get_current_platform(),
+                   'MAKEFLAGS': "",
+                   'DISTCC_HOSTS': "",
+                   }
 
     if common.get_current_platform() is "windows":
         try:
@@ -297,6 +298,7 @@ def do_source_environment(args):
         # *TODO - run get_params.generate_bash_script()
         pass
 
+
 class AutobuildTool(autobuild_base.AutobuildBase):
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
@@ -311,4 +313,3 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
     def run(self, args):
         do_source_environment(args)
-

@@ -23,15 +23,11 @@
 # Base Class to give autobuild tool modules integration into autobuild
 # and standalone functionality
 
-import sys
 import os
-import common
-from common import AutobuildError
 import argparse
-import unittest
+
 
 # Main tool functionality
-
 class AutobuildBase:
 
     def name_from_file(self, filename):
@@ -47,7 +43,7 @@ class AutobuildBase:
         return basename
 
     def configurations_from_environment(self):
-        cfgs=os.environ.get("AUTOBUILD_CONFIGURATION")
+        cfgs = os.environ.get("AUTOBUILD_CONFIGURATION")
         if cfgs is None:
             return []
         else:
