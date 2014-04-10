@@ -28,7 +28,6 @@ import os
 import sys
 import unittest
 import logging
-from nose.plugins.skip import SkipTest
 
 from autobuild import configfile
 from autobuild import common
@@ -80,7 +79,6 @@ class TestManifest(BaseTest, AutobuildBaselineCompare):
         assert not common_manifest
 
     def test_autobuild_manifest(self):
-        raise SkipTest("Would fail due to Bootstrap extract conflicts")
         self.config.save()
         self.autobuild("manifest", "--config-file=" + self.tmp_file,
                        "-p", "common", "add", "*.cpp", "*.h", "*.py")

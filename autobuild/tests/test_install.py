@@ -45,7 +45,6 @@ from threading import Thread
 from BaseHTTPServer import HTTPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 from autobuild import autobuild_tool_install, autobuild_tool_uninstall, configfile, common
-from nose.plugins.skip import SkipTest
 
 # ****************************************************************************
 #   TODO

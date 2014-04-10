@@ -31,11 +31,16 @@ import os
 import pprint
 import sys
 import StringIO
+try:
+    from llbase import llsd
+except:
+    sys.exit("Failed to import llsd via the llbase module; to install, use:\n"
+             +"  pip install llbase")
+
 import common
 from executable import Executable
 from common import AutobuildError
 from common import get_current_platform
-from llbase import llsd
 import update
 import logging
 

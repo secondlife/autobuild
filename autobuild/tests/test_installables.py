@@ -26,7 +26,6 @@
 
 import os
 import sys
-from nose.plugins.skip import SkipTest
 
 from autobuild import configfile
 from autobuild import common
@@ -63,7 +62,6 @@ class TestInstallables(BaseTest, AutobuildBaselineCompare):
         assert len(self.config.installables) == 0
 
     def test_autobuild_installables(self):
-        raise SkipTest("Would fail due to Bootstrap extract conflicts")
         self.config.save()
         cmd = ["autobuild", "installables", "--config-file=" + self.tmp_file,
                "--archive", "http://foo.bar.com/test-1.1-darwin-20101008.tar.bz2",

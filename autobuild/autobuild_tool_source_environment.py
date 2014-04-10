@@ -28,10 +28,15 @@ import sys
 import tempfile
 import logging
 
+try:
+    from llbase import llsd
+except:
+    sys.exit("Failed to import llsd via the llbase module; to install, use:\n"
+             +"  pip install llbase")
+
 import common
 import autobuild_base
 
-from llbase import llsd
 
 logger = logging.getLogger('autobuild.source_environment')
 

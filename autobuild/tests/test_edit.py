@@ -29,7 +29,12 @@ import subprocess
 import sys
 import unittest
 
-from llbase import llsd
+try:
+    from llbase import llsd
+except:
+    sys.exit("Failed to import llsd via the llbase module; to install, use:\n"
+             +"  pip install llbase")
+
 from autobuild import configfile
 from autobuild import common
 from autobuild.autobuild_main import Autobuild
