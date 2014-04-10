@@ -3,6 +3,32 @@
 <map>
     <key>installables</key>
     <map>
+      <key>nometa</key>
+      <map>
+        <key>license</key>
+        <string>N/A</string>
+        <key>license_file</key>
+        <string>LICENSES/bogus.txt</string>
+        <key>name</key>
+        <string>nometa</string>
+        <key>platforms</key>
+        <map>
+          <key>common</key>
+          <map>
+            <key>archive</key>
+            <map>
+              <key>hash</key>
+              <string>d6d8fd2754a0bf3ca5879869e89ed3f7</string>
+              <key>hash_algorithm</key>
+              <string>md5</string>
+              <key>url</key>
+              <string>http://127.0.0.1:$PORT/nometa-0.1-common-111.tar.bz2</string>
+            </map>
+          </map>
+        </map>
+        <key>version</key>
+        <string>0.1</string>
+      </map>
       <key>noplatform</key>
       <map>
         <key>license</key>

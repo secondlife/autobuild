@@ -141,8 +141,7 @@ def pre_install_license_check(packages, config_file):
             continue
         license = package.license
         if not license:
-            raise InstallError("no license specified for %s. Aborting... "
-                               "(you can use --skip-license-check)" % pname)
+            raise InstallError("no license specified for %s." % pname)
 
 
 def post_install_license_check(packages, config_file, installed_file):
@@ -155,27 +154,13 @@ def post_install_license_check(packages, config_file, installed_file):
     for pname in packages:
         package = config_file.installables[pname]
         license_file = package.license_file
-        # if not specified, assume a default naming convention
-        if not license_file:
-            license_file = 'LICENSES/%s.txt' % pname
         # if a URL is given, assuming it's valid for now
         if license_file.startswith('http://'):
             continue
         # otherwise, assert that the license file is in the archive
         if not os.path.exists(os.path.join(installed_file.dependencies[package.name].install_dir,
                                            license_file)):
-            raise InstallError("nonexistent license_file for %s: %s "
-                               "(you can use --skip-license-check)" % (pname, license_file))
-
-
-def check_package_for_duplicate_files(metadata, install_dir):
-    duplicate_files = []
-    for packaged_file in metadata.manifest:
-        if os.path.exists(os.path.join(install_dir, packaged_file)):
-            duplicate_files.append(packaged_file)
-    if duplicate_files:
-        raise InstallError("package '%s' contains %d conflicting files: %s"
-                           % (metadata.package_description.name, len(duplicate_files), duplicate_files))
+            raise InstallError("nonexistent license_file for %s: %s" % (pname, license_file))
 
 
 def do_install(packages, config_file, installed_file, platform, install_dir, dry_run, local_archives=[]):
@@ -228,16 +213,16 @@ def _install_local(platform, package, package_path, install_dir, installed_file,
 
     logger.warn("installing %s from local archive" % package.name)
 
-    # before installing, check the manifest data in the metadata for conf
-    check_package_for_duplicate_files(metadata, install_dir)  # raises InstallError if it fails
-    
     # check that the install dir exists...
     if not os.path.exists(install_dir):
         logger.debug("creating " + install_dir)
         os.makedirs(install_dir)
 
     # extract the files from the package
-    files = common.install_package(package_path, install_dir, exclude=[metadata_file_name])
+    try:
+        files = common.install_package(package_path, install_dir, exclude=[metadata_file_name])
+    except common.AutobuildError as details:
+        raise InstallError("Local package '%s' attempts to install files already installed.\n%s" % (package_name, details))
     if not files:
         return False
     for f in files:
@@ -344,7 +329,11 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
 
     logger.warn("installing %s from archive" % package.name)
     # extract the files from the package
-    files = common.extract_package(archive.url, install_dir, exclude=[metadata_file_name])
+    try:
+        files = common.install_package(cachefile, install_dir, exclude=[metadata_file_name])
+    except common.AutobuildError as details:
+        raise InstallError("Package '%s' attempts to install files already installed.\n%s" % (package_name, details))
+        
     for f in files:
         logger.debug("extracted: " + f)
         
@@ -370,6 +359,7 @@ def _update_installed_package_files(metadata, package,
 
     installed_platform = package.get_platform(platform)
     installed_package.archive = installed_platform.archive
+    installed_package.manifest = files
     installed_file.dependencies[metadata.package_description.name] = installed_package
 
 
@@ -390,56 +380,33 @@ def uninstall(package_name, installed_config):
         return
 
     logger.warn("uninstalling %s" % package_name)
-    logger.debug("uninstalling %s from %s" % (package_name, package.install_dir))
     # Tarballs that name directories name them before the files they contain,
     # so the unpacker will create the directory before creating files in it.
     # For exactly that reason, we must remove things in reverse order.
-    for f in reversed(package.manifest):
-        # Some tarballs contain funky directory name entries (".//"). Use
-        # realpath() to dewackify them.
-        fn = os.path.normpath(os.path.join(package.install_dir, f))
+    directories=set() # directories we've removed files from
+    for fn in package.manifest:
+        install_path = os.path.join(package.install_dir, fn)
         try:
-            os.remove(fn)
+            os.remove(install_path)
             # We used to print "removing f" before the call above, the
             # assumption being that we'd either succeed or produce a
             # traceback. But there are a couple different ways we could get
             # through this logic without actually deleting. So produce a
             # message only when we're sure we've actually deleted something.
-            logger.debug("    removed " + f)
+            logger.debug("    removed " + fn)
         except OSError, err:
             if err.errno == errno.ENOENT:
                 # this file has already been deleted for some reason -- fine
                 pass
-            elif err.errno == dict(win32=errno.EACCES,
-                                   darwin=errno.EPERM,
-                                   linux2=errno.EISDIR).get(sys.platform):
-                # This can happen if we're trying to remove a directory.
-                # Obnoxiously, the specific errno for this error varies by
-                # platform. While we could call isdir(fn) beforehand, we
-                # expect directory names to pop up only a small fraction of
-                # the time, and doing it reactively improves usual-case
-                # performance.
-                if not os.path.isdir(fn):
-                    # whoops, permission error trying to remove a file?!
-                    raise
-                # Okay, it's a directory, remove it with rmdir().
-                try:
-                    os.rmdir(fn)
-                    logger.debug("    removed " + f)
-                except OSError, err:
-                    # We try to remove directories named in the install
-                    # archive in case these directories were created solely
-                    # for this package. But the package can't know whether a
-                    # given target directory is shared with other packages, so
-                    # the attempt to remove the dir may fail because it still
-                    # contains files.
-                    if err.errno != errno.ENOTEMPTY:
-                        raise
-                    logger.debug("    leaving " + f)
-            else:
-                # no idea what this exception is, better let it propagate
-                raise
-
+        directories.add(os.path.dirname(fn))
+    # Check to see if any of the directories from which we removed files are now 
+    # empty; if so, delete them.  Do the checks in descending length order so that
+    # subdirectories will appear before their containing directory.
+    for dn in sorted(directories, cmp=lambda x,y: cmp(len(y),len(x))):
+        dir_path = os.path.join(package.install_dir, dn)
+        if not os.listdir(dir_path):
+            os.rmdir(dir_path)
+            logger.debug("    removed " + dn)
 
 def install_packages(options, config_file, install_dir, args):
     logger.debug("installing to directory: " + install_dir)
@@ -459,8 +426,9 @@ def install_packages(options, config_file, install_dir, args):
     packages = args or config_file.installables.keys()
 
     # check the license properties for the packages to install
-    if options.check_license:
-        pre_install_license_check(packages, config_file)
+    if not options.check_license:
+        logger.warning("The --skip-license-check option is deprecated; it now has no effect")
+    pre_install_license_check(packages, config_file)
 
     # collect any locally built archives.
     local_archives = {}
@@ -481,7 +449,9 @@ def install_packages(options, config_file, install_dir, args):
                           options.dry_run, local_archives=local_archives)
 
     # check the license_file properties for actually-installed packages
-    if options.check_license and not options.dry_run:
+    if not options.check_license:
+        logger.warning("The --skip-license-check option is deprecated; it now has no effect")
+    if not options.dry_run:
         post_install_license_check(packages, config_file, installed_file)
 
     # update the installed-packages.xml file
@@ -545,7 +515,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             action='store_false',
             default=True,
             dest='check_license',
-            help="Do not perform the license check.")
+            help="(deprecated - now has no effect)")
         parser.add_argument(
             '--list-licenses',
             action='store_true',

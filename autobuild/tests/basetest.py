@@ -34,6 +34,7 @@ import subprocess
 import time
 import shutil
 import unittest
+from autobuild import common
 
 class BaseTest(unittest.TestCase):
     def setUp(self):
@@ -97,4 +98,48 @@ def clean_dir(pathname):
         # Nonexistence is fine.
         if err.errno != errno.ENOENT:
             print >>sys.stderr, "*** Can't remove %s: %s" % (pathname, err)
+
+def assert_in(item, container):
+    assert item in container, "%r not in %r" % (item, container)
+
+def assert_not_in(item, container):
+    assert item not in container, "%r should not be in %r" % (item, container)
+            
+class ExpectError(object):
+    """
+    Usage:
+
+    with ExpectError("text that should be in the exception", "Expected a bad thing to happen"):
+        something(that, should, raise)
+
+    replaces:
+
+    try:
+        self.options.package = ["no_such_package"]
+        something(that, should, raise)
+    except AutobuildError, err:
+        assert_in("text that should be in the exception", str(err))
+    else:
+        assert False, "Expected a bad thing to happen"
+    """
+    def __init__(self, errfrag, expectation, exception=common.AutobuildError):
+        self.errfrag = errfrag
+        self.expectation = expectation
+        self.exception = exception
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, tb):
+        # We expect an exception. If we get here without one, it's a problem.
+        if not any((type, value, tb)):
+            assert False, self.expectation
+        # Okay, it's an exception; is it the type we want?
+        if not isinstance(value, self.exception):
+            return False                # let exception propagate
+        # We reached here with an exception of the right type. Does it contain
+        # the message fragment we're expecting?
+        assert_in(self.errfrag, str(value))
+        # If all the above is true, then swallow the exception and proceed.
+        return True
 

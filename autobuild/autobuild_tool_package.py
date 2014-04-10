@@ -83,7 +83,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             action='store_false',
                             default=True,
                             dest='check_license',
-                            help="do not perform the license check")
+                            help="(deprecated - now has no effect)")
         parser.add_argument('--archive-format',
                             default=None,
                             dest='archive_format',
@@ -114,14 +114,14 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             build_dirs = [config.get_build_directory(None, args.platform)]
         for build_dir in build_dirs:
             package(config, build_dir, args.platform, archive_filename=args.archive_filename,
-                    archive_format=args.archive_format, check_license=args.check_license, dry_run=args.dry_run)
+                    archive_format=args.archive_format, dry_run=args.dry_run)
 
 
 class PackageError(AutobuildError):
     pass
 
 
-def package(config, build_directory, platform_name, archive_filename=None, archive_format=None, check_license=True, dry_run=False):
+def package(config, build_directory, platform_name, archive_filename=None, archive_format=None, dry_run=False):
     """
     Create an archive for the given platform.
     """
@@ -129,12 +129,14 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
         raise PackageError("no package description")
     package_description = config.package_description
     if not package_description.name:
-        raise PackageError("no package name specified")
+        raise PackageError("no package name specified in configuration")
+    if not package_description.license:
+        raise PackageError("no license specified in configuration")
     # Not using logging, since this output should be produced unconditionally on stdout
     # Downstream build tools utilize this output
     print "packing %s" % package_description.name
     if not package_description.version:
-        raise PackageError("no version number specified")
+        raise PackageError("no version number specified in configuration")
     logger.info('packaging from %r' % build_directory)
     if not os.path.isdir(build_directory):
         raise PackageError("build directory %s is not a directory" % build_directory)
@@ -147,18 +149,19 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
         except configfile.ConfigurationError:
             pass  # We don't have a common platform defined, that is ok.
     
-    _check_or_add_license(package_description, build_directory, files)
-
     # add the manifest files to the metadata file (list does not include itself)
     metadata_file_name = configfile.PACKAGE_METADATA_FILE
     logger.debug("metadata file name: %s" % metadata_file_name)
     metadata_file_path = os.path.abspath(os.path.join(build_directory, metadata_file_name))
     metadata_file = configfile.MetadataDescription(path=metadata_file_path)
+    if package_description.license_file:
+        if package_description.license_file not in files:
+            files.append(package_description.license_file)
     metadata_file.manifest = files
     if metadata_file.build_id:
         build_id = metadata_file.build_id
     else:
-        raise PackageError("no build_id in metadata - rerun build")
+        raise PackageError("no build_id in metadata - rerun build\n  you may specify (--id <id>) or let it default to the date")
     if metadata_file.platform != platform_name:
         raise PackageError("build platform (%s) does not match current platform (%s)"
                            % metadata_file.platform, platform_name)
@@ -227,22 +230,6 @@ def _get_file_list(platform_description, build_directory):
     finally:
         os.chdir(current_directory)
     return files
-
-
-def _check_or_add_license(package_description, build_directory, filelist):
-    if not package_description.license:
-        raise PackageError("the license field is not specified")
-    licensefile = package_description.license_file
-    if not licensefile:
-        licensefile = 'LICENSES/%s.txt' % package_description.name
-    elif os.path.normcase(os.path.normpath(licensefile)) in \
-            [os.path.normcase(os.path.normpath(f)) for f in filelist]:
-        pass  # Already found.
-    elif os.path.isfile(os.path.join(build_directory, licensefile)):
-        filelist.append(licensefile)  # Can add to to the package.
-    else:
-        raise PackageError('cannot add license file %s' % licensefile)
-
 
 def _create_tarfile(tarfilename, build_directory, filelist):
     if not os.path.exists(os.path.dirname(tarfilename)):

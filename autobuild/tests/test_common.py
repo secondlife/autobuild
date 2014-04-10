@@ -28,7 +28,7 @@ import tempfile
 import unittest
 from zipfile import ZipFile
 from autobuild import common
-from basetest import BaseTest
+from basetest import *
 
 class TestCommon(BaseTest):
     def setUp(self):
@@ -55,7 +55,7 @@ class TestCommon(BaseTest):
             tar_file.close()
             common.extract_package("test.tar.bz2", tmp_dir)
             assert os.path.isfile(os.path.join(tmp_dir, "data", "package-test", "file2"))
-            
+            clean_file(os.path.join(tmp_dir, "data", "package-test", "file2"))
             # Test zip extraction
             zip_archive = ZipFile(zip_cachename, 'w')
             zip_archive.write(os.path.join(os.path.dirname(__file__), test_file_path), test_file_path)
@@ -69,6 +69,33 @@ class TestCommon(BaseTest):
                 os.remove(zip_cachename)
             shutil.rmtree(tmp_dir, True)
 
+    def test_extract_conflicts(self):
+        try:
+            tmp_dir = tempfile.mkdtemp()
+            tar_cachename = common.get_package_in_cache("test.tar.bz2")
+            zip_cachename = common.get_package_in_cache("test.zip")
+            test_file_path = os.path.join("data", "package-test", "file2")
+            tar_file = tarfile.open(tar_cachename, 'w:bz2')
+            tar_file.add(os.path.join(os.path.dirname(__file__), test_file_path), test_file_path)
+            tar_file.close()
+            common.extract_package("test.tar.bz2", tmp_dir)
+            assert os.path.isfile(os.path.join(tmp_dir, "data", "package-test", "file2"))
+            with ExpectError("conflicting files:", "Expected conflicting files error"):
+                common.extract_package("test.tar.bz2", tmp_dir)
+
+            # Test zip extraction
+            zip_archive = ZipFile(zip_cachename, 'w')
+            zip_archive.write(os.path.join(os.path.dirname(__file__), test_file_path), test_file_path)
+            zip_archive.close()
+            assert os.path.isfile(os.path.join(tmp_dir, "data", "package-test", "file2"))
+            with ExpectError("conflicting files:", "Expected conflicting files error"):
+                common.extract_package("test.zip", tmp_dir)
+        finally:
+            if os.path.isfile(tar_cachename):
+                os.remove(tar_cachename)
+            if os.path.isfile(zip_cachename):
+                os.remove(zip_cachename)
+            shutil.rmtree(tmp_dir, True)
 
     def tearDown(self):
         BaseTest.tearDown(self)

@@ -135,6 +135,30 @@
           </map>
         </map>
       </map>
+      <key>conflict</key>
+      <map>
+        <key>name</key>
+        <string>conflict</string>
+        <key>license</key>
+        <string>N/A</string>
+        <key>license_file</key>
+        <string>LICENSES/conflict.txt</string>
+        <key>platforms</key>
+        <map>
+          <key>common</key>
+          <map>
+            <key>archive</key>
+            <map>
+              <key>hash</key>
+              <string>c1274cf38d724e9d0cb521092bd03365</string>
+              <key>hash_algorithm</key>
+              <string>md5</string>
+              <key>url</key>
+              <string>http://127.0.0.1:$PORT/conflict-0.1-common-111.tar.bz2</string>
+            </map>
+          </map>
+        </map>
+      </map>
     </map>
     <key>type</key>
     <string>autobuild</string>

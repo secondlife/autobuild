@@ -190,6 +190,7 @@ class ConfigurationDescription(common.Serialized):
         """
         Save the configuration state to the input file.
         """
+        logger.debug("Writing configuration file %s" % self.path)
         file(self.path, 'wb').write(llsd.format_pretty_xml(_compact_to_dict(self)))
             
     def __load(self, path):

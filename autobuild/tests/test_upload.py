@@ -81,17 +81,17 @@ def setup():
 class TestLocally(object):
     @raises(UploadError)
     def testNoFiles(self):
-        raise SkipTest()
+        raise SkipTest("not testing upload")
         upload([], "autobuild.xml", dry_run=True)
 
     @raises(UploadError)
     def testBadFile(self):
-        raise SkipTest()
+        raise SkipTest("not testing upload")
         upload(["bogus>filename"], "autobuild.xml", dry_run=True)
 
 class TestWithConfigFile(object):
     def setup(self):
-        raise SkipTest()
+        raise SkipTest("not testing upload")
         # Create a temp directory for fixture data.
         self.tempdir = tempfile.mkdtemp()
         self.origdir = os.path.join(self.tempdir, "orig")

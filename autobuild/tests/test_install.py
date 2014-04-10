@@ -38,7 +38,7 @@ import urllib
 import urlparse
 import posixpath
 import subprocess
-import basetest
+from basetest import *
 from string import Template
 from cStringIO import StringIO
 from threading import Thread
@@ -78,51 +78,6 @@ def in_dir(dir, file):
 
 def assert_equals(left, right):
     assert left == right, "%r != %r" % (left, right)
-
-def assert_in(item, container):
-    assert item in container, "%r not in %r" % (item, container)
-
-def assert_not_in(item, container):
-    assert item not in container, "%r should not be in %r" % (item, container)
-
-class ExpectError(object):
-    """
-    Usage:
-
-    with ExpectError("unknown", "Expected InstallError for unknown package name"):
-        self.options.package = ["no_such_package"]
-        autobuild_tool_install.AutobuildTool().run(self.options)
-
-    replaces:
-
-    try:
-        self.options.package = ["no_such_package"]
-        autobuild_tool_install.AutobuildTool().run(self.options)
-    except autobuild_tool_install.InstallError, err:
-        assert_in("unknown", str(err))
-    else:
-        assert False, "Expected InstallError for unknown package name"
-    """
-    def __init__(self, errfrag, expectation, exception=autobuild_tool_install.InstallError):
-        self.errfrag = errfrag
-        self.expectation = expectation
-        self.exception = exception
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, tb):
-        # We expect an exception. If we get here without one, it's a problem.
-        if not any((type, value, tb)):
-            assert False, self.expectation
-        # Okay, it's an exception; is it the type we want?
-        if not isinstance(value, self.exception):
-            return False                # let exception propagate
-        # We reached here with an exception of the right type. Does it contain
-        # the message fragment we're expecting?
-        assert_in(self.errfrag, str(value))
-        # If all the above is true, then swallow the exception and proceed.
-        return True
 
 class CaptureStdout(object):
     """
@@ -251,8 +206,8 @@ def setup():
                      dry_run=False,
                      list_archives=False,
                      list_installed=False,
-                     check_license=True,
                      list_licenses=False,
+                     check_license=True,
                      export_manifest=False,
                      logging_level=logging.DEBUG,
                      local_archives=[],
@@ -283,7 +238,7 @@ def teardown():
     # The MyHTTPServer thread created by setup() is a daemon, so it will
     # just go away when the process terminates.
     # But clean up directories.
-    basetest.clean_dir(BASE_DIR)
+    clean_dir(BASE_DIR)
 
 # ****************************************************************************
 #   Local server machinery
@@ -396,14 +351,14 @@ class BaseTest(object):
         # Actually, for the same reason, undo any successful install. To test
         # reinstalling, or installing several packages, explicitly perform the
         # desired sequence within a single test method.
-        basetest.clean_dir(INSTALL_DIR)
+        clean_dir(INSTALL_DIR)
         # Clean any temp files we created with copy().
         for f in self.tempfiles:
             logger.debug("teardown deleting tempfile %s" % f)
-            basetest.clean_file(f)
+            clean_file(f)
         # Clean up any temp dirs we explicitly added to tempdirs.
         for d in self.tempdirs:
-            basetest.clean_dir(d)
+            clean_dir(d)
 
 # -------------------------------------  -------------------------------------
 class TestInstallArchive(BaseTest):
@@ -441,7 +396,7 @@ class TestInstallArchive(BaseTest):
         # now require that the file be validated against at least a cached file.
         logger.debug("attempt reinstall with cached file")
         autobuild_tool_install.AutobuildTool().run(self.options)
-        basetest.clean_dir(self.cache_dir)
+        clean_dir(self.cache_dir)
         logger.debug("attempt reinstall without cached file")
         autobuild_tool_install.AutobuildTool().run(self.options)
 
@@ -505,26 +460,35 @@ class TestInstallArchive(BaseTest):
             autobuild_tool_install.AutobuildTool().run(self.options)
 
     def test_no_license(self):
-        raise SkipTest("this really is broken atm")
         # fail because the package metadata lacks a license
         self.server_tarball = self.copyto(os.path.join(mydir, "data", "nolicense-0.1-common-111.tar.bz2"), SERVER_DIR)
         self.options=FakeOptions(install_filename=self.localizedConfig("packages-failures.xml"),package=["nolicense"])
         with ExpectError("no license specified", "Expected InstallError for missing license in configuration"):
             autobuild_tool_install.AutobuildTool().run(self.options)
 
-    def test_skip_license(self):
-        self.server_tarball = self.copyto(os.path.join(mydir, "data", "nolicense-0.1-common-111.tar.bz2"), SERVER_DIR)
-        # fail because the installable declaration in the configuration lacks a license
-        self.options=FakeOptions(install_filename=self.localizedConfig("nolicense-install.xml"))
-        self.options.package=["nolicenseconfig"]
-        with ExpectError("no license specified", "Expected InstallError for missing license in configuration"):
+    def test_no_metadata(self):
+        # fail because the package lacks metadata (autobuild-package.xml)
+        self.server_tarball = self.copyto(os.path.join(mydir, "data", "nometa-0.1-common-111.tar.bz2"), SERVER_DIR)
+        self.options=FakeOptions(install_filename=self.localizedConfig("packages-failures.xml"),package=["nometa"])
+        with ExpectError("does not contain metadata", "Expected InstallError for missing metadata in package"):
             autobuild_tool_install.AutobuildTool().run(self.options)
-        
-        self.options.check_license=False
-        self.options.package=["nolicenseconfig"]
+
+    def test_conflict(self):
+        # fail because the package contains a file installed by another package
+        # packages 'bogus' and 'conflict' both install include/bogus.txt
+        # first, install the default 'bogus' package (should succeed)
         autobuild_tool_install.AutobuildTool().run(self.options)
-        assert os.path.exists(os.path.join(self.options.select_dir, "lib", "bogus.lib"))
-        assert os.path.exists(os.path.join(self.options.select_dir, "include", "bogus.h"))
+        self.server_tarball = self.copyto(os.path.join(mydir, "data", "conflict-0.1-common-111.tar.bz2"), SERVER_DIR)
+        # set up a new configuration file that defines the package with the conflict
+        self.options=FakeOptions(install_filename=self.localizedConfig("package-update-install.xml"),package=["conflict"])
+        # then try to install the 'conflict' package locally (should fail)
+        self.options.local_archives = [os.path.join(mydir, "data", "conflict-0.1-common-111.tar.bz2")]
+        with ExpectError("attempts to install files already installed", "Expected InstallError for missing metadata in local package"):
+            autobuild_tool_install.AutobuildTool().run(self.options)
+        # then try to install the 'conflict' package remotely (should fail)
+        self.options.local_archives = []
+        with ExpectError("attempts to install files already installed", "Expected InstallError for missing metadata in package"):
+            autobuild_tool_install.AutobuildTool().run(self.options)
 
     def test_list_archives(self):
         self.options.list_archives = True
@@ -544,7 +508,7 @@ class TestInstallCachedArchive(BaseTest):
         BaseTest.setup(self)
         self.pkg = "bogus"
         # make sure that the archive is not in the server
-        basetest.clean_file(os.path.join(SERVER_DIR, "bogus-0.1-common-111.tar.bz2"))
+        clean_file(os.path.join(SERVER_DIR, "bogus-0.1-common-111.tar.bz2"))
         assert not os.path.exists(in_dir(SERVER_DIR, "bogus-0.1-common-111.tar.bz2"))
         self.cache_name = in_dir(common.get_install_cache_dir(), "bogus-0.1-common-111.tar.bz2")
 
@@ -564,8 +528,8 @@ class TestInstallLocalArchive(BaseTest):
         self.pkg = "bogus"
         target_archive="bogus-0.1-common-111.tar.bz2"
         # Make sure the archive isn't in either the server directory or cache:
-        basetest.clean_file(in_dir(SERVER_DIR, "bogus-0.1-common-111.tar.bz2"))
-        basetest.clean_file(in_dir(common.get_install_cache_dir(), "bogus-0.1-common-111.tar.bz2"))
+        clean_file(in_dir(SERVER_DIR, "bogus-0.1-common-111.tar.bz2"))
+        clean_file(in_dir(common.get_install_cache_dir(), "bogus-0.1-common-111.tar.bz2"))
         assert not os.path.exists(in_dir(SERVER_DIR, target_archive))
         assert not os.path.exists(in_dir(common.get_install_cache_dir(), target_archive))
 
@@ -583,9 +547,9 @@ class TestDownloadFail(BaseTest):
     def setup(self):
         BaseTest.setup(self)
         self.pkg = "notthere"
-        basetest.clean_file(os.path.join(SERVER_DIR, "bogus-0.1-common-111.tar.bz2"))
+        clean_file(os.path.join(SERVER_DIR, "bogus-0.1-common-111.tar.bz2"))
         self.cache_name = in_dir(common.get_install_cache_dir(), "bogus-0.1-common-111.tar.bz2")
-        basetest.clean_file(self.cache_name)
+        clean_file(self.cache_name)
 
     def test_bad(self):
         self.options=FakeOptions(install_filename=self.localizedConfig("packages-failures.xml"),package=["notthere"])
@@ -619,7 +583,6 @@ class TestUninstallArchive(BaseTest):
         assert os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
 
     def test_success(self):
-        raise SkipTest("would fail because uninstall does not clean up directories")
         autobuild_tool_uninstall.AutobuildTool().run(self.options)
         assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
