@@ -29,7 +29,7 @@ should live in this module. This module should never depend on any
 other autobuild module.
 
 Importing this module will also guarantee that certain dependencies
-are available, such as llbase, boto.s3, and argparse.
+are available, such as llbase
 
 Author : Martin Reddy
 Date   : 2010-04-13
@@ -680,16 +680,6 @@ class Bootstrap(object):
                              },
                    'pathcheck': "lib/python2.5/llbase"
                    },
-        'boto': {'common': {'filename': "boto-1.9b-common-20100414.tar.bz2",
-                            'md5sum':   "4c300c070320eb35b6b2baf0364c2e1f",
-                            },
-                 'pathcheck': "lib/python2.5/boto"
-                 },
-        'argparse': {'common': {'filename': "argparse-1.1-common-20100415.tar.bz2",
-                                'md5sum':   "d11e7fb3686f16b243821fa0f9d35f4c",
-                                },
-                     'pathcheck': "lib/python2.5/argparse.py"
-                     },
         }
 
     def __init__(self):
@@ -700,8 +690,6 @@ class Bootstrap(object):
         available in the search path:
 
         llsd     - the llsd module from the llbase package
-        boto.s3  - the Amazon boto.s3 module for uploading to S3
-        argparse - the argparse module use to parse cmd line args
         """
 
         # get the directory where we keep autobuild's dependencies

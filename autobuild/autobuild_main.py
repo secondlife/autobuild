@@ -176,8 +176,8 @@ class Autobuild(object):
                 if tool_to_run != -1:
                     # Define all the global arguments as also being legal
                     # for the subcommand, e.g. support both
-                    # autobuild --dry-run upload args... and
-                    # autobuild upload --dry-run args...
+                    # autobuild --dry-run install args... and
+                    # autobuild install --dry-run args...
                     for args, kwds in argdefs:
                         self.new_tool_subparser.add_argument(*args, **kwds)
                 break

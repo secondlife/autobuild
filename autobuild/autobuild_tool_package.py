@@ -48,16 +48,21 @@ import os
 import tarfile
 import getpass
 import glob
+import subprocess
+import urllib2
+from zipfile import ZipFile, ZIP_DEFLATED
+
 import common
 import logging
 import configfile
 import autobuild_base
-import subprocess
 from common import AutobuildError
-from zipfile import ZipFile, ZIP_DEFLATED
-
 
 logger = logging.getLogger('autobuild.package')
+
+#
+# Talking to remote servers
+#
 
 
 class AutobuildTool(autobuild_base.AutobuildBase):
