@@ -42,13 +42,8 @@ import glob
 import itertools
 import logging
 import pprint
-import socket
 import shutil
-import subprocess
-import tarfile
-import zipfile
 import tempfile
-import urllib2
 
 from version import AUTOBUILD_VERSION_STRING
 
@@ -105,14 +100,6 @@ def get_current_user():
         return name.value
 
 
-def get_default_scp_command():
-    """
-    Return the full path to the scp command
-    """
-    scp = find_executable(['pscp', 'scp'], ['.exe'])
-    return scp
-
-
 def get_autobuild_environment():
     """
     Return an environment under which to execute autobuild subprocesses.
@@ -133,13 +120,6 @@ def get_install_cache_dir():
         if not os.path.exists(cache):
             os.makedirs(cache, mode=0755)
     return cache
-
-
-def get_s3_url():
-    """
-    Return the base URL for Amazon S3 package locations.
-    """
-    return "http://s3.amazonaws.com/viewer-source-downloads/install_pkgs"
 
 
 def get_temp_dir(basename):
@@ -206,23 +186,6 @@ def find_executable(executables, exts=None):
     return None
 
 
-def get_package_in_cache(package):
-    """
-    Return the filename of the package in the local cache.
-    The file may not actually exist.
-    """
-    filename = os.path.basename(package)
-    return os.path.join(get_install_cache_dir(), filename)
-
-
-def is_package_in_cache(package):
-    """
-    Return True if the specified package has already been downloaded
-    to the local package cache.
-    """
-    return os.path.exists(get_package_in_cache(package))
-
-
 def compute_md5(path):
     """
     Returns the MD5 sum for the given file.
@@ -243,142 +206,6 @@ def compute_md5(path):
         stream.close()
 
     return hasher.hexdigest()
-
-
-def does_package_match_md5(package, md5sum):
-    """
-    Returns True if the MD5 sum of the downloaded package archive
-    matches the specified MD5 string.
-    """
-    return compute_md5(get_package_in_cache(package)) == md5sum
-
-
-def download_package(package):
-    """
-    Download a package, specified as a URL, to the install cache.
-    If the package already exists in the cache then this is a no-op.
-    Returns False if there was a problem downloading the file.
-    """
-
-    # download timeout so a download doesn't hang
-    download_timeout_seconds = 120
-    download_timeout_retries = 5
-
-    # save the old timeout
-    old_download_timeout = socket.getdefaulttimeout()
-
-    # have we already downloaded this file to the cache?
-    cachename = get_package_in_cache(package)
-    if os.path.exists(cachename):
-        logger.info("package already in cache: %s" % cachename)
-        return True
-
-    # Set up the 'scp' handler
-    opener = urllib2.build_opener()
-    scp_or_http = __SCPOrHTTPHandler(get_default_scp_command())
-    opener.add_handler(scp_or_http)
-    urllib2.install_opener(opener)
-
-    # Attempt to download the remote file
-    logger.info("downloading %s to %s" % (package, cachename))
-    result = True
-
-    #
-    # Exception handling:
-    # 1. Isolate any exception from the setdefaulttimeout call.
-    # 2. urllib2.urlopen supposedly wraps all errors in URLErrror. Include socket.timeout just in case.
-    # 3. This code is here just to implement socket timeouts. The last general exception was already here so just leave it.
-    #
-
-    socket.setdefaulttimeout(download_timeout_seconds)
-
-    for tries in itertools.count(1):
-        try:
-            file(cachename, 'wb').write(urllib2.urlopen(package).read())
-            break
-        except (socket.timeout, urllib2.URLError), e:
-            if tries >= download_timeout_retries:
-                result = False
-                logger.exception("  error %s from class %s downloading package: %s"
-                                 % (e, e.__class__.__name__, package))
-                break
-            logger.info("  error %s from class %s downloading package: %s. Retrying."
-                        % (e, e.__class__.__name__, package))
-            continue
-        except Exception, e:
-            logger.exception("error %s from class %s downloading package: %s. "
-                             % (e, e.__class__.__name__, package))
-            result = False
-            break
-
-    socket.setdefaulttimeout(old_download_timeout)
-
-    # Clean up and return True if the download succeeded
-    scp_or_http.cleanup()
-    return result
-
-
-def extract_package(package, install_dir, exclude=[]):
-    """
-    Extract the contents of a downloaded package to the specified
-    directory.  Returns the list of files that were successfully
-    extracted.
-    """
-    # Find the name of the package in the install cache
-    return install_package(get_package_in_cache(package), install_dir, exclude=exclude)
-
-
-def install_package(archive_path, install_dir, exclude=[]):
-    """
-    Install the archive at the provided path into the given installation directory.  Returns the
-    list of files that were installed.
-    """
-    if not os.path.exists(archive_path):
-        logger.error("cannot extract non-existing package: %s" % archive_path)
-        return False
-    logger.warn("extracting from %s" % os.path.basename(archive_path))
-    if tarfile.is_tarfile(archive_path):
-        return __extract_tar_file(archive_path, install_dir, exclude=exclude)
-    elif zipfile.is_zipfile(archive_path):
-        return __extract_zip_archive(archive_path, install_dir, exclude=exclude)
-    else:
-        logger.error("package %s is not archived in a supported format" % archive_path)
-        return False
-
-
-def extract_metadata_from_package(archive_path, metadata_file_name):
-    """
-    Get the package metadata from the archive
-    """
-    metadata_file = None
-    if not os.path.exists(archive_path):
-        logger.error("cannot extract metadata from non-existing package: %s" % archive_path)
-        return False
-    logger.debug("extracting metadata from %s" % os.path.basename(archive_path))
-    if tarfile.is_tarfile(archive_path):
-        tar = tarfile.open(archive_path, 'r')
-        try:
-            metadata_file = tar.extractfile(metadata_file_name)
-        except KeyError, err:
-            pass  # returning None will indicate that it was not there
-    elif zipfile.is_zipfile(archive_path):
-        try:
-            zip = zipfile.ZipFile(archive_path, 'r')
-            metadata_file = zip.open(metadata_file_name, 'r')
-        except KeyError, err:
-            pass  # returning None will indicate that it was not there
-    else:
-        logger.error("package %s is not archived in a supported format" % archive_path)
-    return metadata_file
-
-
-def remove_package(package):
-    """
-    Delete the downloaded package from the cache, if it exists there.
-    """
-    cachename = get_package_in_cache(package)
-    if os.path.exists(cachename):
-        os.remove(cachename)
 
 
 def split_tarname(pathname):
@@ -576,79 +403,4 @@ def establish_build_id(build_id_arg):
 #   Private module classes and functions below here.
 #
 ######################################################################
-
-
-def __extract_tar_file(cachename, install_dir, exclude=[]):
-    # Attempt to extract the package from the install cache
-    tar = tarfile.open(cachename, 'r')
-    extract = [member for member in tar.getmembers() if member.name not in exclude]
-    conflicts = [member.name for member in extract 
-                 if os.path.exists(os.path.join(install_dir, member.name))
-                 and not os.path.isdir(os.path.join(install_dir, member.name))]
-    if conflicts:
-        raise AutobuildError("conflicting files:\n  "+'\n  '.join(conflicts))
-    tar.extractall(path=install_dir, members=extract)
-    return [member.name for member in extract]
-
-
-def __extract_zip_archive(cachename, install_dir, exclude=[]):
-    zip_archive = zipfile.ZipFile(cachename, 'r')
-    extract = [member for member in zip_archive.namelist() if member not in exclude]
-    conflicts = [member for member in extract 
-                 if os.path.exists(os.path.join(install_dir, member))
-                 and not os.path.isdir(os.path.join(install_dir, member))]
-    if conflicts:
-        raise AutobuildError("conflicting files:\n  "+'\n  '.join(conflicts))
-    zip_archive.extractall(path=install_dir, members=extract)
-    return extract
-
-
-class __SCPOrHTTPHandler(urllib2.BaseHandler):
-    """
-    Evil hack to allow both the build system and developers consume
-    proprietary binaries.
-    To use http, export the environment variable:
-    INSTALL_USE_HTTP_FOR_SCP=true
-    """
-    def __init__(self, scp_binary):
-        self._scp = scp_binary
-        self._dir = None
-
-    def scp_open(self, request):
-        #scp:codex.lindenlab.com:/local/share/install_pkgs/package.tar.bz2
-        remote = request.get_full_url()[4:]
-        if os.getenv('INSTALL_USE_HTTP_FOR_SCP', None) == 'true':
-            return self.do_http(remote)
-        try:
-            return self.do_scp(remote)
-        except:
-            self.cleanup()
-            raise
-
-    def do_http(self, remote):
-        url = remote.split(':', 1)
-        if not url[1].startswith('/'):
-            # in case it's in a homedir or something
-            url.insert(1, '/')
-        url.insert(0, "http://")
-        url = ''.join(url)
-        logger.info("using HTTP: " + url)
-        return urllib2.urlopen(url)
-
-    def do_scp(self, remote):
-        if not self._dir:
-            self._dir = tempfile.mkdtemp()
-        local = os.path.join(self._dir, remote.split('/')[-1])
-        if not self._scp:
-            raise AutobuildError("no scp command available; cannot fetch %s" % remote)
-        command = (self._scp, remote, local)
-        logger.info("using SCP: " + remote)
-        rv = subprocess.call(command)
-        if rv != 0:
-            raise AutobuildError("cannot fetch %s" % remote)
-        return file(local, 'rb')
-
-    def cleanup(self):
-        if self._dir:
-            shutil.rmtree(self._dir)
 

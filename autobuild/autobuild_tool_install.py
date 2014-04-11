@@ -45,6 +45,13 @@ import sys
 import errno
 import pprint
 import logging
+import tarfile
+import zipfile
+import urllib2
+import subprocess
+import socket
+import itertools
+
 import common
 import configfile
 import autobuild_base
@@ -127,6 +134,136 @@ def handle_query_args(options, config_file, installed_file):
 
     return False
 
+def get_package_in_cache(package):
+    """
+    Return the filename of the package in the local cache.
+    The file may not actually exist.
+    """
+    filename = os.path.basename(package)
+    return os.path.join(common.get_install_cache_dir(), filename)
+
+def get_default_scp_command():
+    """
+    Return the full path to the scp command
+    """
+    scp = common.find_executable(['pscp', 'scp'], ['.exe'])
+    return scp
+
+def download_package(package):
+    """
+    Download a package, specified as a URL, to the install cache.
+    If the package already exists in the cache then this is a no-op.
+    Returns False if there was a problem downloading the file.
+    """
+
+    # download timeout so a download doesn't hang
+    download_timeout_seconds = 120
+    download_timeout_retries = 5
+
+    # save the old timeout
+    old_download_timeout = socket.getdefaulttimeout()
+
+    # have we already downloaded this file to the cache?
+    cachename = get_package_in_cache(package)
+    if os.path.exists(cachename):
+        logger.info("package already in cache: %s" % cachename)
+        return True
+
+    # Set up the 'scp' handler
+    opener = urllib2.build_opener()
+    scp_or_http = __SCPOrHTTPHandler(get_default_scp_command())
+    opener.add_handler(scp_or_http)
+    urllib2.install_opener(opener)
+
+    # Attempt to download the remote file
+    logger.info("downloading %s to %s" % (package, cachename))
+    result = True
+
+    #
+    # Exception handling:
+    # 1. Isolate any exception from the setdefaulttimeout call.
+    # 2. urllib2.urlopen supposedly wraps all errors in URLErrror. Include socket.timeout just in case.
+    # 3. This code is here just to implement socket timeouts. The last general exception was already here so just leave it.
+    #
+
+    socket.setdefaulttimeout(download_timeout_seconds)
+
+    for tries in itertools.count(1):
+        try:
+            file(cachename, 'wb').write(urllib2.urlopen(package).read())
+            break
+        except (socket.timeout, urllib2.URLError), e:
+            if tries >= download_timeout_retries:
+                result = False
+                logger.exception("  error %s from class %s downloading package: %s"
+                                 % (e, e.__class__.__name__, package))
+                break
+            logger.info("  error %s from class %s downloading package: %s. Retrying."
+                        % (e, e.__class__.__name__, package))
+            continue
+        except Exception, e:
+            logger.exception("error %s from class %s downloading package: %s. "
+                             % (e, e.__class__.__name__, package))
+            result = False
+            break
+
+    socket.setdefaulttimeout(old_download_timeout)
+
+    # Clean up and return True if the download succeeded
+    scp_or_http.cleanup()
+    return result
+
+def install_package(archive_path, install_dir, exclude=[]):
+    """
+    Install the archive at the provided path into the given installation directory.  Returns the
+    list of files that were installed.
+    """
+    if not os.path.exists(archive_path):
+        logger.error("cannot extract non-existing package: %s" % archive_path)
+        return False
+    logger.warn("extracting from %s" % os.path.basename(archive_path))
+    if tarfile.is_tarfile(archive_path):
+        return __extract_tar_file(archive_path, install_dir, exclude=exclude)
+    elif zipfile.is_zipfile(archive_path):
+        return __extract_zip_archive(archive_path, install_dir, exclude=exclude)
+    else:
+        logger.error("package %s is not archived in a supported format" % archive_path)
+        return False
+
+
+def extract_metadata_from_package(archive_path, metadata_file_name):
+    """
+    Get the package metadata from the archive
+    """
+    metadata_file = None
+    if not os.path.exists(archive_path):
+        logger.error("cannot extract metadata from non-existing package: %s" % archive_path)
+        return False
+    logger.debug("extracting metadata from %s" % os.path.basename(archive_path))
+    if tarfile.is_tarfile(archive_path):
+        tar = tarfile.open(archive_path, 'r')
+        try:
+            metadata_file = tar.extractfile(metadata_file_name)
+        except KeyError, err:
+            pass  # returning None will indicate that it was not there
+    elif zipfile.is_zipfile(archive_path):
+        try:
+            zip = zipfile.ZipFile(archive_path, 'r')
+            metadata_file = zip.open(metadata_file_name, 'r')
+        except KeyError, err:
+            pass  # returning None will indicate that it was not there
+    else:
+        logger.error("package %s is not archived in a supported format" % archive_path)
+    return metadata_file
+
+
+def remove_package(package):
+    """
+    Delete the downloaded package from the cache, if it exists there.
+    """
+    cachename = get_package_in_cache(package)
+    if os.path.exists(cachename):
+        os.remove(cachename)
 
 def pre_install_license_check(packages, config_file):
     """
@@ -143,6 +280,80 @@ def pre_install_license_check(packages, config_file):
         if not license:
             raise InstallError("no license specified for %s." % pname)
 
+
+def __extract_tar_file(cachename, install_dir, exclude=[]):
+    # Attempt to extract the package from the install cache
+    tar = tarfile.open(cachename, 'r')
+    extract = [member for member in tar.getmembers() if member.name not in exclude]
+    conflicts = [member.name for member in extract 
+                 if os.path.exists(os.path.join(install_dir, member.name))
+                 and not os.path.isdir(os.path.join(install_dir, member.name))]
+    if conflicts:
+        raise common.AutobuildError("conflicting files:\n  "+'\n  '.join(conflicts))
+    tar.extractall(path=install_dir, members=extract)
+    return [member.name for member in extract]
+
+
+def __extract_zip_archive(cachename, install_dir, exclude=[]):
+    zip_archive = zipfile.ZipFile(cachename, 'r')
+    extract = [member for member in zip_archive.namelist() if member not in exclude]
+    conflicts = [member for member in extract 
+                 if os.path.exists(os.path.join(install_dir, member))
+                 and not os.path.isdir(os.path.join(install_dir, member))]
+    if conflicts:
+        raise common.AutobuildError("conflicting files:\n  "+'\n  '.join(conflicts))
+    zip_archive.extractall(path=install_dir, members=extract)
+    return extract
+
+
+class __SCPOrHTTPHandler(urllib2.BaseHandler):
+    """
+    Evil hack to allow both the build system and developers consume
+    proprietary binaries.
+    To use http, export the environment variable:
+    INSTALL_USE_HTTP_FOR_SCP=true
+    """
+    def __init__(self, scp_binary):
+        self._scp = scp_binary
+        self._dir = None
+
+    def scp_open(self, request):
+        #scp:codex.lindenlab.com:/local/share/install_pkgs/package.tar.bz2
+        remote = request.get_full_url()[4:]
+        if os.getenv('INSTALL_USE_HTTP_FOR_SCP', None) == 'true':
+            return self.do_http(remote)
+        try:
+            return self.do_scp(remote)
+        except:
+            self.cleanup()
+            raise
+
+    def do_http(self, remote):
+        url = remote.split(':', 1)
+        if not url[1].startswith('/'):
+            # in case it's in a homedir or something
+            url.insert(1, '/')
+        url.insert(0, "http://")
+        url = ''.join(url)
+        logger.info("using HTTP: " + url)
+        return urllib2.urlopen(url)
+
+    def do_scp(self, remote):
+        if not self._dir:
+            self._dir = tempfile.mkdtemp()
+        local = os.path.join(self._dir, remote.split('/')[-1])
+        if not self._scp:
+            raise common.AutobuildError("no scp command available; cannot fetch %s" % remote)
+        command = (self._scp, remote, local)
+        logger.info("using SCP: " + remote)
+        rv = subprocess.call(command)
+        if rv != 0:
+            raise common.AutobuildError("cannot fetch %s" % remote)
+        return file(local, 'rb')
+
+    def cleanup(self):
+        if self._dir:
+            shutil.rmtree(self._dir)
 
 def post_install_license_check(packages, config_file, installed_file):
     """
@@ -193,57 +404,26 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
 
 
 def _install_local(platform, package, package_path, install_dir, installed_file, dry_run):
-    package_name = package.name
-    
-    if dry_run:
-        dry_run_msg("Dry run mode: not checking or installing %s" % package.name)
-        return False
-
-    # If this package has already been installed, first uninstall the older
-    # version.
-    uninstall(package_name, installed_file)
-
-    metadata_file_name = configfile.PACKAGE_METADATA_FILE
-    metadata_file = common.extract_metadata_from_package(package_path, metadata_file_name)
-    if not metadata_file:
-        raise InstallError("package '%s' does not contain metadata (%s)" % (package.name, metadata_file_name))
-    else:
-        metadata = configfile.MetadataDescription(stream=metadata_file)
-        legacy = None
-
     logger.warn("installing %s from local archive" % package.name)
+    metadata, files = _install_common(platform, package, package_path, install_dir, installed_file, dry_run)
 
-    # check that the install dir exists...
-    if not os.path.exists(install_dir):
-        logger.debug("creating " + install_dir)
-        os.makedirs(install_dir)
-
-    # extract the files from the package
-    try:
-        files = common.install_package(package_path, install_dir, exclude=[metadata_file_name])
-    except common.AutobuildError as details:
-        raise InstallError("Local package '%s' attempts to install files already installed.\n%s" % (package_name, details))
-    if not files:
-        return False
-    for f in files:
-        logger.debug("extracted: " + f)
-
-    installed_package = package.copy()
-    if platform not in package.platforms:
-        installed_platform = configfile.PlatformDescription(dict(name=platform))
+    if metadata:
+        installed_package = package.copy()
+        if platform not in package.platforms:
+            installed_platform = configfile.PlatformDescription(dict(name=platform))
+        else:
+            installed_platform = installed_package.get_platform(platform)
+        if installed_platform.archive is None:
+            installed_platform.archive = configfile.ArchiveDescription()
+        installed_platform.archive.url = "file://" + os.path.abspath(package_path)
+        installed_platform.archive.hash = common.compute_md5(package_path)
+        metadata.install_type = 'local'
+        _update_installed_package_files(metadata, installed_package,
+                                        platform=platform, installed_file=installed_file,
+                                        install_dir=install_dir, files=files)
+        return True
     else:
-        installed_platform = installed_package.get_platform(platform)
-    if installed_platform.archive is None:
-        installed_platform.archive = configfile.ArchiveDescription()
-    installed_platform.archive.url = "file://" + os.path.abspath(package_path)
-    installed_platform.archive.hash = common.compute_md5(package_path)
-    metadata.legacy = legacy
-    metadata.install_type = 'local'
-    _update_installed_package_files(metadata, installed_package,
-                                    platform=platform, installed_file=installed_file,
-                                    install_dir=install_dir, files=files)
-    return True
-
+        return False
 
 def _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
     # Check that we have a platform-specific or common url to use.
@@ -279,7 +459,7 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
         # otherwise, fall down to below and it will be uninstalled
     
     # compute the cache name for this package from its url
-    cachefile = common.get_package_in_cache(archive.url)
+    cachefile = get_package_in_cache(archive.url)
 
     # download the package, if it's not already in our cache
     download_required = False
@@ -288,39 +468,55 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
             logger.debug("found in cache: " + cachefile)
         else:
             download_required = True
-            common.remove_package(archive.url)
+            remove_package(archive.url)
     else:
         download_required = True
     
     if download_required:
         # download the package to the cache
         logger.warn("downloading %s archive from %s" % (package.name, archive.url))
-        if not common.download_package(archive.url):
+        if not download_package(archive.url):
             # Download failure has been observed to leave a zero-length file.
-            common.remove_package(archive.url)
+            remove_package(archive.url)
             raise InstallError("failed to download %s" % archive.url)
     
         # error out if MD5 doesn't match
         if not hash_algorithms.verify_hash(archive.hash_algorithm, cachefile, archive.hash):
-            common.remove_package(archive.url)
+            remove_package(archive.url)
             raise InstallError("download error--%s mismatch for %s" % ((archive.hash_algorithm or "md5"), cachefile))
+    metadata, files = _install_common(platform, package, cachefile, install_dir, installed_file, dry_run)
+    if metadata:
+        installed_package = package.copy()
+        if platform not in package.platforms:
+            installed_platform = configfile.PlatformDescription(dict(name=platform))
+        else:
+            installed_platform = installed_package.get_platform(platform)
+        if installed_platform.archive is None:
+            installed_platform.archive = configfile.ArchiveDescription()
+        metadata.install_type = 'package'
+        _update_installed_package_files(metadata, package, 
+                                        platform=platform, installed_file=installed_file,
+                                        install_dir=install_dir, files=files)
+        return True
+    else:
+        return False
 
+def _install_common(platform, package, package_file, install_dir, installed_file, dry_run):
     # dry run mode = download but don't install packages
     if dry_run:
         dry_run_msg("Dry run mode: not installing %s" % package.name)
-        return False
+        return None, None
 
     # If this package has already been installed, first uninstall the older
     # version.
     uninstall(package.name, installed_file)
 
     metadata_file_name = configfile.PACKAGE_METADATA_FILE
-    metadata_file = common.extract_metadata_from_package(cachefile, metadata_file_name)
+    metadata_file = extract_metadata_from_package(package_file, metadata_file_name)
     if not metadata_file:
         raise InstallError("package '%s' does not contain metadata (%s)" % (package.name, metadata_file_name))
     else:
         metadata = configfile.MetadataDescription(stream=metadata_file)
-        legacy = None
 
     # check that the install dir exists...
     if not os.path.exists(install_dir):
@@ -330,27 +526,13 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     logger.warn("installing %s from archive" % package.name)
     # extract the files from the package
     try:
-        files = common.install_package(cachefile, install_dir, exclude=[metadata_file_name])
+        files = install_package(package_file, install_dir, exclude=[metadata_file_name])
     except common.AutobuildError as details:
-        raise InstallError("Package '%s' attempts to install files already installed.\n%s" % (package_name, details))
-        
-    for f in files:
-        logger.debug("extracted: " + f)
-        
-    installed_package = package.copy()
-    if platform not in package.platforms:
-        installed_platform = configfile.PlatformDescription(dict(name=platform))
-    else:
-        installed_platform = installed_package.get_platform(platform)
-    if installed_platform.archive is None:
-        installed_platform.archive = configfile.ArchiveDescription()
-    metadata.legacy = legacy
-    metadata.install_type = 'package'
-    _update_installed_package_files(metadata, package, 
-                                    platform=platform, installed_file=installed_file,
-                                    install_dir=install_dir, files=files)
-    return True
-
+        raise InstallError("Package '%s' attempts to install files already installed.\n%s" % (package.name, details))
+    if files:
+        for f in files:
+            logger.debug("extracted: " + f)
+    return metadata, files
 
 def _update_installed_package_files(metadata, package,
                                     platform=None, installed_file=None, install_dir=None, files=None):
