@@ -472,7 +472,7 @@ class TestInstallArchive(BaseTest):
         with ExpectError("does not contain metadata", "Expected InstallError for missing metadata in package"):
             autobuild_tool_install.AutobuildTool().run(self.options)
 
-    def test_conflict(self):
+    def test_conflicting_file(self):
         # fail because the package contains a file installed by another package
         # packages 'bogus' and 'conflict' both install include/bogus.txt
         # first, install the default 'bogus' package (should succeed)
@@ -488,6 +488,44 @@ class TestInstallArchive(BaseTest):
         self.options.local_archives = []
         with ExpectError("attempts to install files already installed", "Expected InstallError for missing metadata in package"):
             autobuild_tool_install.AutobuildTool().run(self.options)
+
+    def test_conflicting_direct_depends(self):
+        # fail because the package is a different version than an existing dependency
+        # installing 'bingo', but already installed 'bongo' used a different 'bingo' version
+        # first, install the default 'bogus' package (should succeed)
+        self.server_tarball = self.copyto(os.path.join(mydir, "data", "bingo-0.1-common-111.tar.bz2"), SERVER_DIR)
+        self.server_tarball = self.copyto(os.path.join(mydir, "data", "bongo-0.1-common-111.tar.bz2"), SERVER_DIR)
+        # set up a new configuration file that installs 'bingo'
+        self.options=FakeOptions(install_filename=self.localizedConfig("package-conflict.xml"),package=["bingo"])
+        autobuild_tool_install.AutobuildTool().run(self.options)
+        # then try to install the 'bongo' package (should fail)
+        self.options.package=["bongo"]
+        with ExpectError("not installed due to conflicts", "Expected InstallError for dependency conflicts"):
+            autobuild_tool_install.AutobuildTool().run(self.options)
+        # then try to install the 'bongo' package locally (should fail)
+        self.options.local_archives = [os.path.join(mydir, "data", "bongo-0.1-common-111.tar.bz2")]
+        with ExpectError("not installed due to conflicts", "Expected InstallError for dependency conflicts"):
+            autobuild_tool_install.AutobuildTool().run(self.options)
+
+    def test_conflicting_indirect_depends(self):
+        # fail because the package is a different version than an existing dependency
+        # installing 'bingo', but already installed 'bongo' used a different 'bingo' version
+        # first, install the default 'bogus' package (should succeed)
+        autobuild_tool_install.AutobuildTool().run(self.options)
+        self.server_tarball = self.copyto(os.path.join(mydir, "data", "bingo-0.1-common-111.tar.bz2"), SERVER_DIR)
+        self.server_tarball = self.copyto(os.path.join(mydir, "data", "bongo-0.1-common-111.tar.bz2"), SERVER_DIR)
+        # set up a new configuration file that installs the first package
+        self.options=FakeOptions(install_filename=self.localizedConfig("package-conflict.xml"),package=["bongo"])
+        autobuild_tool_install.AutobuildTool().run(self.options)
+        # then try to install the 'bongo' package (should fail)
+        self.options.package=["bingo"]
+        with ExpectError("not installed due to conflicts", "Expected InstallError for dependency conflicts"):
+            autobuild_tool_install.AutobuildTool().run(self.options)
+        # then try to install the 'bongo' package locally (should fail)
+        self.options.local_archives = [os.path.join(mydir, "data", "bingo-0.1-common-111.tar.bz2")]
+        with ExpectError("not installed due to conflicts", "Expected InstallError for dependency conflicts"):
+            autobuild_tool_install.AutobuildTool().run(self.options)
+
 
     def test_list_archives(self):
         self.options.list_archives = True

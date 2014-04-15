@@ -213,7 +213,7 @@ def download_package(package):
     scp_or_http.cleanup()
     return result
 
-def install_package(archive_path, install_dir, exclude=[]):
+def _install_package(archive_path, install_dir, exclude=[]):
     """
     Install the archive at the provided path into the given installation directory.  Returns the
     list of files that were installed.
@@ -518,6 +518,11 @@ def _install_common(platform, package, package_file, install_dir, installed_file
     else:
         metadata = configfile.MetadataDescription(stream=metadata_file)
 
+    # Check for transitive dependency conflicts
+    dependancy_conflicts = transitive_search(metadata, installed_file)
+    if dependancy_conflicts:
+        raise InstallError("Package '%s' not installed due to conflicts\n%s" % (package.name, dependancy_conflicts))
+
     # check that the install dir exists...
     if not os.path.exists(install_dir):
         logger.debug("creating " + install_dir)
@@ -526,13 +531,80 @@ def _install_common(platform, package, package_file, install_dir, installed_file
     logger.warn("installing %s from archive" % package.name)
     # extract the files from the package
     try:
-        files = install_package(package_file, install_dir, exclude=[metadata_file_name])
+        files = _install_package(package_file, install_dir, exclude=[metadata_file_name])
     except common.AutobuildError as details:
         raise InstallError("Package '%s' attempts to install files already installed.\n%s" % (package.name, details))
     if files:
         for f in files:
             logger.debug("extracted: " + f)
     return metadata, files
+
+TransitiveSearched = set()
+
+def transitive_search(new_package, installed):
+    TransitiveSearched.clear()
+    return transitive_dependency_conflicts(new_package, installed)
+    
+def transitive_dependency_conflicts(new_package, installed):
+    """
+    Searches for new_package and each of its dependencies in the installed tree
+    (checks the root of the tree and walks its dependency tree)
+    """
+    conflicts = ""
+    logger.debug("  checking conflicts for %s in installed" % new_package['package_description']['name'])
+    conflict = package_in_installed(new_package, installed)
+    if conflict:
+        conflicts += conflict
+    else:
+        TransitiveSearched.add(new_package['package_description']['name'])
+        if 'dependencies' in new_package:
+            logger.debug("  checking conflicts for dependencies of %s in installed" % new_package['package_description']['name'])
+            for new_dependency in new_package['dependencies'].iterkeys():
+                if new_dependency not in TransitiveSearched:
+                    conflict = transitive_dependency_conflicts(new_package['dependencies'][new_dependency], installed)
+                    if conflict:
+                        conflicts += conflict
+                        conflicts += "conflicts with %s dependency %s\n" \
+                          % (new_package['package_description']['name'],new_package['dependencies'][new_dependency]['archive']['url'])
+                    TransitiveSearched.add(new_dependency)
+    return conflicts
+
+def package_in_installed(new_package, installed):
+    """
+    Searches for new_package in the installed tree, returns error message (or empty string)
+    (checks the root of the tree and walks the intstalled tree)
+    """
+    conflict = ""
+    if 'dependencies' in installed:
+        previous = installed['dependencies']
+        for used in previous.iterkeys():
+            # logger.debug("=====\npackage\n%s\nvs\n%s" % (pprint.pformat(new_package), pprint.pformat(previous[used])))
+            if new_package['package_description']['name'] == used:
+                if 'archive' in new_package and new_package['archive']:
+                    # this is a dependency of the new package, so we have archive data
+                    if new_package['archive']['url']  != previous[used]['archive']['url']:
+                        conflict += "  url           %s\n" % previous[used]['archive']['url']
+                    if new_package['archive']['hash'] != previous[used]['archive']['hash']:
+                        conflict += "  hash          %s\n" % previous[used]['archive']['hash']
+                else:
+                    # this is the newly imported package, so we don't have a url for it
+                    pass
+                if new_package['configuration'] != previous[used]['configuration']:
+                    conflict += "  configuration %s\n" % previous[used]['configuration']
+                if new_package['package_description']['version'] != previous[used]['package_description']['version']:
+                    conflict += "  version       %s\n" % previous[used]['package_description']['version']
+                if new_package['build_id'] != previous[used]['build_id']:
+                    conflict += "  build_id      %s\n" % previous[used]['build_id']
+            else:
+                # recurse to check the dependencies of previous[used]
+                conflict += package_in_installed(new_package, previous[used])
+                if conflict:
+                    conflict += "    used by %s\n" % previous[used]['archive']['url']
+            if conflict:
+                # in order to be able to add the import path, we only detect the first conflict
+                return conflict
+    return ""
+
 
 def _update_installed_package_files(metadata, package,
                                     platform=None, installed_file=None, install_dir=None, files=None):

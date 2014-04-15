@@ -104,9 +104,7 @@ class TestEnvironment(basetest.BaseTest, AutobuildBaselineCompare):
         self.config.save()
 
     def test_env(self):
-        """
-        verify that the AUTOBUILD env var is set to point to something executable
-        """
+        # verify that the AUTOBUILD env var is set to point to something executable
         self.autobuild('build', '--no-configure', '--config-file=' + self.tmp_file, '--id=123456')
 
     def tearDown(self):
