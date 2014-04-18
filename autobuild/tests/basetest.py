@@ -34,6 +34,8 @@ import subprocess
 import time
 import shutil
 import unittest
+from cStringIO import StringIO
+
 from autobuild import common
 
 class BaseTest(unittest.TestCase):
@@ -142,4 +144,25 @@ class ExpectError(object):
         assert_in(self.errfrag, str(value))
         # If all the above is true, then swallow the exception and proceed.
         return True
+
+class CaptureStdout(object):
+    """
+    Usage:
+
+    with CaptureStdout() as stream:
+        print "something"
+        print "something else"
+    assert stream.getvalue() == "something\n" "something else\n"
+    print "This will display on console, as before."
+
+    Note that this does NOT capture output emitted by a child process -- only
+    data written to sys.stdout.
+    """
+    def __enter__(self):
+        self.stdout = sys.stdout
+        sys.stdout = StringIO()
+        return sys.stdout
+
+    def __exit__(self, *exc_info):
+        sys.stdout = self.stdout
 

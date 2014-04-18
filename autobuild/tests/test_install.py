@@ -40,7 +40,6 @@ import posixpath
 import subprocess
 from basetest import *
 from string import Template
-from cStringIO import StringIO
 from threading import Thread
 from BaseHTTPServer import HTTPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
@@ -77,27 +76,6 @@ def in_dir(dir, file):
 
 def assert_equals(left, right):
     assert left == right, "%r != %r" % (left, right)
-
-class CaptureStdout(object):
-    """
-    Usage:
-
-    with CaptureStdout() as stream:
-        print "something"
-        print "something else"
-    assert stream.getvalue() == "something\n" "something else\n"
-    print "This will display on console, as before."
-
-    Note that this does NOT capture output emitted by a child process -- only
-    data written to sys.stdout.
-    """
-    def __enter__(self):
-        self.stdout = sys.stdout
-        sys.stdout = StringIO()
-        return sys.stdout
-
-    def __exit__(self, *exc_info):
-        sys.stdout = self.stdout
 
 def set_from_stream(stream):
     """
@@ -142,7 +120,7 @@ def setup():
     """
     Module-level setup
     """
-    global BASE_DIR, STAGING_DIR, SERVER_DIR, INSTALL_DIR, INIT_CACHE
+    global BASE_DIR, STAGING_DIR, SERVER_DIR, INSTALL_DIR
     BASE_DIR = tempfile.mkdtemp()
     STAGING_DIR = os.path.join(BASE_DIR, "data")
     os.mkdir(STAGING_DIR)
