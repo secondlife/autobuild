@@ -184,6 +184,7 @@ def setup():
                      list_archives=False,
                      list_installed=False,
                      list_licenses=False,
+                     list_dirty=False,
                      check_license=True,
                      export_manifest=False,
                      logging_level=logging.DEBUG,
@@ -350,6 +351,10 @@ class TestInstallArchive(BaseTest):
         assert os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
         assert_in(self.pkg, query_manifest(self.options))
+        with CaptureStdout() as stream:
+            self.options.list_dirty=True
+            autobuild_tool_install.AutobuildTool().run(self.options)
+        assert_equals(stream.getvalue(), 'Dirty Packages: \n')
 
     def test_dry_run(self):
         dry_opts = self.options.copy()
@@ -535,6 +540,10 @@ class TestInstallCachedArchive(BaseTest):
         autobuild_tool_install.AutobuildTool().run(self.options)
         assert os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
+        with CaptureStdout() as stream:
+            self.options.list_dirty=True
+            autobuild_tool_install.AutobuildTool().run(self.options)
+        assert_equals(stream.getvalue(), 'Dirty Packages: \n')
 
 # -------------------------------------  -------------------------------------
 class TestInstallLocalArchive(BaseTest):
@@ -556,7 +565,11 @@ class TestInstallLocalArchive(BaseTest):
         autobuild_tool_install.AutobuildTool().run(self.options)
         assert os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
         assert os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
-       
+        with CaptureStdout() as stream:
+            self.options.list_dirty=True
+            autobuild_tool_install.AutobuildTool().run(self.options)
+        assert_equals(stream.getvalue(), 'Dirty Packages: bogus\n')
+            
 # -------------------------------------  -------------------------------------
 class TestDownloadFail(BaseTest):
     def setup(self):

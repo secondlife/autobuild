@@ -102,6 +102,11 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             default=False,
                             dest='all',
                             help="package all configurations")
+        parser.add_argument('--clean-only',
+                            action="store_true",
+                            default=False,
+                            dest='clean_only',
+                            help="return success if the package contains no dependencies that either are local or lack metadata")
         parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
                             help="package a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
@@ -117,18 +122,20 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
         if not build_dirs:
             build_dirs = [config.get_build_directory(None, args.platform)]
+        is_clean = True
         for build_dir in build_dirs:
             package(config, build_dir, args.platform, archive_filename=args.archive_filename,
-                    archive_format=args.archive_format, dry_run=args.dry_run)
+                    archive_format=args.archive_format, clean_only=args.clean_only, dry_run=args.dry_run)
 
 
 class PackageError(AutobuildError):
     pass
 
 
-def package(config, build_directory, platform_name, archive_filename=None, archive_format=None, dry_run=False):
+def package(config, build_directory, platform_name, archive_filename=None, archive_format=None, clean_only=False, dry_run=False):
     """
     Create an archive for the given platform.
+    Returns True if the archive is not dirty, False if it is
     """
     if not config.package_description:
         raise PackageError("no package description")
@@ -137,15 +144,11 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
         raise PackageError("no package name specified in configuration")
     if not package_description.license:
         raise PackageError("no license specified in configuration")
-    # Not using logging, since this output should be produced unconditionally on stdout
-    # Downstream build tools utilize this output
-    print "packing %s" % package_description.name
     if not package_description.version:
         raise PackageError("no version number specified in configuration")
-    logger.info('packaging from %r' % build_directory)
     if not os.path.isdir(build_directory):
         raise PackageError("build directory %s is not a directory" % build_directory)
-    logger.info("packaging from dir %s" % build_directory)
+    logger.info("packaging from %s" % build_directory)
     platform_description = config.get_platform(platform_name)
     files = _get_file_list(platform_description, build_directory)
     if platform_name != 'common':
@@ -159,6 +162,14 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     logger.debug("metadata file name: %s" % metadata_file_name)
     metadata_file_path = os.path.abspath(os.path.join(build_directory, metadata_file_name))
     metadata_file = configfile.MetadataDescription(path=metadata_file_path)
+    if metadata_file.dirty:
+        if clean_only:
+            raise PackageError("Package depends on local or legacy installables\n"
+                               +"  use 'autobuild install --list-dirty' to see problem packages"
+                               +"  rerun without --clean-only to allow packaging anyway")
+        else:
+            logger.warning("WARNING: package depends on local or legacy installables\n"
+                           +"  use 'autobuild install --list-dirty' to see problem packages")
     if package_description.license_file:
         if package_description.license_file not in files:
             files.append(package_description.license_file)
@@ -170,6 +181,11 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     if metadata_file.platform != platform_name:
         raise PackageError("build platform (%s) does not match current platform (%s)"
                            % metadata_file.platform, platform_name)
+
+    # Not using logging, since this output should be produced unconditionally on stdout
+    # Downstream build tools utilize this output - TBD ... find out if this is true ...
+    print "packing %s" % package_description.name
+
     if not dry_run:
         metadata_file.save()
 
@@ -198,7 +214,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
             _create_zip_archive(tarfilename + '.zip', build_directory, files)
         else:
             raise PackageError("archive format %s is not supported" % format)
-
+    return not metadata_file.dirty
 
 def _determine_archive_format(archive_format_argument, archive_description):
     if archive_format_argument is not None:

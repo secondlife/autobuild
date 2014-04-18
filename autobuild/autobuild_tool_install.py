@@ -102,7 +102,7 @@ def print_list(label, array):
     """
     Pretty print an array of strings with a given label prefix.
     """
-    list = "none"
+    list = ""
     if array:
         array.sort()
         list = ", ".join(array)
@@ -131,6 +131,12 @@ def handle_query_args(options, config_file, installed_file):
             item = pprint.pformat(package).rstrip()  # trim final newline
             sys.stdout.writelines((item, ",\n"))  # permit parsing -- bad syntax otherwise
         return True
+
+    if options.list_dirty:
+        installed = installed_file.dependencies
+        dirty_pkgs = [installed[package]['package_description']['name'] for package in installed.keys()
+                      if 'dirty' in  installed[package] and installed[package]['dirty']]
+        return print_list("Dirty Packages", dirty_pkgs)
 
     return False
 
@@ -418,6 +424,8 @@ def _install_local(platform, package, package_path, install_dir, installed_file,
         installed_platform.archive.url = "file://" + os.path.abspath(package_path)
         installed_platform.archive.hash = common.compute_md5(package_path)
         metadata.install_type = 'local'
+        metadata.dirty = True
+        logger.warning("Using --local install flags any resulting package as 'dirty'")
         _update_installed_package_files(metadata, installed_package,
                                         platform=platform, installed_file=installed_file,
                                         install_dir=install_dir, files=files)
@@ -776,6 +784,12 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             default=False,
             dest='list_licenses',
             help="List known licenses and exit.")
+        parser.add_argument(
+            '--list-dirty',
+            action='store_true',
+            default=False,
+            dest='list_dirty',
+            help="List any dirty installables and exit.")
         parser.add_argument(
             '--export-manifest',
             action='store_true',

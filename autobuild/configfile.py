@@ -312,7 +312,7 @@ class MetadataDescription(common.Serialized):
         platform
         configuration
         manifest
-        legacy*
+        dirty*
         install_type*
         install_dir*
         type
@@ -334,7 +334,7 @@ class MetadataDescription(common.Serialized):
         self.archive = None
         self.install_type = None
         self.install_dir = None
-        self.legacy = False
+        self.dirty = False
 
         metadata_xml = None
         if path:
@@ -343,6 +343,7 @@ class MetadataDescription(common.Serialized):
                 metadata_xml = file(self.path, 'rb').read()
                 if not metadata_xml:
                     logger.warn("Metadata file '%s' is empty" % self.path)
+                    self.dirty=False
                     return
             elif not os.path.exists(self.path):
                 if not create_quietly:
@@ -380,6 +381,8 @@ class MetadataDescription(common.Serialized):
         for (name, package) in dependencies.dependencies.iteritems():
             del package['install_dir']
             del package['manifest']
+            if package['dirty']:
+                self.dirty=True
             self.dependencies[name] = package
 
     def save(self):

@@ -28,11 +28,12 @@ import sys
 import logging
 import tarfile
 import unittest
+import tempfile
+from zipfile import ZipFile
 
 import autobuild.autobuild_tool_package as package
 from autobuild import configfile
-from basetest import BaseTest
-from zipfile import ZipFile
+from basetest import BaseTest, ExpectError, CaptureStdout, clean_dir
         
 
 # ****************************************************************************
@@ -45,15 +46,15 @@ from zipfile import ZipFile
 
 logger=logging.getLogger("autobuild.test_package")
 
+
 class TestPackaging(BaseTest):
     def setUp(self):
         BaseTest.setUp(self)
-        data_dir = os.path.join(self.this_dir, "data")
-        self.config_path = os.path.join(data_dir, "autobuild-package-config.xml")
+        self.data_dir = os.path.join(self.this_dir, "data")
+        self.config_path = os.path.join(self.data_dir, "autobuild-package-config.xml")
         self.config = configfile.ConfigurationDescription(self.config_path)
         self.platform = 'common'
-        #self.configuration = config.get_default_build_configurations()
-        self.tar_basename = os.path.join(data_dir, "test1-1.0-common-123456")
+        self.tar_basename = os.path.join(self.data_dir, "test1-1.0-common-123456")
         self.tar_name = self.tar_basename + ".tar.bz2"
         self.zip_name = self.tar_basename + ".zip"
         self.expected_files=['include/file1','LICENSES/test1.txt','autobuild-package.xml']
@@ -80,9 +81,10 @@ class TestPackaging(BaseTest):
         self.tar_has_expected(self.tar_name)
 
     def test_autobuild_package(self):
-        self.autobuild("package",
-                       "--config-file=" + self.config_path,
-                       "-p", "common")
+        with CaptureStdout() as stream:
+            self.autobuild("package",
+                           "--config-file=" + self.config_path,
+                           "-p", "common")
         assert os.path.exists(self.tar_name), "%s does not exist" % self.tar_name
         self.tar_has_expected(self.tar_name)
         self.remove(self.tar_name)
