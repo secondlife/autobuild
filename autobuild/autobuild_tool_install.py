@@ -33,13 +33,6 @@ Author : Martin Reddy
 Date   : 2010-04-19
 """
 
-# For reference, the old indra install.py specification at:
-# https://wiki.lindenlab.com/wiki/User:Phoenix/Library_Installation
-# Proposed platform spec: OS[/arch[/compiler[/compiler_version]]]
-# e.g., windows/i686/vs/2005 or linux/x86_64/gcc/3.3
-#
-# *TODO: add an 'autobuild info' command to query config file contents
-
 import os
 import sys
 import errno
@@ -137,6 +130,17 @@ def handle_query_args(options, config_file, installed_file):
         dirty_pkgs = [installed[package]['package_description']['name'] for package in installed.keys()
                       if 'dirty' in  installed[package] and installed[package]['dirty']]
         return print_list("Dirty Packages", dirty_pkgs)
+
+    if options.list_installed_urls:
+        installed = installed_file.dependencies
+        archives=[]
+        for name, package in installed.iteritems():
+            if 'url' in package['archive']:
+                archives.append('%s' % package['archive']['url'])
+            else:
+                archives.append('%s - no url' % name)
+        print '\n'.join(archives)
+        return True
 
     return False
 
@@ -789,6 +793,12 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             default=True,
             dest='check_license',
             help="(deprecated - now has no effect)")
+        parser.add_argument(
+            '--list-installed-urls',
+            action='store_true',
+            default=False,
+            dest='list_installed_urls',
+            help="List installed package archive urls.")
         parser.add_argument(
             '--list-licenses',
             action='store_true',
