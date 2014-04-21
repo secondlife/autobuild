@@ -104,8 +104,15 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="package all configurations")
         parser.add_argument('--clean-only',
                             action="store_true",
-                            default=False,
+                            default=True if 'AUTOBUILD_CLEAN_ONLY' in os.environ else False,
                             dest='clean_only',
+                            help="require that the package not depend on installables that are local or lack metadata\n"
+                            + "  may also be set by defining the environment variable AUTOBUILD_CLEAN_ONLY"
+                            )
+        parser.add_argument('--list-depends',
+                            action="store_true",
+                            default=False,
+                            dest='list_depends',
                             help="return success if the package contains no dependencies that either are local or lack metadata")
         parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
                             help="package a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
@@ -114,6 +121,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
     def run(self, args):
         logger.debug("loading " + args.autobuild_filename)
+        if args.clean_only:
+            logger.info("packaging with --clean-only required")
         config = configfile.ConfigurationDescription(args.autobuild_filename)
 
         build_dirs = common.select_directories(args, config, "build", "packaging",

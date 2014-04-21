@@ -76,6 +76,13 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
         parser.add_argument('--id', '-i', dest='build_id', help='unique build identifier')
+        parser.add_argument('--clean-only',
+                            action="store_true",
+                            default=True if 'AUTOBUILD_CLEAN_ONLY' in os.environ else False,
+                            dest='clean_only',
+                            help="require that the build not depend on packages that are local or lack metadata\n"
+                            + "  may also be set by defining the environment variable AUTOBUILD_CLEAN_ONLY"
+                            )
         parser.add_argument('--install-dir',
                             default=None,
                             dest='select_dir',          # see common.select_directories()
@@ -91,6 +98,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         config = configfile.ConfigurationDescription(args.config_file)
         platform = common.get_current_platform()
         current_directory = os.getcwd()
+        if args.clean_only:
+            logger.info("building with --clean-only required")
         try:
             configure_first = not args.do_not_configure
             build_configurations = common.select_configurations(args, config, "building for")
@@ -125,23 +134,27 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 if result != 0:
                     raise BuildError("building default configuration returned %d" % result)
 
+                # Create the metadata record for inclusion in the package
+                metadata_file = configfile.MetadataDescription(path=metadata_file_name, create_quietly=True)
+                # include the package description from the configuration
+                metadata_file.package_description = config.package_description
+                metadata_file.package_description.platforms = None  # omit data on platform configurations
+                metadata_file.platform = platform
+                metadata_file.configuration = build_configuration.name
+                metadata_file.build_id = build_id
+                # get the record of any installed packages
+                logger.debug("installed files in " + args.installed_filename)
+                # load the list of already installed packages
+                installed_pathname = os.path.join(install_dir, args.installed_filename)
+                if os.path.exists(installed_pathname):
+                    metadata_file.add_dependencies(installed_pathname)
+                else:
+                    logger.debug("no installed files found (%s)" % installed_pathname)
+                if args.clean_only and metadata_file.dirty:
+                    raise BuildError("Build depends on local or legacy installables\n"
+                               +"  use 'autobuild install --list-dirty' to see problem packages\n"
+                               +"  rerun without --clean-only to allow building anyway")
                 if not args.dry_run:
-                    # Create the metadata record for inclusion in the package
-                    metadata_file = configfile.MetadataDescription(path=metadata_file_name, create_quietly=True)
-                    # include the package description from the configuration
-                    metadata_file.package_description = config.package_description
-                    metadata_file.package_description.platforms = None  # omit data on platform configurations
-                    metadata_file.platform = platform
-                    metadata_file.configuration = build_configuration.name
-                    metadata_file.build_id = build_id
-                    # get the record of any installed packages
-                    logger.debug("installed files in " + args.installed_filename)
-                    # load the list of already installed packages
-                    installed_pathname = os.path.join(install_dir, args.installed_filename)
-                    if os.path.exists(installed_pathname):
-                        metadata_file.add_dependencies(installed_pathname)
-                    else:
-                        logger.debug("no installed files found (%s)" % installed_pathname)
                     metadata_file.save()
         finally:
             os.chdir(current_directory)
