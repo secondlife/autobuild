@@ -360,6 +360,7 @@ class MetadataDescription(common.Serialized):
             self.__load(parsed_llsd)
             self.update(parsed_llsd)
 
+
     def __load(self, parsed_llsd):
         if (not 'version' in parsed_llsd) or (parsed_llsd['version'] != self.version) \
                 or (not 'type' in parsed_llsd) or (parsed_llsd['type'] != 'metadata'):
@@ -411,11 +412,6 @@ class PackageDescription(common.Serialized):
 
     The install_dir attribute is only used
     in PackageDescription objects stored in INSTALLED_CONFIG_FILE. 
-
-    **Usage of PackageDescription.platforms is also a little different for a
-    PackageDescription in INSTALLED_CONFIG_FILE's ConfigurationDescription
-    .installables. When a package isn't installed at all, it should have no
-    PackageDescription entry in INSTALLED_CONFIG_FILE. When it is installed:
     """
     
     def __init__(self, arg):
@@ -539,14 +535,6 @@ class ArchiveDescription(common.Serialized):
         # ArchiveDescription, no way is it equal.
         if not isinstance(other, ArchiveDescription):
             return False
-##         # Disabled because, if the hash_algorithm is as good as (say) MD5, we
-##         # can safely say that if the hash matches, we have the right tarball
-##         # -- even if we downloaded it from a different URL. That would be a
-##         # dubious assumption if we were using a weaker hash such as a 16-bit
-##         # checksum.
-##         # Whoops, the archive is found at a different URL now, have to re-download.
-##         if self.url != other.url:
-##             return False
         # If there's no hash_algorithm, assume "md5". That works for either
         # side: an ArchiveDescription with hash_algorithm None matches an
         # ArchiveDescription with hash_algorithm explicitly set to "md5".

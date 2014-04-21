@@ -165,7 +165,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     if metadata_file.dirty:
         if clean_only:
             raise PackageError("Package depends on local or legacy installables\n"
-                               +"  use 'autobuild install --list-dirty' to see problem packages"
+                               +"  use 'autobuild install --list-dirty' to see problem packages\n"
                                +"  rerun without --clean-only to allow packaging anyway")
         else:
             logger.warning("WARNING: package depends on local or legacy installables\n"

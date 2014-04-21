@@ -522,7 +522,18 @@ def _install_common(platform, package, package_file, install_dir, installed_file
     metadata_file_name = configfile.PACKAGE_METADATA_FILE
     metadata_file = extract_metadata_from_package(package_file, metadata_file_name)
     if not metadata_file:
-        raise InstallError("package '%s' does not contain metadata (%s)" % (package.name, metadata_file_name))
+        logger.warning("WARNING: Archive '%s' does not contain metadata; build will be marked as dirty" % package_file)
+        # Create a dummy metadata description for a package whose archive does not have one
+        metadata = configfile.MetadataDescription()
+        ignore_dir, from_name, ignore_ext = common.split_tarname(package_file)
+        metadata.build_id = from_name[3]
+        metadata.platform = platform
+        metadata.configuration = 'unknown'
+        metadata.archive = package['platforms'][platform]['archive']
+        metadata.package_description = package.copy()
+        metadata.package_description.version = from_name[1]
+        del metadata.package_description['platforms']
+        metadata.dirty = True
     else:
         metadata = configfile.MetadataDescription(stream=metadata_file)
 

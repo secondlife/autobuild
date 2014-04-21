@@ -449,11 +449,14 @@ class TestInstallArchive(BaseTest):
             autobuild_tool_install.AutobuildTool().run(self.options)
 
     def test_no_metadata(self):
-        # fail because the package lacks metadata (autobuild-package.xml)
+        # package lacks metadata (autobuild-package.xml), so the result should be dirty
         self.server_tarball = self.copyto(os.path.join(mydir, "data", "nometa-0.1-common-111.tar.bz2"), SERVER_DIR)
         self.options=FakeOptions(install_filename=self.localizedConfig("packages-failures.xml"),package=["nometa"])
-        with ExpectError("does not contain metadata", "Expected InstallError for missing metadata in package"):
+        autobuild_tool_install.AutobuildTool().run(self.options)
+        with CaptureStdout() as stream:
+            self.options.list_dirty=True
             autobuild_tool_install.AutobuildTool().run(self.options)
+        assert_equals(stream.getvalue(), 'Dirty Packages: nometa\n')
 
     def test_conflicting_file(self):
         # fail because the package contains a file installed by another package
@@ -465,11 +468,11 @@ class TestInstallArchive(BaseTest):
         self.options=FakeOptions(install_filename=self.localizedConfig("package-update-install.xml"),package=["conflict"])
         # then try to install the 'conflict' package locally (should fail)
         self.options.local_archives = [os.path.join(mydir, "data", "conflict-0.1-common-111.tar.bz2")]
-        with ExpectError("attempts to install files already installed", "Expected InstallError for missing metadata in local package"):
+        with ExpectError("attempts to install files already installed", "Expected InstallError for conflicting files"):
             autobuild_tool_install.AutobuildTool().run(self.options)
         # then try to install the 'conflict' package remotely (should fail)
         self.options.local_archives = []
-        with ExpectError("attempts to install files already installed", "Expected InstallError for missing metadata in package"):
+        with ExpectError("attempts to install files already installed", "Expected InstallError for conflicting files"):
             autobuild_tool_install.AutobuildTool().run(self.options)
 
     def test_conflicting_direct_depends(self):
