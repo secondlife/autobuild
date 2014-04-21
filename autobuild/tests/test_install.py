@@ -184,6 +184,7 @@ def setup():
                      list_archives=False,
                      list_installed=False,
                      list_licenses=False,
+                     list_installed_urls=False,
                      list_dirty=False,
                      check_license=True,
                      export_manifest=False,
