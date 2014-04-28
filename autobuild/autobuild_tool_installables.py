@@ -100,7 +100,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
 
 _PACKAGE_ATTRIBUTES = ['description', 'copyright', 'license', 'license_file', 'version']
-_ARCHIVE_ATTRIBUTES = ['hash', 'hash_algorithm', 'url']
+_ARCHIVE_ATTRIBUTES = ['hash', 'hash_algorithm'] # deliberately do not include 'url'
 
 
 def _dict_from_key_value_arguments(arguments):
@@ -132,8 +132,7 @@ def _get_new_metadata(config, args_name, args_archive, arguments):
         if _is_uri(archive_path):
             archive_url = archive_path
         else:
-            archive_path = config.absolute_path(archive_path)
-            archive_url = 'file://' + archive_path
+            archive_url = 'file://'+config.absolute_path(archive_path)
         archive_file = get_package_file(archive_url)
         metadata = get_metadata_from_package(archive_file)
         metadata.archive = configfile.ArchiveDescription()
@@ -167,7 +166,7 @@ def _get_new_metadata(config, args_name, args_archive, arguments):
            if archive_key in metadata.archive \
              and metadata.archive[archive_key] \
              and key_values[archive_key] != metadata.archive[archive_key]:
-               raise InstallablesError("command line %s does not match archive %s" \
+               raise InstallablesError("command line %s (%s) does not match archive %s (%s)" \
                                        % (archive_key, key_values[archive_key],
                                           archive_key, metadata.archive[archive_key]))
            else:

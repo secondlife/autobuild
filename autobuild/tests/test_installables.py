@@ -44,7 +44,7 @@ class TestInstallables(BaseTest, AutobuildBaselineCompare):
         self.datadir = os.path.join(os.path.dirname(__file__), "data")
         
     def test_add_edit_remove(self):
-        local_archive='file://'+os.path.join(self.datadir,'bogus-0.1-common-111.tar.bz2')
+        local_archive=os.path.join(self.datadir,'bogus-0.1-common-111.tar.bz2')
         data = ('license=tut', 'license_file=LICENSES/bogus.txt', 'platform=darwin',
             'url='+local_archive)
         installables.add(self.config, 'bogus', None, data)
@@ -55,7 +55,7 @@ class TestInstallables(BaseTest, AutobuildBaselineCompare):
         assert_in('darwin', package_description.platforms)
         platform_description = package_description.platforms['darwin']
         assert platform_description.archive is not None
-        self.assertEquals(platform_description.archive.url, local_archive)
+        self.assertEquals(platform_description.archive.url, 'file://'+local_archive)
         edit_data = ('license=Apache', 'platform=darwin', 'hash_algorithm=sha-1')
         installables.edit(self.config, 'bogus', None, edit_data)
         self.assertEquals(package_description.license, 'Apache')
