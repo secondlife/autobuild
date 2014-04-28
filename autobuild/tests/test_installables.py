@@ -55,7 +55,7 @@ class TestInstallables(BaseTest, AutobuildBaselineCompare):
         assert_in('darwin', package_description.platforms)
         platform_description = package_description.platforms['darwin']
         assert platform_description.archive is not None
-        self.assertEquals(platform_description.archive.url, 'file://'+local_archive)
+        assert platform_description.archive.url.endswith(local_archive)
         edit_data = ('license=Apache', 'platform=darwin', 'hash_algorithm=sha-1')
         installables.edit(self.config, 'bogus', None, edit_data)
         self.assertEquals(package_description.license, 'Apache')
