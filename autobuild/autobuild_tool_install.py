@@ -144,13 +144,12 @@ def handle_query_args(options, config_file, installed_file):
 
     return False
 
-def get_package_in_cache(package):
+def package_cache_path(package):
     """
     Return the filename of the package in the local cache.
     The file may not actually exist.
     """
-    filename = os.path.basename(package)
-    return os.path.join(common.get_install_cache_dir(), filename)
+    return os.path.join(common.get_install_cache_dir(), os.path.basename(package))
 
 def get_default_scp_command():
     """
@@ -159,69 +158,77 @@ def get_default_scp_command():
     scp = common.find_executable(['pscp', 'scp'], ['.exe'])
     return scp
 
-def download_package(package):
+def get_package_file(package_url, hash_algorithm=None, expected_hash=None):
     """
-    Download a package, specified as a URL, to the install cache.
-    If the package already exists in the cache then this is a no-op.
-    Returns False if there was a problem downloading the file.
+    Get the package file in the cache, downloading if needed.
+    Validate the cache file using the hash (removing it if needed)
+    Returns None if there was a problem downloading the file.
     """
+    cache_file = None
+    download_retries = 3
+    while cache_file is None and download_retries > 0:
+        cache_file = package_cache_path(package_url)
+        if os.path.exists(cache_file):
+            # some failures seem to leave empty cache files... delete and retry
+            if os.path.getsize(cache_file) == 0:
+                logger.exception("empty cache file found")
+                os.remove(cache_file)
+                cache_file = None
+            else:
+                logger.info("package in cache: %s" % cache_file)
+        else:
+            # download timeout so a download doesn't hang
+            download_timeout_seconds = 120
+            
+            # save the old timeout
+            old_download_timeout = socket.getdefaulttimeout()
 
-    # download timeout so a download doesn't hang
-    download_timeout_seconds = 120
-    download_timeout_retries = 5
+            # Set up the 'scp' handler
+            opener = urllib2.build_opener()
+            scp_or_http = __SCPOrHTTPHandler(get_default_scp_command())
+            opener.add_handler(scp_or_http)
+            urllib2.install_opener(opener)
 
-    # save the old timeout
-    old_download_timeout = socket.getdefaulttimeout()
-
-    # have we already downloaded this file to the cache?
-    cachename = get_package_in_cache(package)
-    if os.path.exists(cachename):
-        logger.info("package already in cache: %s" % cachename)
-        return True
-
-    # Set up the 'scp' handler
-    opener = urllib2.build_opener()
-    scp_or_http = __SCPOrHTTPHandler(get_default_scp_command())
-    opener.add_handler(scp_or_http)
-    urllib2.install_opener(opener)
-
-    # Attempt to download the remote file
-    logger.info("downloading %s to %s" % (package, cachename))
-    result = True
-
-    #
-    # Exception handling:
-    # 1. Isolate any exception from the setdefaulttimeout call.
-    # 2. urllib2.urlopen supposedly wraps all errors in URLErrror. Include socket.timeout just in case.
-    # 3. This code is here just to implement socket timeouts. The last general exception was already here so just leave it.
-    #
-
-    socket.setdefaulttimeout(download_timeout_seconds)
-
-    for tries in itertools.count(1):
-        try:
-            file(cachename, 'wb').write(urllib2.urlopen(package).read())
-            break
-        except (socket.timeout, urllib2.URLError), e:
-            if tries >= download_timeout_retries:
-                result = False
+            # Attempt to download the remote file
+            logger.info("downloading %s to %s" % (package_url, cache_file))
+            #
+            # Exception handling:
+            # 1. Isolate any exception from the setdefaulttimeout call.
+            # 2. urllib2.urlopen supposedly wraps all errors in URLErrror. Include socket.timeout just in case.
+            # 3. This code is here just to implement socket timeouts. The last general exception was already here so just leave it.
+            #
+            socket.setdefaulttimeout(download_timeout_seconds)
+            try:
+                file(cache_file, 'wb').write(urllib2.urlopen(package_url).read())
+                # some failures seem to leave empty cache files... delete and retry
+                if os.path.exists(cache_file) and os.path.getsize(cache_file) == 0:
+                    logger.exception("download failed to write cache file")
+                    os.remove(cache_file)
+                    cache_file = None
+            except (Exception, socket.timeout, urllib2.URLError) as e:
                 logger.exception("  error %s from class %s downloading package: %s"
-                                 % (e, e.__class__.__name__, package))
-                break
-            logger.info("  error %s from class %s downloading package: %s. Retrying."
-                        % (e, e.__class__.__name__, package))
-            continue
-        except Exception, e:
-            logger.exception("error %s from class %s downloading package: %s. "
-                             % (e, e.__class__.__name__, package))
-            result = False
-            break
+                                 % (e, e.__class__.__name__, package_url))
+                cache_file = None
+            socket.setdefaulttimeout(old_download_timeout)
+            scp_or_http.cleanup()
 
-    socket.setdefaulttimeout(old_download_timeout)
+        # error out if MD5 doesn't match
+        if cache_file is not None \
+          and hash_algorithm is not None \
+          and not hash_algorithms.verify_hash(hash_algorithm, cache_file, expected_hash):
+            logger.exception("Corrupt archive: %s mismatch for %s" % ((hash_algorithm or "md5"), cache_file))
+            os.remove(cache_file)
+            cache_file = None
 
-    # Clean up and return True if the download succeeded
-    scp_or_http.cleanup()
-    return result
+        if cache_file is None:
+            download_retries -= 1
+            if download_retries > 0:
+                logger.exception("Retrying download")
+
+    if cache_file is None:
+        raise InstallError("Failed to download package " + package_url)
+
+    return cache_file
 
 def _install_package(archive_path, install_dir, exclude=[]):
     """
@@ -266,14 +273,6 @@ def extract_metadata_from_package(archive_path, metadata_file_name):
         logger.error("package %s is not archived in a supported format" % archive_path)
     return metadata_file
 
-
-def remove_package(package):
-    """
-    Delete the downloaded package from the cache, if it exists there.
-    """
-    cachename = get_package_in_cache(package)
-    if os.path.exists(cachename):
-        os.remove(cachename)
 
 def pre_install_license_check(packages, config_file):
     """
@@ -470,32 +469,10 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
             return
         # otherwise, fall down to below and it will be uninstalled
     
-    # compute the cache name for this package from its url
-    cachefile = get_package_in_cache(archive.url)
+    # get the package file in the cache, downloading if needed, and verify the hash
+    # (raises InstallError on failure, so no check is needed)
+    cachefile = get_package_file(archive.url, hash_algorithm=(archive.hash_algorithm or None), expected_hash=archive.hash)
 
-    # download the package, if it's not already in our cache
-    download_required = False
-    if os.path.exists(cachefile):
-        if hash_algorithms.verify_hash(archive.hash_algorithm, cachefile, archive.hash):
-            logger.debug("found in cache: " + cachefile)
-        else:
-            download_required = True
-            remove_package(archive.url)
-    else:
-        download_required = True
-    
-    if download_required:
-        # download the package to the cache
-        logger.warn("downloading %s archive from %s" % (package.name, archive.url))
-        if not download_package(archive.url):
-            # Download failure has been observed to leave a zero-length file.
-            remove_package(archive.url)
-            raise InstallError("failed to download %s" % archive.url)
-    
-        # error out if MD5 doesn't match
-        if not hash_algorithms.verify_hash(archive.hash_algorithm, cachefile, archive.hash):
-            remove_package(archive.url)
-            raise InstallError("download error--%s mismatch for %s" % ((archive.hash_algorithm or "md5"), cachefile))
     metadata, files = _install_common(platform, package, cachefile, install_dir, installed_file, dry_run)
     if metadata:
         installed_package = package.copy()
@@ -513,6 +490,32 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     else:
         return False
 
+def get_metadata_from_package(package_file, package=None):
+    metadata_file_name = configfile.PACKAGE_METADATA_FILE
+    metadata_file = extract_metadata_from_package(package_file, metadata_file_name)
+    if not metadata_file:
+        logger.warning("WARNING: Archive '%s' does not contain metadata; build will be marked as dirty"
+                       % os.path.basename(package_file))
+        # Create a dummy metadata description for a package whose archive does not have one
+        metadata = configfile.MetadataDescription()
+        ignore_dir, from_name, ignore_ext = common.split_tarname(package_file)
+        metadata.platform = from_name[2]
+        metadata.build_id = from_name[3]
+        metadata.configuration = 'unknown'
+        if package is not None:
+            metadata.archive = package['platforms'][metadata.platform]['archive']
+            metadata.package_description = package.copy()
+        else:
+            metadata.archive = configfile.ArchiveDescription()
+            metadata.package_description = configfile.PackageDescription({})
+        metadata.package_description.version = from_name[1]
+        metadata.package_description.name = from_name[0]
+        del metadata.package_description['platforms']
+        metadata.dirty = True
+    else:
+        metadata = configfile.MetadataDescription(stream=metadata_file)
+    return metadata
+
 def _install_common(platform, package, package_file, install_dir, installed_file, dry_run):
     # dry run mode = download but don't install packages
     if dry_run:
@@ -523,23 +526,7 @@ def _install_common(platform, package, package_file, install_dir, installed_file
     # version.
     uninstall(package.name, installed_file)
 
-    metadata_file_name = configfile.PACKAGE_METADATA_FILE
-    metadata_file = extract_metadata_from_package(package_file, metadata_file_name)
-    if not metadata_file:
-        logger.warning("WARNING: Archive '%s' does not contain metadata; build will be marked as dirty" % package_file)
-        # Create a dummy metadata description for a package whose archive does not have one
-        metadata = configfile.MetadataDescription()
-        ignore_dir, from_name, ignore_ext = common.split_tarname(package_file)
-        metadata.build_id = from_name[3]
-        metadata.platform = platform
-        metadata.configuration = 'unknown'
-        metadata.archive = package['platforms'][platform]['archive']
-        metadata.package_description = package.copy()
-        metadata.package_description.version = from_name[1]
-        del metadata.package_description['platforms']
-        metadata.dirty = True
-    else:
-        metadata = configfile.MetadataDescription(stream=metadata_file)
+    metadata = get_metadata_from_package(package_file, package)
 
     # Check for transitive dependency conflicts
     dependancy_conflicts = transitive_search(metadata, installed_file)
@@ -554,7 +541,7 @@ def _install_common(platform, package, package_file, install_dir, installed_file
     logger.warn("installing %s from archive" % package.name)
     # extract the files from the package
     try:
-        files = _install_package(package_file, install_dir, exclude=[metadata_file_name])
+        files = _install_package(package_file, install_dir, exclude=[configfile.PACKAGE_METADATA_FILE])
     except common.AutobuildError as details:
         raise InstallError("Package '%s' attempts to install files already installed.\n%s" % (package.name, details))
     if files:

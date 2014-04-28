@@ -585,7 +585,7 @@ class TestDownloadFail(BaseTest):
 
     def test_bad(self):
         self.options=FakeOptions(install_filename=self.localizedConfig("packages-failures.xml"),package=["notthere"])
-        with ExpectError("failed to download", "expected for download failure"):
+        with ExpectError("Failed to download", "expected for download failure"):
             autobuild_tool_install.AutobuildTool().run(self.options)
 
 # -------------------------------------  -------------------------------------
@@ -597,7 +597,7 @@ class TestGarbledDownload(BaseTest):
 
     def test_bad(self):
         self.options=FakeOptions(install_filename=self.localizedConfig("packages-failures.xml"),package=["badhash"])
-        with ExpectError("md5", "expected InstallError for md5 mismatch"):
+        with ExpectError("Failed to download", "expected InstallError for md5 mismatch"):
             autobuild_tool_install.AutobuildTool().run(self.options)
         assert not os.path.exists(self.cache_name)
 

@@ -398,9 +398,4 @@ def establish_build_id(build_id_arg):
     os.environ['AUTOBUILD_BUILD_ID'] = build_id
     return build_id
 
-######################################################################
-#
-#   Private module classes and functions below here.
-#
-######################################################################
 

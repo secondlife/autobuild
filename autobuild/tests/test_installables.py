@@ -32,7 +32,7 @@ from autobuild import common
 from autobuild.autobuild_main import Autobuild
 from baseline_compare import AutobuildBaselineCompare
 import autobuild.autobuild_tool_installables as installables
-from basetest import BaseTest
+from basetest import BaseTest, assert_in
 
 
 class TestInstallables(BaseTest, AutobuildBaselineCompare):
@@ -41,62 +41,27 @@ class TestInstallables(BaseTest, AutobuildBaselineCompare):
         os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
         self.tmp_file = self.get_tmp_file(0)
         self.config = configfile.ConfigurationDescription(self.tmp_file)
+        self.datadir = os.path.join(os.path.dirname(__file__), "data")
         
     def test_add_edit_remove(self):
-        data = dict(license='GPL', license_file='LICENSES/test.txt', platform='darwin',
-            url='http://foo.bar.com/test.tar.bz2')
-        installables.add(self.config, 'test', data)
-        assert len(self.config.installables) == 1
-        package_description = self.config.installables['test']
-        assert package_description.name == 'test'
-        assert package_description.license == data['license']
-        assert data['platform'] in package_description.platforms
-        platform_description = package_description.platforms[data['platform']]
-        assert platform_description.archive is not None
-        assert platform_description.archive.url == data['url']
-        edit_data = dict(license='Apache', platform='darwin', hash_algorithm='sha-1')
-        installables.edit(self.config, 'test', edit_data)
-        assert package_description.license == edit_data['license']
-        assert platform_description.archive.hash_algorithm == edit_data['hash_algorithm']
-        installables.remove(self.config, 'test')
-        assert len(self.config.installables) == 0
-
-    def test_autobuild_installables(self):
-        self.config.save()
-        cmd = ["autobuild", "installables", "--config-file=" + self.tmp_file,
-               "--archive", "http://foo.bar.com/test-1.1-darwin-20101008.tar.bz2",
-               "add", "license=GPL",
-               "license_file=LICENSES/test.txt", "platform=darwin"]
-        self.autobuild(*cmd[1:])
-        self.config = configfile.ConfigurationDescription(self.tmp_file)
-        assert len(self.config.installables) == 1
-        package_description = self.config.installables['test']
-        assert package_description.name == 'test'
-        assert package_description.license == 'GPL'
-        assert 'darwin' in package_description.platforms
+        local_archive='file://'+os.path.join(self.datadir,'bogus-0.1-common-111.tar.bz2')
+        data = ('license=tut', 'license_file=LICENSES/bogus.txt', 'platform=darwin',
+            'url='+local_archive)
+        installables.add(self.config, 'bogus', None, data)
+        self.assertEquals(len(self.config.installables), 1)
+        package_description = self.config.installables['bogus']
+        self.assertEquals(package_description.name, 'bogus')
+        self.assertEquals(package_description.license, 'tut')
+        assert_in('darwin', package_description.platforms)
         platform_description = package_description.platforms['darwin']
         assert platform_description.archive is not None
-        assert platform_description.archive.url == 'http://foo.bar.com/test-1.1-darwin-20101008.tar.bz2'
-        cmd = ["autobuild", "installables", "--config-file=" + self.tmp_file,
-               "edit", "test", "license=Apache", "hash=74688495b0871ddafcc0ca1a6db57c34",
-               "url=http://foo.bar.com/test-1.1-darwin-20101008.tar.bz2",
-               "hash_algorithm=sha-1", "platform=darwin"]
-        self.autobuild(*cmd[1:])
-        self.config = configfile.ConfigurationDescription(self.tmp_file)
-        assert len(self.config.installables) == 1
-        package_description = self.config.installables['test']
-        platform_description = package_description.platforms['darwin']
-        assert package_description.license == 'Apache'
-        assert package_description.version == '1.1'
-        assert package_description.name == 'test'
-        assert platform_description.archive.hash_algorithm == 'sha-1'
-        assert platform_description.archive.hash == "74688495b0871ddafcc0ca1a6db57c34"
-        assert platform_description.archive.url == 'http://foo.bar.com/test-1.1-darwin-20101008.tar.bz2'
-        cmd = ["autobuild", "installables", "--config-file=" + self.tmp_file,
-               "remove", "test"]
-        self.autobuild(*cmd[1:])
-        self.config = configfile.ConfigurationDescription(self.tmp_file)
-        assert len(self.config.installables) == 0
+        self.assertEquals(platform_description.archive.url, local_archive)
+        edit_data = ('license=Apache', 'platform=darwin', 'hash_algorithm=sha-1')
+        installables.edit(self.config, 'bogus', None, edit_data)
+        self.assertEquals(package_description.license, 'Apache')
+        self.assertEquals(platform_description.archive.hash_algorithm, 'sha-1')
+        installables.remove(self.config, 'bogus')
+        self.assertEquals(len(self.config.installables), 0)
                     
     def tearDown(self):
         self.cleanup_tmp_file()
