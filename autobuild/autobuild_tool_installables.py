@@ -149,6 +149,7 @@ def _get_new_metadata(config, args_name, args_archive, arguments):
         metadata = configfile.MetadataDescription(create_quietly=True)
         metadata.package_description = configfile.PackageDescription(dict(name=args_name))
         metadata.archive = configfile.ArchiveDescription()
+        metadata.archive.url = archive_path
 
     package_name = _check_name(args_name, key_values, metadata)
     if metadata.package_description['name'] is None:

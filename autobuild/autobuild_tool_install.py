@@ -205,9 +205,9 @@ def get_package_file(package_url, hash_algorithm=None, expected_hash=None):
                     logger.exception("download failed to write cache file")
                     os.remove(cache_file)
                     cache_file = None
-            except (Exception, socket.timeout, urllib2.URLError) as e:
-                logger.exception("  error %s from class %s downloading package: %s"
-                                 % (e, e.__class__.__name__, package_url))
+            except (Exception, socket.timeout, urllib2.URLError):
+                logger.warning("  error downloading package: %s"
+                                 % package_url)
                 cache_file = None
             socket.setdefaulttimeout(old_download_timeout)
             scp_or_http.cleanup()
