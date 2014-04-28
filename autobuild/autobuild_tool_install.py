@@ -225,9 +225,6 @@ def get_package_file(package_url, hash_algorithm=None, expected_hash=None):
             if download_retries > 0:
                 logger.exception("Retrying download")
 
-    if cache_file is None:
-        raise InstallError("Failed to download package " + package_url)
-
     return cache_file
 
 def _install_package(archive_path, install_dir, exclude=[]):
@@ -472,6 +469,8 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
     # get the package file in the cache, downloading if needed, and verify the hash
     # (raises InstallError on failure, so no check is needed)
     cachefile = get_package_file(archive.url, hash_algorithm=(archive.hash_algorithm or None), expected_hash=archive.hash)
+    if cachefile is None:
+        raise InstallError("Failed to download package" + archive.url)
 
     metadata, files = _install_common(platform, package, cachefile, install_dir, installed_file, dry_run)
     if metadata:

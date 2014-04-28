@@ -128,20 +128,24 @@ def _get_new_metadata(config, args_name, args_archive, arguments):
         logger.warning("installable location not specified")
         archive_path = None
 
+    archive_file = None
     if archive_path:
         if _is_uri(archive_path):
             archive_url = archive_path
         else:
             archive_url = 'file://'+config.absolute_path(archive_path)
         archive_file = get_package_file(archive_url)
-        metadata = get_metadata_from_package(archive_file)
-        metadata.archive = configfile.ArchiveDescription()
-        metadata.archive.url = archive_url
-        if 'hash' not in key_values:
-            logger.warning("No hash specified, computing from %s" % archive_file)
-            metadata.archive['hash'] = common.compute_md5(archive_file)
-            metadata.archive['hash_algorithm'] = 'md5'
-    else:
+        if archive_file:
+            metadata = get_metadata_from_package(archive_file)
+            metadata.archive = configfile.ArchiveDescription()
+            metadata.archive.url = archive_url
+            if 'hash' not in key_values:
+                logger.warning("No hash specified, computing from %s" % archive_file)
+                metadata.archive['hash'] = common.compute_md5(archive_file)
+                metadata.archive['hash_algorithm'] = 'md5'
+
+    if archive_file is None:
+        logger.warning("Archive can not be downloaded; some integrity checks may not work")
         metadata = configfile.MetadataDescription(create_quietly=True)
         metadata.package_description = configfile.PackageDescription(dict(name=args_name))
         metadata.archive = configfile.ArchiveDescription()
