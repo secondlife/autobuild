@@ -86,7 +86,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help='override the working platform')
         parser.add_argument('--skip-license-check',
                             action='store_false',
-                            default=True,
+                            default=False,
                             dest='check_license',
                             help="(deprecated - now has no effect)")
         parser.add_argument('--archive-format',
@@ -123,6 +123,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         logger.debug("loading " + args.autobuild_filename)
         if args.clean_only:
             logger.info("packaging with --clean-only required")
+        if args.check_license:
+            logger.warning("The --skip-license-check option is deprecated; it now has no effect")
         config = configfile.ConfigurationDescription(args.autobuild_filename)
 
         build_dirs = common.select_directories(args, config, "build", "packaging",
