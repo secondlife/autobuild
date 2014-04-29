@@ -382,7 +382,7 @@ class MetadataDescription(common.Serialized):
         for (name, package) in dependencies.dependencies.iteritems():
             del package['install_dir']
             del package['manifest']
-            if package['dirty']:
+            if 'dirty' in package and package['dirty']:
                 self.dirty=True
             self.dependencies[name] = package
 
