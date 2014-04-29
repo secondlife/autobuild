@@ -100,7 +100,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
 
 _PACKAGE_ATTRIBUTES = ['description', 'copyright', 'license', 'license_file', 'version']
-_ARCHIVE_ATTRIBUTES = ['hash', 'hash_algorithm'] # deliberately do not include 'url'
+_ARCHIVE_ATTRIBUTES = ['hash', 'hash_algorithm', 'url']
 
 
 def _dict_from_key_value_arguments(arguments):
@@ -123,11 +123,9 @@ def _get_new_metadata(config, args_name, args_archive, arguments):
     if args_archive:
         archive_path = args_archive.strip()
     elif 'url' in key_values:
-        archive_path = key_values['url']
+        archive_path = key_values.pop('url')
     else:
-        logger.warning("installable location not specified")
         archive_path = None
-
     archive_file = None
     if archive_path:
         if _is_uri(archive_path):
@@ -145,7 +143,7 @@ def _get_new_metadata(config, args_name, args_archive, arguments):
                 metadata.archive['hash_algorithm'] = 'md5'
 
     if archive_file is None:
-        logger.warning("Archive can not be downloaded; some integrity checks may not work")
+        logger.warning("Archive not downloaded; some integrity checks may not work")
         metadata = configfile.MetadataDescription(create_quietly=True)
         metadata.package_description = configfile.PackageDescription(dict(name=args_name))
         metadata.archive = configfile.ArchiveDescription()
@@ -168,14 +166,14 @@ def _get_new_metadata(config, args_name, args_archive, arguments):
         
     for archive_key in _ARCHIVE_ATTRIBUTES:
         if archive_key in key_values:
-           if archive_key in metadata.archive \
-             and metadata.archive[archive_key] \
-             and key_values[archive_key] != metadata.archive[archive_key]:
-               raise InstallablesError("command line %s (%s) does not match archive %s (%s)" \
-                                       % (archive_key, key_values[archive_key],
-                                          archive_key, metadata.archive[archive_key]))
-           else:
-               metadata.archive[archive_key] = key_values.pop(archive_key)
+            if archive_key in metadata.archive \
+              and metadata.archive[archive_key] \
+              and key_values[archive_key] != metadata.archive[archive_key]:
+                raise InstallablesError("command line %s (%s) does not match archive %s (%s)" \
+                                        % (archive_key, key_values[archive_key],
+                                           archive_key, metadata.archive[archive_key]))
+            else:
+                metadata.archive[archive_key] = key_values.pop(archive_key)
 
     if 'platform' in key_values:
         if 'platform' in metadata \
@@ -237,12 +235,12 @@ def edit(config, args_name, args_archive, arguments):
     else:
         installed_platform_description = configfile.PlatformDescription()
         installed_platform_description.name = platform_name
-        installed_package_description.platforms[platform_name] = platform_description
+        installed_package_description.platforms[platform_name] = platform_description.copy()
 
     for element in _ARCHIVE_ATTRIBUTES:
         if element in metadata.archive \
           and metadata.archive[element] is not None:
-          installed_package_description.platforms[platform_name].archive[element] = metadata.archive[element]
+            installed_package_description.platforms[platform_name].archive[element] = metadata.archive[element]
 
     
 

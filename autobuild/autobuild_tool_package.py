@@ -184,6 +184,8 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     if package_description.license_file:
         if package_description.license_file not in files:
             files.append(package_description.license_file)
+    if 'source_directory' in metadata_file.package_description:
+        del metadata_file.package_description['source_directory']
     metadata_file.manifest = files
     if metadata_file.build_id:
         build_id = metadata_file.build_id
