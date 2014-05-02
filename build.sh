@@ -29,6 +29,7 @@ then
     virtualenv py_install_wrapper
     . py_install_wrapper/bin/activate
     pip install nose
+    pip install llbase
     end_section "VirtualEnv install nose"
 fi
 
