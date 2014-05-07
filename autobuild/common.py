@@ -248,6 +248,9 @@ def split_tarname(pathname):
     # Detect that and recombine.
     if len(fileparts) > 4:
         fileparts[1:-2] = ['-'.join(fileparts[1:-2])]
+    if len(fileparts) < 4:
+        raise AutobuildError("Incompatible archive name '%s' lacks some components" \
+                             % filename)
     return dir, fileparts, ext
 
 
