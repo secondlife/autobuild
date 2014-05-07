@@ -497,11 +497,16 @@ def get_metadata_from_package(package_file, package=None):
                        % os.path.basename(package_file))
         # Create a dummy metadata description for a package whose archive does not have one
         metadata = configfile.MetadataDescription()
+        # split_tarname() returns a sequence like:
+        # ("/some/path", ["boost", "1.39.0", "darwin", "20100222a"], ".tar.bz2")
         ignore_dir, from_name, ignore_ext = common.split_tarname(package_file)
         metadata.platform = from_name[2]
         metadata.build_id = from_name[3]
         metadata.configuration = 'unknown'
         if package is not None:
+            if from_name[0] != package.name:
+                raise InstallError("configured package name '%s' does not match name from archive '%s'" \
+                                   % (package.name, from_name[0]))
             metadata.archive = package['platforms'][metadata.platform]['archive']
             metadata.package_description = package.copy()
         else:
