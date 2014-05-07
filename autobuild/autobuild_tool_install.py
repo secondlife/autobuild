@@ -461,9 +461,10 @@ def _install_binary(package, platform, config_file, install_dir, installed_file,
   To allow new installation, run 
   autobuild uninstall %s""" % (package_name, installed['archive']['url'], package_name))
             return
-        elif installed['archive'] == archive:
-            logger.debug("%s is already installed")
-            return
+        else:
+            if installed['archive'] == archive:
+                logger.debug("%s is already installed" % package_name)
+                return
         # otherwise, fall down to below and it will be uninstalled
     
     # get the package file in the cache, downloading if needed, and verify the hash

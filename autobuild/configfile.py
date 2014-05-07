@@ -533,16 +533,16 @@ class ArchiveDescription(common.Serialized):
         """
         # If we're comparing to something that's not even an
         # ArchiveDescription, no way is it equal.
-        if not isinstance(other, ArchiveDescription):
+        if 'url' not in other or 'hash' not in other:
             return False
         # If there's no hash_algorithm, assume "md5". That works for either
         # side: an ArchiveDescription with hash_algorithm None matches an
         # ArchiveDescription with hash_algorithm explicitly set to "md5".
-        if (self.hash_algorithm or "md5") != (other.hash_algorithm or "md5"):
+        if (self.hash_algorithm or "md5") != (('hash_algorithm' in other and other['hash_algorithm']) or "md5"):
             return False
         # It's only reasonable to compare hash values if the hash_algorithm
         # matches.
-        return self.hash == other.hash
+        return self.hash == other['hash'] and self.url == other['url']
 
     def __ne__(self, other):
         # Use the same logic for both == and != operators.
