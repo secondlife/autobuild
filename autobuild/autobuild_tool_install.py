@@ -673,7 +673,7 @@ def uninstall(package_name, installed_config):
     # subdirectories will appear before their containing directory.
     for dn in sorted(directories, cmp=lambda x,y: cmp(len(y),len(x))):
         dir_path = os.path.join(package.install_dir, dn)
-        if not os.listdir(dir_path):
+        if os.path.exists(dir_path) and not os.listdir(dir_path):
             os.rmdir(dir_path)
             logger.debug("    removed " + dn)
 
