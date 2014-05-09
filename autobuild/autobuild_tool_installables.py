@@ -222,8 +222,10 @@ def edit(config, args_name, args_archive, arguments):
 
     if package_name not in config.installables:
         raise InstallablesError('package %s does not exist, use add instead' % installable_name)
-
-    installed_package_description = config.installables[args_name]
+    if args_name and args_name != package_name:
+        raise InstallablesError('name argument (%s) does not match package name (%s)' % (args_name, package_name))
+        
+    installed_package_description = config.installables[package_name]
     for element in _PACKAGE_ATTRIBUTES:
         if element in metadata.package_description \
           and  metadata.package_description[element] is not None:
