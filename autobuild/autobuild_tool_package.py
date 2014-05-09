@@ -50,6 +50,7 @@ import getpass
 import glob
 import subprocess
 import urllib2
+import re
 from zipfile import ZipFile, ZIP_DEFLATED
 
 import common
@@ -63,7 +64,7 @@ logger = logging.getLogger('autobuild.package')
 #
 # Talking to remote servers
 #
-
+boolopt=re.compile("true$",re.I)
 
 class AutobuildTool(autobuild_base.AutobuildBase):
     def get_details(self):
@@ -104,7 +105,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="package all configurations")
         parser.add_argument('--clean-only',
                             action="store_true",
-                            default=True if 'AUTOBUILD_CLEAN_ONLY' in os.environ else False,
+                            default=True if 'AUTOBUILD_CLEAN_ONLY' in os.environ and boolopt.match(os.environ['AUTOBUILD_CLEAN_ONLY']) else False,
                             dest='clean_only',
                             help="require that the package not depend on installables that are local or lack metadata\n"
                             + "  may also be set by defining the environment variable AUTOBUILD_CLEAN_ONLY"

@@ -26,13 +26,14 @@ Builds the source for a package.
 """
 
 import os
+import re
+import logging
+import copy
 
 # autobuild modules:
 import common
-import copy
 import autobuild_base
 import configfile
-import logging
 from common import AutobuildError
 from autobuild_tool_configure import _configure_a_configuration
 
@@ -48,6 +49,7 @@ os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.normpath(
 class BuildError(AutobuildError):
     pass
     
+boolopt=re.compile("true$",re.I)
 
 class AutobuildTool(autobuild_base.AutobuildBase):
     def get_details(self):
@@ -78,7 +80,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         parser.add_argument('--id', '-i', dest='build_id', help='unique build identifier')
         parser.add_argument('--clean-only',
                             action="store_true",
-                            default=True if 'AUTOBUILD_CLEAN_ONLY' in os.environ else False,
+                            default=True if 'AUTOBUILD_CLEAN_ONLY' in os.environ and boolopt.match(os.environ['AUTOBUILD_CLEAN_ONLY']) else False,
                             dest='clean_only',
                             help="require that the build not depend on packages that are local or lack metadata\n"
                             + "  may also be set by defining the environment variable AUTOBUILD_CLEAN_ONLY"
