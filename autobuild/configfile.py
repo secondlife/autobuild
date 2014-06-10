@@ -384,6 +384,7 @@ class MetadataDescription(common.Serialized):
             del package['manifest']
             if 'dirty' in package and package['dirty']:
                 self.dirty=True
+            logger.debug("adding '%s':\n%s"%(name, pprint.pformat(package)))
             self.dependencies[name] = package
 
     def save(self):

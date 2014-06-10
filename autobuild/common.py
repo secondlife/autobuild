@@ -383,7 +383,7 @@ def establish_build_id(build_id_arg):
     """determine and return a build_id based on (in preference order):
        the --id argument, 
        the AUTOBUILD_BUILD_ID environment variable,
-       the date
+       the date/time
     If we reach the date fallback, a warning is logged
     In addition to returning the id value, this sets the AUTOBUILD_BUILD_ID environment
     variable for any descendent processes so that recursive invocations will have access
@@ -396,8 +396,8 @@ def establish_build_id(build_id_arg):
     elif 'AUTOBUILD_BUILD_ID' in os.environ:
         build_id = os.environ['AUTOBUILD_BUILD_ID']
     else:
-        build_id = time.strftime("%Y%m%d")
-        logger.warn("Warning: no --id argument or AUTOBUILD_BUILD_ID environment variable specified\nUsing the date (%s), which may not be unique" % build_id)
+        build_id = time.strftime("%Y%m%d%H%M")
+        logger.warn("Warning: no --id argument or AUTOBUILD_BUILD_ID environment variable specified\nUsing the date and time (%s), which may not be unique" % build_id)
     os.environ['AUTOBUILD_BUILD_ID'] = build_id
     return build_id
 
