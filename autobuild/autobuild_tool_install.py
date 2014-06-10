@@ -142,7 +142,24 @@ def handle_query_args(options, config_file, installed_file):
         print '\n'.join(archives)
         return True
 
+    if options.query_installed_file:
+        print_package_for(options.query_installed_file, installed_file)
+        return True
+    
     return False
+
+def print_package_for(target_file, installed_file):
+    found_package=None
+    for package in installed_file.dependencies.itervalues():
+        if 'manifest' in package and target_file in package['manifest']:
+            found_package = package
+            break
+            
+    if found_package:
+        print "file '%s' installed by package '%s'" \
+        % (target_file, package['package_description']['name'])
+    else:
+        print "file '%s' not found in installed files" % target_file
 
 def package_cache_path(package):
     """
@@ -536,7 +553,7 @@ def _install_common(platform, package, package_file, install_dir, installed_file
     # Check for transitive dependency conflicts
     dependancy_conflicts = transitive_search(metadata, installed_file)
     if dependancy_conflicts:
-        raise InstallError("Package '%s' not installed due to conflicts\n%s" % (package.name, dependancy_conflicts))
+        raise InstallError("Package '%s' not installed due to conflicts\n  If you have updated the configuration for any of these packages,\n  try uninstalling them and rerunning\n%s" % (package.name, dependancy_conflicts))
 
     # check that the install dir exists...
     if not os.path.exists(install_dir):
@@ -548,7 +565,7 @@ def _install_common(platform, package, package_file, install_dir, installed_file
     try:
         files = _install_package(package_file, install_dir, exclude=[configfile.PACKAGE_METADATA_FILE])
     except common.AutobuildError as details:
-        raise InstallError("Package '%s' attempts to install files already installed.\n%s" % (package.name, details))
+        raise InstallError("Package '%s' attempts to install files already installed.\n%s\n  use --what-installed <file> to find the package that installed a conflict" % (package.name, details))
     if files:
         for f in files:
             logger.debug("extracted: " + f)
@@ -779,6 +796,11 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             default=False,
             dest='list_installed',
             help="List the installed package names and exit.")
+        parser.add_argument(
+            '--what-installed',
+            default=None,
+            dest='query_installed_file',
+            help="Identify the package that installed .")
         parser.add_argument(
             '--skip-license-check',
             action='store_false',
