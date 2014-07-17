@@ -104,9 +104,10 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             config_filename = args.config_filename
             config = configfile.ConfigurationDescription(config_filename)
             metadata_file = os.path.join(config.get_build_directory(args.configuration, args.platform), configfile.PACKAGE_METADATA_FILE);
-            metadata = configfile.MetadataDescription(path=metadata_file)
-            if not metadata:
+            if not os.path.exists(metadata_file):
                 raise GraphError("No metadata found in current directory")
+            else:
+                metadata = configfile.MetadataDescription(path=metadata_file)
         elif args.source_file.endswith(".xml"):
             # the specified file is an xml file; assume it is a metadata file
             logger.info("searching for metadata in autobuild package metadata file %s" % args.source_file)
@@ -123,7 +124,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                     raise GraphError("No metadata found in archive '%s'" % args.file)
             
         if metadata:
-            graph=pydot.Dot(label=metadata.package_description['name']+' dependencies', graph_type='digraph')
+            graph=pydot.Dot(label=metadata['package_description']['name']+' dependencies', graph_type='digraph')
             graph.set('overlap','false')
             graph.set('splines','true')
             graph.set('scale','2')
@@ -161,7 +162,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             
             logger.debug("dot:\n"+graph.to_string())
 
-            graph_file=os.path.join(tempfile.gettempdir(),metadata.package_description['name'] + "_graph_" + args.graph_type + '.png')
+            graph_file=os.path.join(tempfile.gettempdir(),metadata['package_description']['name'] + "_graph_" + args.graph_type + '.png')
 
             logger.info("writing %s" % graph_file)
             graph.write_png(graph_file, prog=args.graph_type)
