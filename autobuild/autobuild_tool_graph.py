@@ -94,18 +94,43 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             choices=["dot","circo","neato","twopi","fdp","sfdp"],
                             default='dot',
                             help='which graphviz tool should be used to draw the graph')
+        parser.add_argument('--install-dir',
+                            default=None,
+                            dest='select_dir',          # see common.select_directories()
+                            help='Where installed files were unpacked.')
+        parser.add_argument('--installed-manifest',
+                            default=configfile.INSTALLED_CONFIG_FILE,
+                            dest='installed_filename',
+                            help='The file used to record what is installed.')
 
     def run(self, args):
         metadata = None
+        incomplete = ''
         if args.source_file is None:
             # no file specified, so assume we are in a build tree and find the 
             # metadata in the current build directory
             logger.info("searching for metadata in the current build tree")
             config_filename = args.config_filename
             config = configfile.ConfigurationDescription(config_filename)
-            metadata_file = os.path.join(config.get_build_directory(args.configuration, args.platform), configfile.PACKAGE_METADATA_FILE);
+            metadata_file = os.path.join(config.get_build_directory(args.configuration, args.platform), configfile.PACKAGE_METADATA_FILE)
             if not os.path.exists(metadata_file):
-                raise GraphError("No metadata found in current directory")
+                logger.warning("No complete metadata file found; attempting to use partial data from installed files")
+                # get the absolute path to the installed-packages.xml file
+                args.all = False
+                args.configurations=(args.configuration)
+                install_dirs = common.select_directories(args, config, "install", "getting installed packages",
+                                                         lambda cnf:
+                                                         os.path.join(config.get_build_directory(cnf, args.platform), "packages"))
+                installed_pathname = os.path.join(os.path.realpath(install_dirs[0]), args.installed_filename)
+                if os.path.exists(installed_pathname):
+                    # dummy up a metadata object, but don't create the file
+                    metadata=configfile.MetadataDescription()
+                    # use the package description from the configuration
+                    metadata.package_description = config.package_description
+                    metadata.add_dependencies(installed_pathname)
+                    incomplete = ' (possibly incomplete)'
+                else:
+                    raise GraphError("No metadata found in current directory")
             else:
                 metadata = configfile.MetadataDescription(path=metadata_file)
         elif args.source_file.endswith(".xml"):
@@ -124,7 +149,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                     raise GraphError("No metadata found in archive '%s'" % args.file)
             
         if metadata:
-            graph=pydot.Dot(label=metadata['package_description']['name']+' dependencies', graph_type='digraph')
+            graph=pydot.Dot(label=metadata['package_description']['name']+incomplete+' dependencies', graph_type='digraph')
             graph.set('overlap','false')
             graph.set('splines','true')
             graph.set('scale','2')
@@ -141,7 +166,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 if pkg_node is None:
                     logger.debug(" graph adding package %s" % name)
                     pkg_node=pydot.Node(name)
-                    if pkg['dirty'] == 'True' or pkg['dirty'] == True:
+                    if 'dirty' in pkg and ( pkg['dirty'] == 'True' or pkg['dirty'] == True ):
+                        logger.debug(" setting %s dirty: %s" % (name, ("missing" if 'dirty' not in pkg else "explicit")))
                         pkg_node.set_shape('ellipse')
                         pkg_node.set_style('dashed')
                     graph.add_node(pkg_node)
@@ -151,7 +177,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                         dep_node=add_depends(graph, dep_pkg)
                         logger.debug(" graph adding dependency %s -> %s" % (dep_name, name))
                         edge=pydot.Edge(dep_name, name)
-                        if dep_pkg['dirty'] == 'True' or dep_pkg['dirty'] == True:
+                        if 'dirty' not in dep_pkg or dep_pkg['dirty'] == 'True' or dep_pkg['dirty'] == True:
                             edge.set_style('dashed')
                         graph.add_edge(edge)
                 return pkg_node
