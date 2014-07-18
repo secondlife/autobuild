@@ -159,10 +159,13 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
             graph.set_node_defaults(shape='box')
 
+            seen=dict()
             def add_depends(graph, pkg):
                 name=pkg['package_description']['name']
-
-                pkg_node = graph.obj_dict['nodes'][name] if 'name' in graph.obj_dict['nodes'] else None
+                try:
+                    pkg_node = graph.get_node(name)[0]
+                except IndexError:
+                    pkg_node = None
                 if pkg_node is None:
                     logger.debug(" graph adding package %s" % name)
                     pkg_node=pydot.Node(name)
@@ -171,15 +174,15 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                         pkg_node.set_shape('ellipse')
                         pkg_node.set_style('dashed')
                     graph.add_node(pkg_node)
-                if 'dependencies' in pkg:
-                    for dep_pkg in pkg['dependencies'].itervalues():
-                        dep_name=dep_pkg['package_description']['name']
-                        dep_node=add_depends(graph, dep_pkg)
-                        logger.debug(" graph adding dependency %s -> %s" % (dep_name, name))
-                        edge=pydot.Edge(dep_name, name)
-                        if 'dirty' not in dep_pkg or dep_pkg['dirty'] == 'True' or dep_pkg['dirty'] == True:
-                            edge.set_style('dashed')
-                        graph.add_edge(edge)
+                    if 'dependencies' in pkg:
+                        for dep_pkg in pkg['dependencies'].itervalues():
+                            dep_name=dep_pkg['package_description']['name']
+                            dep_node=add_depends(graph, dep_pkg)
+                            logger.debug(" graph adding dependency %s -> %s" % (dep_name, name))
+                            edge=pydot.Edge(dep_name, name)
+                            if 'dirty' not in dep_pkg or dep_pkg['dirty'] == 'True' or dep_pkg['dirty'] == True:
+                                edge.set_style('dashed')
+                            graph.add_edge(edge)
                 return pkg_node
 
             root=add_depends(graph, metadata)
