@@ -389,11 +389,10 @@ def post_install_license_check(packages, config_file, installed_file):
         package = config_file.installables[pname]
         license_file = package.license_file
         # if a URL is given, assuming it's valid for now
-        if license_file.startswith('http://'):
-            continue
-        # otherwise, assert that the license file is in the archive
-        if not os.path.exists(os.path.join(installed_file.dependencies[package.name].install_dir,
-                                           license_file)):
+        if license_file is None \
+          or not (license_file.startswith('http://') \
+                  or os.path.exists(os.path.join(installed_file.dependencies[package.name].install_dir,
+                                               license_file))):
             raise InstallError("nonexistent license_file for %s: %s" % (pname, license_file))
 
 
