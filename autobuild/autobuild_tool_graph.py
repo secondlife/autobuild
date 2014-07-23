@@ -180,7 +180,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             dep_node = add_depends(graph, dep_pkg)
                             logger.debug(" graph adding dependency %s -> %s" % (dep_name, name))
                             edge = pydot.Edge(dep_name, name)
-                            if 'dirty' not in dep_pkg or dep_pkg['dirty'] == 'True' or dep_pkg['dirty'] is True:
+                            if 'dirty' in dep_pkg and (dep_pkg['dirty'] == 'True' or dep_pkg['dirty'] is True):
                                 edge.set_style('dashed')
                             graph.add_edge(edge)
                 return pkg_node
