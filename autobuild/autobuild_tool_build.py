@@ -92,13 +92,19 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         parser.add_argument('--installed-manifest',
                             default=configfile.INSTALLED_CONFIG_FILE,
                             dest='installed_filename',
-                            help='The file used to record what is installed.')
+                            help='The file used to record what is installed.') 
+        parser.add_argument('-p', '--platform',
+                            default=common.get_current_platform(),
+                            dest='platform',
+                            help='may only be the current platform or "common" (useful for source packages)')
 
     def run(self, args):
         build_id = common.establish_build_id(args.build_id)  # sets id (even if not specified),
                                                              # and stores in the AUTOBUILD_BUILD_ID environment variable
         config = configfile.ConfigurationDescription(args.config_file)
-        platform = common.get_current_platform()
+        platform = args.platform
+        if not ( platform == common.get_current_platform() or platform == "common"):
+            raise BuildError("invalid platform '%s'; must be either '%s' or 'common'" % (platform, common.get_current_platform()))
         current_directory = os.getcwd()
         if args.clean_only:
             logger.info("building with --clean-only required")
@@ -117,7 +123,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             install_dir = os.path.realpath(install_dirs[0])
 
             for build_configuration in build_configurations:
-                build_directory = config.make_build_directory(build_configuration, args.dry_run)
+                build_directory = config.make_build_directory(build_configuration, platform=platform, dry_run=args.dry_run)
                 logger.debug("building in %s" % build_directory)
                 if not args.dry_run:
                     os.chdir(build_directory)
@@ -126,8 +132,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                                                         args.build_extra_arguments, args.dry_run)
                     if result != 0:
                         raise BuildError("configuring default configuration returned %d" % result)
-                result = _build_a_configuration(config, build_configuration,
-                                                args.build_extra_arguments, args.dry_run)
+                result = _build_a_configuration(config, build_configuration, platform_name=platform,
+                                                extra_arguments=args.build_extra_arguments, dry_run=args.dry_run)
                 # always make clean copy of the build metadata regardless of result
                 metadata_file_name = configfile.PACKAGE_METADATA_FILE
                 logger.debug("metadata file name: %s" % metadata_file_name)
@@ -162,26 +168,10 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             os.chdir(current_directory)
 
 
-def build(config, build_configuration_name, extra_arguments=[]):
-    """
-    Execute the platform build command for the named build configuration.
-
-    A special 'common' platform may be defined which can provide parent commands for the build
-    command using the inheritence mechanism described in the 'executable' package.  The
-    working platform's build configuration will be matched to the build configuration in common with
-    the same name if it exists.  To be built, a build configuration must be defined in the working
-    platform though it does not need to contain any actual commands if it is desired that the common
-    commands be used.  Build configurations defined in the common platform but not the working
-    platform are not built.
-    """
-    build_configuration = config.get_build_configuration(build_configuration_name)
-    return _build_a_configuration(config, build_configuration, extra_arguments)
-
-
-def _build_a_configuration(config, build_configuration, extra_arguments, dry_run=False):
+def _build_a_configuration(config, build_configuration, platform_name=common.get_current_platform(), extra_arguments=[], dry_run=False):
     try:
         common_build_configuration = \
-            config.get_build_configuration(build_configuration.name, 'common')
+            config.get_build_configuration(build_configuration.name, platform_name='common')
         parent_build = common_build_configuration.build
     except Exception, e:
         if logger.getEffectiveLevel() <= logging.DEBUG:

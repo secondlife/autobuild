@@ -64,10 +64,6 @@ class TestBuild(basetest.BaseTest, AutobuildBaselineCompare):
         logger.debug("config: %s" % pprint.pprint(self.config))
         self.config.save()
 
-    def test_build(self):
-        result = build.build(self.config, 'Release')
-        assert result == 0
-
     def test_autobuild_build_default(self):
         self.autobuild('build', '--no-configure', '--config-file=' + self.tmp_file, '--id=123456')
         self.autobuild('build', '--config-file=' + self.tmp_file, '--id=123456', '--', '--foo', '-b')

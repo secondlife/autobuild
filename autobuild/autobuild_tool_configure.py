@@ -58,6 +58,10 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="build a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
+        parser.add_argument('-p', '--platform',
+                            default=common.get_current_platform(),
+                            dest='platform',
+                            help='may only be the current platform or "common" (useful for source packages)')
         parser.add_argument('--all', '-a', dest='all', default=False, action="store_true",
                             help="build all configurations")
         parser.add_argument('--id', '-i', dest='build_id', help='unique build identifier')
@@ -72,7 +76,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         try:
             build_configurations = common.select_configurations(args, config, "configuring for")
             for build_configuration in build_configurations:
-                build_directory = config.make_build_directory(build_configuration, args.dry_run)
+                build_directory = config.make_build_directory(build_configuration, platform=args.platform, dry_run=args.dry_run)
                 logger.debug("configuring in %s" % build_directory)
                 if not args.dry_run:
                     os.chdir(build_directory)
@@ -102,7 +106,7 @@ def configure(config, build_configuration_name, extra_arguments=[]):
 def _configure_a_configuration(config, build_configuration, extra_arguments, dry_run=False):
     try:
         common_build_configuration = \
-            config.get_build_configuration(build_configuration.name, 'common')
+            config.get_build_configuration(build_configuration.name, platform_name='common')
         parent_configure = common_build_configuration.configure
     except Exception, e:
         if logger.getEffectiveLevel() <= logging.DEBUG:
