@@ -194,7 +194,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
         raise PackageError("no build_id in metadata - rerun build\n  you may specify (--id <id>) or let it default to the date")
     if metadata_file.platform != platform_name:
         raise PackageError("build platform (%s) does not match current platform (%s)"
-                           % metadata_file.platform, platform_name)
+                           % (metadata_file.platform, platform_name))
 
     # Not using logging, since this output should be produced unconditionally on stdout
     # Downstream build tools utilize this output - TBD ... find out if this is true ...
