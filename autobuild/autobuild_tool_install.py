@@ -858,7 +858,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             common.select_directories(args, config,
                                       "install", "installing packages for",
                                       lambda cnf:
-                                      os.path.join(config.make_build_directory(cnf, args.dry_run),
+                                      os.path.join(config.make_build_directory(cnf, platform=args.platform, dry_run=args.dry_run),
                                                    "packages"))
 
         # get the absolute paths to the install dir and installed-packages.xml file
