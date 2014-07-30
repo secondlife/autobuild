@@ -103,7 +103,9 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             default=configfile.INSTALLED_CONFIG_FILE,
                             dest='installed_filename',
                             help='The file used to record what is installed.')
-
+        parser.add_argument('--no-display',
+                            dest='display', action='store_false', default=True,
+                            help='do not generate and display graph; output dot file on stdout instead')
     def run(self, args):
         metadata = None
         incomplete = ''
@@ -189,14 +191,13 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             root.set_root('true')
             root.set_shape('octagon')
             
-            logger.debug("dot:\n"+graph.to_string())
-
-            graph_file = os.path.join(tempfile.gettempdir(), metadata['package_description']['name'] + "_graph_" + args.graph_type + '.png')
-
-            logger.info("writing %s" % graph_file)
-            graph.write_png(graph_file, prog=args.graph_type)
-
-            webbrowser.open('file:'+graph_file)
+            if args.display:
+                graph_file = os.path.join(tempfile.gettempdir(), metadata['package_description']['name'] + "_graph_" + args.graph_type + '.png')
+                logger.info("writing %s" % graph_file)
+                graph.write_png(graph_file, prog=args.graph_type)
+                webbrowser.open('file:'+graph_file)
+            else:
+                print "%s" % graph.to_string()
 
         else:
             logger.error("No metadata found")
