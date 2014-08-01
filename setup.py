@@ -86,6 +86,6 @@ setup(
     scripts=[],
     license='MIT',
     classifiers=filter(None, CLASSIFIERS.split("\n")),
-    requires=['llbase', 'pydot'],
+    install_requires=['llbase', 'pydot'],
     #ext_modules=ext_modules,
     )
