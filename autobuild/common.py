@@ -44,6 +44,7 @@ import logging
 import pprint
 import shutil
 import tempfile
+import argparse
 
 from version import AUTOBUILD_VERSION_STRING
 
@@ -55,31 +56,69 @@ class AutobuildError(RuntimeError):
 
 # define the supported platforms
 PLATFORM_DARWIN  = 'darwin'
+PLATFORM_DARWIN64  = 'darwin64'
 PLATFORM_WINDOWS = 'windows'
+PLATFORM_WINDOWS64 = 'windows64'
 PLATFORM_LINUX   = 'linux'
+PLATFORM_LINUX64   = 'linux64'
 PLATFORM_SOLARIS = 'solaris'
-PLATFORM_UNKNOWN = 'unknown'
 
-PLATFORMS = [PLATFORM_DARWIN,
-             PLATFORM_WINDOWS,
-             PLATFORM_LINUX,
-             PLATFORM_SOLARIS,
-             ]
-
-
+Platform=None
 def get_current_platform():
     """
     Return appropriate the autobuild name for the current platform.
     """
-    platform_map = {
-        'darwin':  PLATFORM_DARWIN,
-        'linux2':  PLATFORM_LINUX,
-        'win32':   PLATFORM_WINDOWS,
-        'cygwin':  PLATFORM_WINDOWS,
-        'solaris': PLATFORM_SOLARIS
-        }
-    return os.environ.get('AUTOBUILD_PLATFORM_OVERRIDE', platform_map.get(sys.platform, PLATFORM_UNKNOWN))
+    global Platform
+    if Platform is None:
+        establish_platform(None)
+    return Platform
 
+def establish_platform(arg=None):
+    """
+    Select the appropriate the autobuild name for the platform.
+    """
+    global Platform
+    if arg is not None:
+        Platform=arg
+    elif 'AUTOBUILD_PLATFORM_OVERRIDE' in os.environ:
+        Platform = os.environ['AUTOBUILD_PLATFORM_OVERRIDE']
+    elif sys.platform == 'darwin':
+        if Use64:
+            Platform = PLATFORM_DARWIN64
+        else:
+            Platform = PLATFORM_DARWIN
+    elif sys.platform == 'linux2':
+        if Use64:
+            Platform = PLATFORM_LINUX64
+        else:
+            Platform = PLATFORM_LINUX
+    elif sys.platform == 'win32' or sys.platform == 'cygwin':  
+        if Use64:
+            Platform = PLATFORM_WINDOWS64
+        else:
+            Platform = PLATFORM_WINDOWS
+    elif sys.platform == 'solaris': 
+        Platform = PLATFORM_SOLARIS
+    else:
+        AutobuildError("usnupported platform '%s'" % sys.platform)
+    os.environ['AUTOBUILD_PLATFORM'] = Platform # for spawned commands
+    os.environ['AUTOBUILD_PLATFORM_OVERRIDE'] = Platform # for recursive invocations
+    logger.debug("Using platform %s" % Platform)
+    return Platform
+
+Use64 = False
+class LargeAddressAction(argparse.Action):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs:
+            raise ValueError("nargs must be zero")
+        super(LargeAddressAction, self).__init__(option_strings, dest, nargs=0, **kwargs)
+    def __call__(self, parser, namespace, values, option_string=None):
+        if option_string is not None or 'AUTOBUILD_LARGEADDRESS' in os.environ:
+            if sys.maxsize > 2**32:
+                global Use64
+                Use64 = True
+            else:
+                logger.warn("this system is not 64-bit capable; using large address is not valid")
 
 def get_current_user():
     """
@@ -297,7 +336,7 @@ class Serialized(dict, object):
         return self.__class__(self)
 
 
-def select_directories(args, config, desc, verb, dir_from_config, platform=None):
+def select_directories(args, config, desc, verb, dir_from_config):
     """
     Several of our subcommands provide the ability to specify an individual
     build tree on which to operate, or the build tree for each specified
@@ -323,21 +362,16 @@ def select_directories(args, config, desc, verb, dir_from_config, platform=None)
     build configurations (at present, unless args.select_dir is specified),
     call this to obtain the directory for the passed build configuration.
     Example: lambda cnf: config.get_build_directory(cnf, args.platform)
-
-    platform: platform on which all this should operate.
-        - If platform= is passed, use that platform.
-        - If not, but args.platform exists, use that platform.
-        - Otherwise use get_current_platform().
     """
     if args.select_dir:
         logger.debug("specified %s directory: %s" % (desc, args.select_dir))
         return [args.select_dir]
 
     return [dir_from_config(conf)
-            for conf in select_configurations(args, config, verb, platform)]
+            for conf in select_configurations(args, config, verb)]
 
 
-def select_configurations(args, config, verb, platform=None):
+def select_configurations(args, config, verb):
     """
     Several of our subcommands provide the ability to specify an individual
     build configuration on which to operate, or several specified
@@ -356,17 +390,8 @@ def select_configurations(args, config, verb, platform=None):
 
     verb: debugging output: what we're doing to the selected configurations, e.g.
     "packaging" configurations x, y and z
-
-    platform: platform on which all this should operate.
-        - If platform= is passed, use that platform.
-        - If not, but args.platform exists, use that platform.
-        - Otherwise use get_current_platform().
     """
-    if platform is None:
-        try:
-            platform = args.platform
-        except AttributeError:
-            platform = get_current_platform()
+    platform = get_current_platform()
 
     if args.all:
         configurations = config.get_all_build_configurations(platform)

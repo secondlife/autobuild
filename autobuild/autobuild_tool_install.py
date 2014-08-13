@@ -773,9 +773,12 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             default=configfile.INSTALLED_CONFIG_FILE,
             dest='installed_filename',
             help='The file used to record what is installed.')
+        parser.add_argument('-l', '--large-address',
+                            action=common.LargeAddressAction,
+                            help='build for 64-bit if possible on this system')
         parser.add_argument(
             '-p', '--platform',
-            default=common.get_current_platform(),
+            default=None,
             dest='platform',
             help='Override the automatically determined platform.')
         parser.add_argument(
@@ -851,6 +854,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
     def run(self, args):
         # load the list of packages to install
         logger.debug("loading " + args.install_filename)
+        platform=common.establish_platform(args.platform)
         config = configfile.ConfigurationDescription(args.install_filename)
 
         # write packages into 'packages' subdir of build directory by default
@@ -858,7 +862,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             common.select_directories(args, config,
                                       "install", "installing packages for",
                                       lambda cnf:
-                                      os.path.join(config.make_build_directory(cnf, platform=args.platform, dry_run=args.dry_run),
+                                      os.path.join(config.make_build_directory(cnf, platform=platform, dry_run=args.dry_run),
                                                    "packages"))
 
         # get the absolute paths to the install dir and installed-packages.xml file

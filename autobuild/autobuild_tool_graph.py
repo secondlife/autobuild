@@ -86,9 +86,12 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="specify build configuration\n(may be specified in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
+        parser.add_argument('-l', '--large-address',
+                            action=common.LargeAddressAction,
+                            help='build for 64-bit if possible on this system')
         parser.add_argument('-p', '--platform',
                             dest='platform',
-                            default=common.get_current_platform(),
+                            default=None,
                             help='override the working platform')
         parser.add_argument('-t', '--type',
                             dest='graph_type',
@@ -107,6 +110,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             dest='display', action='store_false', default=True,
                             help='do not generate and display graph; output dot file on stdout instead')
     def run(self, args):
+        platform=common.establish_platform(args.platform)
         metadata = None
         incomplete = ''
         if args.source_file is None:
@@ -115,7 +119,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             logger.info("searching for metadata in the current build tree")
             config_filename = args.config_filename
             config = configfile.ConfigurationDescription(config_filename)
-            metadata_file = os.path.join(config.get_build_directory(args.configuration, args.platform), configfile.PACKAGE_METADATA_FILE)
+            metadata_file = os.path.join(config.get_build_directory(args.configuration, platform), configfile.PACKAGE_METADATA_FILE)
             if not os.path.exists(metadata_file):
                 logger.warning("No complete metadata file found; attempting to use partial data from installed files")
                 # get the absolute path to the installed-packages.xml file
@@ -123,7 +127,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 args.configurations = args.configuration
                 install_dirs = common.select_directories(args, config, "install", "getting installed packages",
                                                          lambda cnf:
-                                                         os.path.join(config.get_build_directory(cnf, args.platform), "packages"))
+                                                         os.path.join(config.get_build_directory(cnf, platform), "packages"))
                 installed_pathname = os.path.join(os.path.realpath(install_dirs[0]), args.installed_filename)
                 if os.path.exists(installed_pathname):
                     # dummy up a metadata object, but don't create the file

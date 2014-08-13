@@ -31,7 +31,7 @@ an archive when packaging the build product.
 import sys
 
 import autobuild_base
-from common import get_current_platform, AutobuildError
+from common import establish_platform, get_current_platform, LargeAddressAction, AutobuildError
 import configfile
 
 
@@ -46,22 +46,26 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             dest='config_file',
                             default=configfile.AUTOBUILD_CONFIG_FILE,
                             help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
-        parser.add_argument('--platform', '-p', default=get_current_platform(),
+        parser.add_argument('-l', '--large-address',
+                            action=LargeAddressAction,
+                            help='build for 64-bit if possible on this system')
+        parser.add_argument('--platform', '-p', default=None,
                             help="the platform manifest to manipulate")
         parser.add_argument('command', nargs='?', default='print',
                             help="manifest command: add, remove, clear, or print")
         parser.add_argument('pattern', nargs='*', help='a file pattern')
 
     def run(self, args):
+        platform=establish_platform(args.platform)
         config = configfile.ConfigurationDescription(args.config_file)
         if args.command == 'add':
-            [add(config, args.platform, p) for p in args.pattern]
+            [add(config, platform, p) for p in args.pattern]
         elif args.command == 'remove':
-            [remove(config, args.platform, p) for p in args.pattern]
+            [remove(config, platform, p) for p in args.pattern]
         elif args.command == 'clear':
-            clear(config, args.platform)
+            clear(config, platform)
         elif args.command == 'print':
-            print_manifest(config, args.platform)
+            print_manifest(config, platform)
         else:
             raise ManifestError('unknown command %s' % args.command)
         if args.dry_run is not None and not args.dry_run:

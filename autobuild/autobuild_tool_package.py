@@ -81,8 +81,11 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             default=None,
                             dest='archive_filename',
                             help='the filename of the archive that autobuild will create')
+        parser.add_argument('-l', '--large-address',
+                            action=common.LargeAddressAction,
+                            help='build for 64-bit if possible on this system')
         parser.add_argument('-p', '--platform',
-                            default=common.get_current_platform(),
+                            default=None,
                             dest='platform',
                             help='override the working platform')
         parser.add_argument('--skip-license-check',
@@ -122,6 +125,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
     def run(self, args):
         logger.debug("loading " + args.autobuild_filename)
+        platform=common.establish_platform(args.platform)
         if args.clean_only:
             logger.info("packaging with --clean-only required")
         if args.check_license:
@@ -130,13 +134,13 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
         build_dirs = common.select_directories(args, config, "build", "packaging",
                                                lambda cnf:
-                                               config.get_build_directory(cnf, args.platform))
+                                               config.get_build_directory(cnf, platform))
 
         if not build_dirs:
-            build_dirs = [config.get_build_directory(None, args.platform)]
+            build_dirs = [config.get_build_directory(None, platform)]
         is_clean = True
         for build_dir in build_dirs:
-            package(config, build_dir, args.platform, archive_filename=args.archive_filename,
+            package(config, build_dir, platform, archive_filename=args.archive_filename,
                     archive_format=args.archive_format, clean_only=args.clean_only, dry_run=args.dry_run)
 
 

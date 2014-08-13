@@ -59,9 +59,12 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
         parser.add_argument('-p', '--platform',
-                            default=common.get_current_platform(),
+                            default=None,
                             dest='platform',
                             help='may only be the current platform or "common" (useful for source packages)')
+        parser.add_argument('-l', '--large-address', nargs=None,
+                            action=common.LargeAddressAction,
+                            help='build for 64-bit if possible on this system')
         parser.add_argument('--all', '-a', dest='all', default=False, action="store_true",
                             help="build all configurations")
         parser.add_argument('--id', '-i', dest='build_id', help='unique build identifier')
@@ -69,6 +72,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="an option to pass to the configuration command")
 
     def run(self, args):
+        platform=common.establish_platform(args.platform)
         common.establish_build_id(args.build_id)  # sets id (even if not specified),
                                                   # and stores in the AUTOBUILD_BUILD_ID environment variable
         config = configfile.ConfigurationDescription(args.config_file)
@@ -76,7 +80,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         try:
             build_configurations = common.select_configurations(args, config, "configuring for")
             for build_configuration in build_configurations:
-                build_directory = config.make_build_directory(build_configuration, platform=args.platform, dry_run=args.dry_run)
+                build_directory = config.make_build_directory(build_configuration, platform=platform, dry_run=args.dry_run)
                 logger.debug("configuring in %s" % build_directory)
                 if not args.dry_run:
                     os.chdir(build_directory)

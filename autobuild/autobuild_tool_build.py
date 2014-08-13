@@ -94,17 +94,18 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             dest='installed_filename',
                             help='The file used to record what is installed.') 
         parser.add_argument('-p', '--platform',
-                            default=common.get_current_platform(),
+                            default=None,
                             dest='platform',
                             help='may only be the current platform or "common" (useful for source packages)')
+        parser.add_argument('-l', '--large-address',
+                            action=common.LargeAddressAction,
+                            help='build for 64-bit if possible on this system')
 
     def run(self, args):
+        platform = common.establish_platform(args.platform)
         build_id = common.establish_build_id(args.build_id)  # sets id (even if not specified),
                                                              # and stores in the AUTOBUILD_BUILD_ID environment variable
         config = configfile.ConfigurationDescription(args.config_file)
-        platform = args.platform
-        if not ( platform == common.get_current_platform() or platform == "common"):
-            raise BuildError("invalid platform '%s'; must be either '%s' or 'common'" % (platform, common.get_current_platform()))
         current_directory = os.getcwd()
         if args.clean_only:
             logger.info("building with --clean-only required")
