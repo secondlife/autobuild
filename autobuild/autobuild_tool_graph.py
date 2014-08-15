@@ -86,9 +86,10 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="specify build configuration\n(may be specified in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
-        parser.add_argument('-l', '--large-address',
-                            action=common.LargeAddressAction,
-                            help='build for 64-bit if possible on this system')
+        parser.add_argument('--address-size', choices=[32,64], type=int,
+                            default=int(os.environ.get('AUTOBUILD_ADDRSIZE',common.DEFAULT_ADDRSIZE)),
+                            dest='addrsize',
+                            help='specify address size (modifies platform)')
         parser.add_argument('-p', '--platform',
                             dest='platform',
                             default=None,
@@ -110,7 +111,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             dest='display', action='store_false', default=True,
                             help='do not generate and display graph; output dot file on stdout instead')
     def run(self, args):
-        platform=common.establish_platform(args.platform)
+        platform=common.establish_platform(args.platform, addrsize=args.addrsize)
         metadata = None
         incomplete = ''
         if args.source_file is None:

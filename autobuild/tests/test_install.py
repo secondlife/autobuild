@@ -191,6 +191,7 @@ def setup():
                      export_manifest=False,
                      logging_level=logging.DEBUG,
                      local_archives=[],
+                     addrsize=32,
                      package=[],
                      ):
             # Take all constructor params and assign as object attributes.

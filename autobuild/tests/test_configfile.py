@@ -55,6 +55,36 @@ class TestConfigFile(BaseTest, AutobuildBaselineCompare):
         assert reloaded.package_description.platforms['common'].build_directory == '.'
         assert reloaded.package_description.platforms['common'].configurations['common'].build.get_command() == 'gcc'
 
+    def test_configuration_inherit(self):
+        tmp_file = self.get_tmp_file(4)
+        config = configfile.ConfigurationDescription(tmp_file)
+        package = configfile.PackageDescription('test')
+        config.package_description = package
+
+        common_platform = configfile.PlatformDescription()
+        common_platform.build_directory = 'common_build'
+        common_cmd = Executable(command="gcc", options=['-wall'])
+        common_configuration = configfile.BuildConfigurationDescription()
+        common_configuration.build = common_cmd
+        common_platform.configurations['common'] = common_configuration
+        config.package_description.platforms['common'] = common_platform
+
+        darwin_platform = configfile.PlatformDescription()
+        darwin_platform.build_directory = 'darwin_build'
+        darwin_cmd = Executable(command="clang", options=['-wall'])
+        darwin_configuration = configfile.BuildConfigurationDescription()
+        darwin_configuration.build = darwin_cmd
+        darwin_platform.configurations['darwin'] = darwin_configuration
+        config.package_description.platforms['darwin'] = darwin_platform
+
+        config.save()
+        
+        reloaded = configfile.ConfigurationDescription(tmp_file)
+        assert reloaded.get_platform('common').build_directory == 'common_build'
+        assert reloaded.get_platform('darwin').build_directory == 'darwin_build'
+        # check that we fall back to the 32 bit version if no 64 bit is found        
+        assert reloaded.get_platform('darwin64').build_directory == 'darwin_build'
+
     def tearDown(self):
         self.cleanup_tmp_file()
         BaseTest.tearDown(self)

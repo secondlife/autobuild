@@ -81,9 +81,10 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             default=None,
                             dest='archive_filename',
                             help='the filename of the archive that autobuild will create')
-        parser.add_argument('-l', '--large-address',
-                            action=common.LargeAddressAction,
-                            help='build for 64-bit if possible on this system')
+        parser.add_argument('--address-size', choices=[32,64], type=int,
+                            default=int(os.environ.get('AUTOBUILD_ADDRSIZE',common.DEFAULT_ADDRSIZE)),
+                            dest='addrsize',
+                            help='specify address size (modifies platform)')
         parser.add_argument('-p', '--platform',
                             default=None,
                             dest='platform',
@@ -125,7 +126,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
     def run(self, args):
         logger.debug("loading " + args.autobuild_filename)
-        platform=common.establish_platform(args.platform)
+        platform=common.establish_platform(args.platform, addrsize=args.addrsize)
         if args.clean_only:
             logger.info("packaging with --clean-only required")
         if args.check_license:

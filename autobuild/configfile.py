@@ -39,8 +39,6 @@ except:
 
 import common
 from executable import Executable
-from common import AutobuildError
-from common import get_current_platform
 import update
 import logging
 
@@ -64,7 +62,7 @@ class ConfigFile:
     pass
 
 
-class ConfigurationError(AutobuildError):
+class ConfigurationError(common.AutobuildError):
     pass
 
 
@@ -97,13 +95,13 @@ class ConfigurationDescription(common.Serialized):
         else:
             return os.path.abspath(os.path.join(os.path.dirname(self.path), path))
 
-    def get_all_build_configurations(self, platform_name=get_current_platform()):
+    def get_all_build_configurations(self, platform_name=common.get_current_platform()):
         """
         Returns all build configurations for the platform.
         """
         return self.get_platform(platform_name).configurations.values()
     
-    def get_build_configuration(self, build_configuration_name, platform_name=get_current_platform()):
+    def get_build_configuration(self, build_configuration_name, platform_name=common.get_current_platform()):
         """
         Returns the named build configuration for the platform. 
         """
@@ -115,7 +113,7 @@ class ConfigurationDescription(common.Serialized):
             raise ConfigurationError("no configuration for build configuration '%s' found; one may be created using 'autobuild edit build'" % 
                                      build_configuration_name)
    
-    def get_build_directory(self, configuration, platform_name=get_current_platform()):
+    def get_build_directory(self, configuration, platform_name=common.get_current_platform()):
         """
         Returns the absolute path to the build directory for the platform.
         """
@@ -141,7 +139,7 @@ class ConfigurationDescription(common.Serialized):
             build_directory = config_directory
         return build_directory
 
-    def get_default_build_configurations(self, platform_name=get_current_platform()):
+    def get_default_build_configurations(self, platform_name=common.get_current_platform()):
         """
         Returns the platform specific build configurations which are marked as default.
         """
@@ -157,7 +155,7 @@ class ConfigurationDescription(common.Serialized):
         """
         if self.package_description is None:
             raise ConfigurationError("no package configuration defined; one may be created using 'autobuild edit package'")
-        platform_description = self.package_description.platforms.get(platform_name, None)
+        platform_description = self.package_description.get_platform(platform_name)
         if platform_description is None:
             raise ConfigurationError("no configuration for platform '%s' found; one may be created using 'autobuild edit platform'" % platform_name)
         else:
@@ -174,9 +172,9 @@ class ConfigurationDescription(common.Serialized):
         """
         Returns the working platform description.
         """
-        return self.get_platform(get_current_platform())
+        return self.get_platform(common.get_current_platform())
     
-    def make_build_directory(self, configuration, platform=get_current_platform(), dry_run=False):
+    def make_build_directory(self, configuration, platform=common.get_current_platform(), dry_run=False):
         """
         Makes the working platform's build directory if it does not exist and returns a path to it.
         """
@@ -216,14 +214,14 @@ class ConfigurationDescription(common.Serialized):
             try:
                 saved_data = llsd.parse(autobuild_xml)
             except llsd.LLSDParseError:
-                raise AutobuildError("Config file %s is corrupt. Aborting..." % self.path)
+                raise common.AutobuildError("Config file %s is corrupt. Aborting..." % self.path)
             if not 'version' in saved_data:
-                raise AutobuildError("incompatible configuration file %s\n"
+                raise common.AutobuildError("incompatible configuration file %s\n"
                     "if this is a legacy format autobuild.xml file, please try the workaround found here:\n"
                     "https://wiki.lindenlab.com/wiki/Autobuild/Incompatible_Configuration_File_Error" % self.path)
             if saved_data['version'] == self.version:
                 if (not 'type' in saved_data) or (saved_data['type'] != 'autobuild'):
-                    raise AutobuildError(self.path + ' not an autobuild configuration file')
+                    raise common.AutobuildError(self.path + ' not an autobuild configuration file')
                 package_description = saved_data.pop('package_description', None)
                 if package_description is not None:
                     self.package_description = PackageDescription(package_description)
@@ -283,10 +281,10 @@ class Dependencies(common.Serialized):
             try:
                 saved_data = llsd.parse(installed_xml)
             except llsd.LLSDParseError:
-                raise AutobuildError("Installed file %s is not valid. Aborting..." % self.path)
+                raise common.AutobuildError("Installed file %s is not valid. Aborting..." % self.path)
             if not (('version' in saved_data and saved_data['version'] == self.version)
                     and ('type' in saved_data) and (saved_data['type'] == AUTOBUILD_INSTALLED_TYPE)):
-                raise AutobuildError(self.path + ' is not compatible with this version of autobuild.'
+                raise common.AutobuildError(self.path + ' is not compatible with this version of autobuild.'
                                      + '\nClearing your build directory and rebuilding should correct it.')
 
             dependencies = saved_data.pop('dependencies', {})
@@ -354,7 +352,7 @@ class MetadataDescription(common.Serialized):
             try:
                 parsed_llsd = llsd.parse(metadata_xml)
             except llsd.LLSDParseError:
-                raise AutobuildError("Metadata file %s is corrupt. Aborting..." % self.path)
+                raise common.AutobuildError("Metadata file %s is corrupt. Aborting..." % self.path)
 
         if parsed_llsd:
             self.__load(parsed_llsd)
@@ -394,7 +392,8 @@ class MetadataDescription(common.Serialized):
         if self.path:
             file(self.path, 'wb').write(llsd.format_pretty_xml(_compact_to_dict(self)))
 
-
+package_selected_platform = None
+            
 class PackageDescription(common.Serialized):
     """
     Contains the metadata for a single package.
@@ -428,13 +427,26 @@ class PackageDescription(common.Serialized):
 
     def get_platform(self, platform):
         """
-        Find the child PlatformDescription either for the named platform or
-        for 'common'. Return None if neither PlatformDescription exists.
+        Find the first child PlatformDescription for:
+        1. the named platform,
+        2. the base platform (the 64 bit version of each will default to the 32 bit version)
+        3. the 'common' platform. 
+        Return None if no one of those PlatformDescriptions exists.
         """
-        try:
-            return self.platforms[platform]
-        except KeyError:
-            return self.platforms.get("common")
+        global package_selected_platform
+        target_platform = None
+        if platform in self.platforms:
+            target_platform = self.platforms[platform]
+        elif platform.endswith('64'):
+            base_platform = platform[0:len(platform)-2]
+            if base_platform in self.platforms:
+                target_platform = self.platforms[base_platform]
+                if package_selected_platform != base_platform:
+                    logger.warning("No %s configuration found; inheriting %s" % (platform, base_platform))
+                    package_selected_platform = base_platform
+        if target_platform is None:
+            target_platform = self.platforms.get("common")
+        return target_platform
 
     def __init_from_dict(self, dictionary):
         platforms = dictionary.pop('platforms', {})

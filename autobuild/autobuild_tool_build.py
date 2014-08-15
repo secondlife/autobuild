@@ -97,12 +97,13 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             default=None,
                             dest='platform',
                             help='may only be the current platform or "common" (useful for source packages)')
-        parser.add_argument('-l', '--large-address',
-                            action=common.LargeAddressAction,
-                            help='build for 64-bit if possible on this system')
+        parser.add_argument('--address-size', choices=[32,64], type=int,
+                            default=int(os.environ.get('AUTOBUILD_ADDRSIZE',common.DEFAULT_ADDRSIZE)),
+                            dest='addrsize',
+                            help='specify address size (modifies platform)')
 
     def run(self, args):
-        platform = common.establish_platform(args.platform)
+        platform = common.establish_platform(args.platform, addrsize=args.addrsize)
         build_id = common.establish_build_id(args.build_id)  # sets id (even if not specified),
                                                              # and stores in the AUTOBUILD_BUILD_ID environment variable
         config = configfile.ConfigurationDescription(args.config_file)

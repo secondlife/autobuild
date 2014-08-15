@@ -61,7 +61,8 @@ PLATFORM_WINDOWS = 'windows'
 PLATFORM_WINDOWS64 = 'windows64'
 PLATFORM_LINUX   = 'linux'
 PLATFORM_LINUX64   = 'linux64'
-PLATFORM_SOLARIS = 'solaris'
+
+DEFAULT_ADDRSIZE = 32
 
 Platform=None
 def get_current_platform():
@@ -70,55 +71,53 @@ def get_current_platform():
     """
     global Platform
     if Platform is None:
-        establish_platform(None)
+        logger.debug("platform recurse")
+        establish_platform(None) # uses the default for where we are running
     return Platform
 
-def establish_platform(arg=None):
+def is_system_64bit():
+    """
+    Returns True if the build system is 64-bit compatible.
+    """
+    return sys.maxsize > 2**32
+
+def establish_platform(specified_platform=None, addrsize=DEFAULT_ADDRSIZE):
     """
     Select the appropriate the autobuild name for the platform.
     """
     global Platform
-    if arg is not None:
-        Platform=arg
-    elif 'AUTOBUILD_PLATFORM_OVERRIDE' in os.environ:
-        Platform = os.environ['AUTOBUILD_PLATFORM_OVERRIDE']
+    specified_addrsize=addrsize
+    if addrsize == 64 and not is_system_64bit():
+        logger.warning("This system is not 64 bit capable; using 32 bit address size")
+        addrsize = 32
+    if specified_platform is not None:
+        Platform=specified_platform
     elif sys.platform == 'darwin':
-        if Use64:
+        if addrsize == 64:
             Platform = PLATFORM_DARWIN64
         else:
             Platform = PLATFORM_DARWIN
     elif sys.platform == 'linux2':
-        if Use64:
+        if addrsize == 64:
             Platform = PLATFORM_LINUX64
         else:
             Platform = PLATFORM_LINUX
     elif sys.platform == 'win32' or sys.platform == 'cygwin':  
-        if Use64:
+        if addrsize == 64:
             Platform = PLATFORM_WINDOWS64
         else:
             Platform = PLATFORM_WINDOWS
-    elif sys.platform == 'solaris': 
-        Platform = PLATFORM_SOLARIS
     else:
-        AutobuildError("usnupported platform '%s'" % sys.platform)
+        AutobuildError("unrecognized platform '%s'" % sys.platform)
+
+    os.environ['AUTOBUILD_ADDRSIZE'] = str(addrsize) # for spawned commands
     os.environ['AUTOBUILD_PLATFORM'] = Platform # for spawned commands
     os.environ['AUTOBUILD_PLATFORM_OVERRIDE'] = Platform # for recursive invocations
-    logger.debug("Using platform %s" % Platform)
-    return Platform
 
-Use64 = False
-class LargeAddressAction(argparse.Action):
-    def __init__(self, option_strings, dest, nargs=None, **kwargs):
-        if nargs:
-            raise ValueError("nargs must be zero")
-        super(LargeAddressAction, self).__init__(option_strings, dest, nargs=0, **kwargs)
-    def __call__(self, parser, namespace, values, option_string=None):
-        if option_string is not None or 'AUTOBUILD_LARGEADDRESS' in os.environ:
-            if sys.maxsize > 2**32:
-                global Use64
-                Use64 = True
-            else:
-                logger.warn("this system is not 64-bit capable; using large address is not valid")
+    logger.debug("Specified platform %s address-size %d: result %s" \
+                 % (specified_platform, specified_addrsize, Platform))
+    
+    return Platform
 
 def get_current_user():
     """

@@ -29,9 +29,10 @@ an archive when packaging the build product.
 """
 
 import sys
+import os
 
 import autobuild_base
-from common import establish_platform, get_current_platform, LargeAddressAction, AutobuildError
+import common
 import configfile
 
 
@@ -46,17 +47,18 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             dest='config_file',
                             default=configfile.AUTOBUILD_CONFIG_FILE,
                             help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
-        parser.add_argument('-l', '--large-address',
-                            action=LargeAddressAction,
-                            help='build for 64-bit if possible on this system')
-        parser.add_argument('--platform', '-p', default=None,
+        parser.add_argument('--address-size', choices=[32,64], type=int, 
+                            default=int(os.environ.get('AUTOBUILD_ADDRSIZE',common.DEFAULT_ADDRSIZE)),
+                            dest='addrsize',
+                            help='specify address size (modifies platform)')
+        parser.add_argument('--platform', '-p', default=os.environ.get('AUTOBUILD_PLATFORM_OVERRIDE'),
                             help="the platform manifest to manipulate")
         parser.add_argument('command', nargs='?', default='print',
                             help="manifest command: add, remove, clear, or print")
         parser.add_argument('pattern', nargs='*', help='a file pattern')
 
     def run(self, args):
-        platform=establish_platform(args.platform)
+        platform=common.establish_platform(args.platform, addrsize=args.addrsize)
         config = configfile.ConfigurationDescription(args.config_file)
         if args.command == 'add':
             [add(config, platform, p) for p in args.pattern]
@@ -72,7 +74,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             config.save()
 
 
-class ManifestError(AutobuildError):
+class ManifestError(common.AutobuildError):
     pass
 
 

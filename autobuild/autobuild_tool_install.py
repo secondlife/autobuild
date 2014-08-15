@@ -773,9 +773,10 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             default=configfile.INSTALLED_CONFIG_FILE,
             dest='installed_filename',
             help='The file used to record what is installed.')
-        parser.add_argument('-l', '--large-address',
-                            action=common.LargeAddressAction,
-                            help='build for 64-bit if possible on this system')
+        parser.add_argument('--address-size', choices=[32,64], type=int,
+                            default=int(os.environ.get('AUTOBUILD_ADDRSIZE',common.DEFAULT_ADDRSIZE)),
+                            dest='addrsize',
+                            help='specify address size (modifies platform)')
         parser.add_argument(
             '-p', '--platform',
             default=None,
@@ -854,7 +855,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
     def run(self, args):
         # load the list of packages to install
         logger.debug("loading " + args.install_filename)
-        platform=common.establish_platform(args.platform)
+        platform=common.establish_platform(args.platform,addrsize=args.addrsize)
         config = configfile.ConfigurationDescription(args.install_filename)
 
         # write packages into 'packages' subdir of build directory by default
