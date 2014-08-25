@@ -420,7 +420,7 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
             if _install_local(platform, package, local_archives[pname], install_dir, installed_file, dry_run):
                 installed_pkgs.append(pname)
         else:
-            if _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
+            if _install_binary(platform, package, config_file, install_dir, installed_file, dry_run):
                 installed_pkgs.append(pname)
     return installed_pkgs
 
@@ -449,7 +449,7 @@ def _install_local(platform, package, package_path, install_dir, installed_file,
     else:
         return False
 
-def _install_binary(package, platform, config_file, install_dir, installed_file, dry_run):
+def _install_binary(platform, package, config_file, install_dir, installed_file, dry_run):
     # Check that we have a platform-specific or common url to use.
     req_plat = package.get_platform(platform)
     package_name = getattr(package, 'name', '(undefined)')
@@ -693,31 +693,31 @@ def uninstall(package_name, installed_config):
             os.rmdir(dir_path)
             logger.debug("    removed " + dn)
 
-def install_packages(options, config_file, install_dir, args):
+def install_packages(args, config_file, install_dir, platform, packages):
     logger.debug("installing to directory: " + install_dir)
     # If installed_filename is already an absolute pathname, join() is smart
     # enough to leave it alone. Therefore we can do this unconditionally.
-    installed_filename = os.path.join(install_dir, options.installed_filename)
+    installed_filename = os.path.join(install_dir, args.installed_filename)
 
     # load the list of already installed packages
     logger.debug("loading " + installed_filename)
     installed_file = configfile.Dependencies(installed_filename)
 
     # handle any arguments to query for information
-    if handle_query_args(options, config_file, installed_file):
+    if handle_query_args(args, config_file, installed_file):
         return 0
 
     # get the list of packages to install -- if none specified, consider all.
-    packages = args or config_file.installables.keys()
+    packages = packages or config_file.installables.keys()
 
     # check the license properties for the packages to install
-    if not options.check_license:
+    if not args.check_license:
         logger.warning("The --skip-license-check option is deprecated; it now has no effect")
     pre_install_license_check(packages, config_file)
 
     # collect any locally built archives.
     local_archives = {}
-    for archive_path in options.local_archives:
+    for archive_path in args.local_archives:
         try:
             # split_tarname() returns a sequence like:
             # ("/some/path", ["boost", "1.39.0", "darwin", "20100222a"], ".tar.bz2")
@@ -730,13 +730,13 @@ def install_packages(options, config_file, install_dir, args):
         local_archives[package] = archive_path
 
     # do the actual install of the new/updated packages
-    packages = do_install(packages, config_file, installed_file, options.platform, install_dir,
-                          options.dry_run, local_archives=local_archives)
+    packages = do_install(packages, config_file, installed_file, platform, install_dir,
+                          args.dry_run, local_archives=local_archives)
 
     # check the license_file properties for actually-installed packages
-    if not options.check_license:
+    if not args.check_license:
         logger.warning("The --skip-license-check option is deprecated; it now has no effect")
-    if not options.dry_run:
+    if not args.dry_run:
         post_install_license_check(packages, config_file, installed_file)
 
     # update the installed-packages.xml file
@@ -869,7 +869,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         # get the absolute paths to the install dir and installed-packages.xml file
         for install_dir in install_dirs:
             install_dir = os.path.realpath(install_dir)
-            install_packages(args, config, install_dir, args.package)
+            install_packages(args, config, install_dir, platform, args.package)
 
 if __name__ == '__main__':
     sys.exit("Please invoke this script using 'autobuild %s'" %

@@ -139,7 +139,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                  common.select_directories(args, config,
                                            "install", "uninstalling",
                                            lambda cnf:
-                                           os.path.join(config.make_build_directory(cnf, args.dry_run),
+                                           os.path.join(config.make_build_directory(cnf, dry_run=args.dry_run),
                                                         "packages"))]
 
         logger.debug("installed filenames: %s" % installed_filenames)

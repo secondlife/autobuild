@@ -72,7 +72,7 @@ def get_current_platform():
     global Platform
     if Platform is None:
         logger.debug("platform recurse")
-        establish_platform(None) # uses the default for where we are running
+        establish_platform(None) # uses the default for where we are running to set Platform
     return Platform
 
 def is_system_64bit():

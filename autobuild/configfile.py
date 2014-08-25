@@ -178,6 +178,7 @@ class ConfigurationDescription(common.Serialized):
         """
         Makes the working platform's build directory if it does not exist and returns a path to it.
         """
+        logger.debug("make_build_directory platform %s" % platform)
         build_directory = self.get_build_directory(configuration, platform_name=platform)
         if not os.path.isdir(build_directory):
             if not dry_run:
