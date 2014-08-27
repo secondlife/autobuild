@@ -30,9 +30,9 @@ import logging
 
 try:
     from llbase import llsd
-except:
+except ImportError:
     sys.exit("Failed to import llsd via the llbase module; to install, use:\n"
-             +"  pip install llbase")
+             "  pip install llbase")
 
 import common
 import autobuild_base
@@ -57,8 +57,9 @@ if os.path.exists(helper):
         import get_params
         logger.info("found get_params: '%s'" % get_params.__file__)
     except ImportError:
-        pass
-    # *TODO - restore original sys.path value
+        # restore original sys.path value
+        assert sys.path[_helper_idx] == helper
+        del sys.path[_helper_idx]
 
 
 def load_vsvars(vsver):

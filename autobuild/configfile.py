@@ -33,9 +33,9 @@ import sys
 import StringIO
 try:
     from llbase import llsd
-except:
+except ImportError:
     sys.exit("Failed to import llsd via the llbase module; to install, use:\n"
-             +"  pip install llbase")
+             "  pip install llbase")
 
 import common
 from executable import Executable
