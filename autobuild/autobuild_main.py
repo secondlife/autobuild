@@ -22,10 +22,25 @@
 
 import sys
 import os
-import common
-import argparse
-import logging
-from common import AutobuildError
+
+# We have NOT yet tested autobuild with Python 3!
+if sys.version_info[0] >= 3:
+    print >>sys.stderr, \
+          "WARNING: autobuild is untested with Python 3, experiment at your own risk"
+
+try:
+    import common
+    import argparse
+    import logging
+    from common import AutobuildError
+except ImportError:
+    # If we have import troubles, check Python version. As of autobuild
+    # version 0.9, autobuild requires at least Python 2.7.
+    if sys.version_info[:2] < (2, 7):
+        print >>sys.stderr, \
+              "*** ERROR: autobuild now requires at least Python 2.7;\n" \
+              "           you are running with Python %s.%s" % sys.version_info[:2]
+        raise
 
 ## Environment variable name used for default log level verbosity
 AUTOBUILD_LOGLEVEL = 'AUTOBUILD_LOGLEVEL'
