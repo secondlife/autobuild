@@ -523,10 +523,12 @@ class TestInstallArchive(BaseTest):
         assert_equals(set_from_stream(stream), set(('argparse', 'bogus')))
 
     def test_list_licenses(self):
+        self.options.package = None # install all
+        autobuild_tool_install.AutobuildTool().run(self.options)
         self.options.list_licenses = True
         with CaptureStdout() as stream:
             autobuild_tool_install.AutobuildTool().run(self.options)
-        assert_equals(set_from_stream(stream), set(("Apache", "N/A")))
+        assert_equals(set_from_stream(stream), set(("Apache 2.0", "tut")))
 
 # -------------------------------------  -------------------------------------
 class TestInstallCachedArchive(BaseTest):

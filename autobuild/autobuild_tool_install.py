@@ -110,8 +110,11 @@ def handle_query_args(options, config_file, installed_file):
         return print_list("Packages", config_file.installables.keys())
 
     if options.list_licenses:
-        licenses = [package.license for package in config_file.installables.itervalues()
-                    if package.license]
+        licenses = []
+        for installed in installed_file.dependencies.itervalues():
+            license = installed['package_description']['license']
+            if license not in licenses:
+                licenses.append(license)
         return print_list("Licenses", licenses)
 
     if options.export_manifest:

@@ -5,10 +5,6 @@
     <map>
       <key>argparse</key>
       <map>
-        <key>license</key>
-        <string>Apache</string>
-        <key>license_file</key>
-        <string>http://www.apache.org/licenses/LICENSE-2.0</string>
         <key>name</key>
         <string>argparse</string>
         <key>platforms</key>
@@ -31,10 +27,6 @@
       </map>
       <key>bogus</key>
       <map>
-        <key>license</key>
-        <string>N/A</string>
-        <key>license_file</key>
-        <string>LICENSES/bogus.txt</string>
         <key>name</key>
         <string>bogus</string>
         <key>platforms</key>
