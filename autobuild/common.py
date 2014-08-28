@@ -140,7 +140,7 @@ def get_temp_dir(basename):
 
 
 def get_autobuild_executable_path():
-    if get_current_platform() != PLATFORM_WINDOWS:
+    if not get_current_platform().startswith(PLATFORM_WINDOWS):
         # Anywhere but Windows, the AUTOBUILD executable should be the first
         # item on our command line.
         path = sys.argv[0]
