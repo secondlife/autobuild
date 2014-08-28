@@ -140,10 +140,28 @@ def get_temp_dir(basename):
 
 
 def get_autobuild_executable_path():
-    if get_current_platform() == PLATFORM_WINDOWS:
-        path = "%s.cmd" % sys.argv[0]
-    else:
+    if get_current_platform() != PLATFORM_WINDOWS:
+        # Anywhere but Windows, the AUTOBUILD executable should be the first
+        # item on our command line.
         path = sys.argv[0]
+    else:
+        # "then there's Windows..."
+        # pip's approach to creating a Windows 'autobuild' command that
+        # invokes a particular function in a particular Python module has
+        # changed over the years. pip used to create an autobuild.cmd batch
+        # file; now it creates an actual autobuild.exe that invokes the Python
+        # interpreter on a generated autobuild-script.py script -- so what
+        # shows up in sys.argv[0] is /path/to/autobuild-script.py.
+        # Unfortunately, despite the presence of a shbang in that script file,
+        # since .py is not usually a recognized Windows command extension, we
+        # can't just use that script name to run child autobuild commands.
+        # That's the point: we call this function not to find the actual file
+        # that was run, but to get a command path with which we can invoke
+        # nested autobuild commands. We can do that by saying: regardless of
+        # the actual filename identified in sys.argv[0], we can re-invoke
+        # autobuild by running the command 'autobuild' in that directory. That
+        # should work for either autobuild.cmd or autobuild.exe.
+        path = os.path.join(os.path.dirname(sys.argv[0]), "autobuild")
     return os.path.realpath(os.path.abspath(path))
 
 
