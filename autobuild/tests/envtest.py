@@ -23,8 +23,21 @@
 
 import os
 import sys
+import subprocess
 
 if __name__ == '__main__':
-    # verify that the AUTOBUILD env var is set to point to something executable
-    assert os.access(os.environ['AUTOBUILD'], os.X_OK)
-    sys.exit(0)
+    # Verify that we can execute whatever the AUTOBUILD env var points to.
+    # This is not the same as os.access($AUTOBUILD, os.X_OK): $AUTOBUILD
+    # should be a command we can execute, but (at least on Windows) the
+    # corresponding executable file may be $AUTOBUILD.cmd or $AUTOBUILD.exe or
+    # some such.
+    command = [os.environ["AUTOBUILD"], "--version"]
+    autobuild = subprocess.Popen(command,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 # Use command shell to perform that search.
+                                 shell=sys.platform.startswith("win"))
+    stdout, stderr = autobuild.communicate()
+    rc = autobuild.wait()
+    assert rc == 0, "%s => %s" % (' '.join(command), rc)
+    assert not stdout, "%s\nstdout: '%s'" % (' '.join(command), stdout)
+    assert stderr.startswith("autobuild ")
