@@ -445,10 +445,10 @@ class TestInstallArchive(BaseTest):
             autobuild_tool_install.AutobuildTool().run(self.options)
 
     def test_no_license(self):
-        # fail because the package metadata lacks a license
+        # fail because both the package metadata and configuration lack a license
         self.server_tarball = self.copyto(os.path.join(mydir, "data", "nolicense-0.1-common-111.tar.bz2"), SERVER_DIR)
         self.options=FakeOptions(install_filename=self.localizedConfig("packages-failures.xml"),package=["nolicense"])
-        with ExpectError("no license specified", "Expected InstallError for missing license in configuration"):
+        with ExpectError("no license specified", "Expected InstallError for missing license"):
             autobuild_tool_install.AutobuildTool().run(self.options)
 
     def test_no_metadata(self):

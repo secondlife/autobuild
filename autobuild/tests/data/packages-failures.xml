@@ -110,11 +110,11 @@
             <key>archive</key>
             <map>
               <key>hash</key>
-              <string>c35c7517f6a3cba894befb9c6a327cef</string>
+              <string>b19a8d8920569a6c67b72c3dc1df493a</string>
               <key>hash_algorithm</key>
               <string>md5</string>
               <key>url</key>
-              <string>http://127.0.0.1:$PORT/bogus-0.1-common-111.tar.bz2</string>
+              <string>http://127.0.0.1:$PORT/nolicense-0.1-common-111.tar.bz2</string>
             </map>
           </map>
         </map>

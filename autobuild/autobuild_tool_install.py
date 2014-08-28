@@ -77,11 +77,6 @@ If an MD5 checksum is provided for a package in the autobuild.xml file,
 this will be used to validate the downloaded package. The package will
 not be installed if the MD5 sum does not match.
 
-A package description must include the name of the license that applies to
-the package. It may also contain the archive-relative path(s) to the full
-text license file that is stored in the package archive. Both of these
-metadata will be checked during the install process.
-
 If no packages are specified on the command line, then the defaut
 behavior is to install all known archives appropriate for the platform
 specified. You can specify more than one package on the command line.
@@ -288,22 +283,6 @@ def extract_metadata_from_package(archive_path, metadata_file_name):
     return metadata_file
 
 
-def pre_install_license_check(packages, config_file):
-    """
-    Raises a runtime exception if any of the specified packages do not have a
-    license property set.
-    """
-    for pname in packages:
-        # We already cover the nonexistent-package case elsewhere. Just avoid
-        # crashing if we reach this code first.
-        package = config_file.installables.get(pname)
-        if not package:
-            continue
-        license = package.license
-        if not license:
-            raise InstallError("no license specified for %s." % pname)
-
-
 def __extract_tar_file(cachename, install_dir, exclude=[]):
     # Attempt to extract the package from the install cache
     tar = tarfile.open(cachename, 'r')
@@ -378,23 +357,6 @@ class __SCPOrHTTPHandler(urllib2.BaseHandler):
         if self._dir:
             shutil.rmtree(self._dir)
 
-def post_install_license_check(packages, config_file, installed_file):
-    """
-    Raises a runtime exception if the license_file property for any of
-    the specified packages does not refer to a valid file in the
-    extracted archive, or does not specify an http:// URL to the
-    license description.
-    """
-    for pname in packages:
-        package = config_file.installables[pname]
-        license_file = package.license_file
-        # if a URL is given, assuming it's valid for now
-        if license_file is None \
-          or not (license_file.startswith('http://') \
-                  or os.path.exists(os.path.join(installed_file.dependencies[package.name].install_dir,
-                                               license_file))):
-            raise InstallError("nonexistent license_file for %s: %s" % (pname, license_file))
-
 
 def do_install(packages, config_file, installed_file, platform, install_dir, dry_run, local_archives=[]):
     """
@@ -465,8 +427,7 @@ def _install_binary(platform, package, config_file, install_dir, installed_file,
         raise InstallError("no url specified for package %s for platform %s" % (package_name, platform))
     # Is this package already installed?
     installed = installed_file.dependencies.get(package.name)
-    ##TBD inst_plat = installed and installed.get_platform(platform)
-    ##TBD inst_archive = inst_plat and inst_plat.archive
+
     # Rely on ArchiveDescription's equality-comparison method to discover
     # whether the installed ArchiveDescription matches the requested one. This
     # test also handles the case when inst_plat.archive is None (not yet
@@ -567,7 +528,28 @@ def _install_common(platform, package, package_file, install_dir, installed_file
         raise InstallError("Package '%s' attempts to install files already installed.\n%s\n  use --what-installed <file> to find the package that installed a conflict" % (package.name, details))
     if files:
         for f in files:
-            logger.debug("extracted: " + f)
+            logger.debug("    extracted " + f)
+
+    # Prefer the licence attribute and license file location from the metadata, 
+    # but for backward compatibility with legacy packages, allow use of the attributes
+    # in the installable description (which are otherwise not required)
+    if not ( metadata.package_description.get('license') or package.license ):
+        clean_files(install_dir, files) # clean up any partial install
+        raise InstallError("no license specified in metadata or configuration for %s." % package.name)
+    else:
+        logger.debug("license " + metadata.package_description.get('license') or package.license)
+
+    license_file = metadata.package_description.get('license_file') or package.license_file
+    if license_file is None \
+      or not (license_file in files \
+              or license_file.startswith('http://') \
+              or license_file.startswith('https://') \
+              ):
+        clean_files(install_dir, files) # clean up any partial install
+        raise InstallError("nonexistent license_file for %s: %s" % (package.name, license_file))
+    else:
+        logger.debug("license_file: " + license_file)
+    
     return metadata, files
 
 TransitiveSearched = set()
@@ -665,12 +647,15 @@ def uninstall(package_name, installed_config):
         return
 
     logger.warn("uninstalling %s" % package_name)
+    clean_files(package.install_dir, package.manifest)
+    
+def clean_files(install_dir, files):
     # Tarballs that name directories name them before the files they contain,
     # so the unpacker will create the directory before creating files in it.
     # For exactly that reason, we must remove things in reverse order.
     directories=set() # directories we've removed files from
-    for fn in package.manifest:
-        install_path = os.path.join(package.install_dir, fn)
+    for filename in files:
+        install_path = os.path.join(install_dir, filename)
         try:
             os.remove(install_path)
             # We used to print "removing f" before the call above, the
@@ -678,22 +663,26 @@ def uninstall(package_name, installed_config):
             # traceback. But there are a couple different ways we could get
             # through this logic without actually deleting. So produce a
             # message only when we're sure we've actually deleted something.
-            logger.debug("    removed " + fn)
+            logger.debug("    removed " + filename)
         except OSError, err:
             if err.errno == errno.ENOENT:
                 # this file has already been deleted for some reason -- fine
                 pass
-        directories.add(os.path.dirname(fn))
+        directories.add(os.path.dirname(filename))
+
     # Check to see if any of the directories from which we removed files are now 
     # empty; if so, delete them.  Do the checks in descending length order so that
     # subdirectories will appear before their containing directory.
-    for dn in sorted(directories, cmp=lambda x,y: cmp(len(y),len(x))):
-        dir_path = os.path.join(package.install_dir, dn)
+    for dirname in sorted(directories, cmp=lambda x,y: cmp(len(y),len(x))):
+        dir_path = os.path.join(install_dir, dirname)
         if os.path.exists(dir_path) and not os.listdir(dir_path):
             os.rmdir(dir_path)
-            logger.debug("    removed " + dn)
+            logger.debug("    removed " + dirname)
 
 def install_packages(args, config_file, install_dir, platform, packages):
+    if not args.check_license:
+        logger.warning("The --skip-license-check option is deprecated; it now has no effect")
+
     logger.debug("installing to directory: " + install_dir)
     # If installed_filename is already an absolute pathname, join() is smart
     # enough to leave it alone. Therefore we can do this unconditionally.
@@ -709,11 +698,6 @@ def install_packages(args, config_file, install_dir, platform, packages):
 
     # get the list of packages to install -- if none specified, consider all.
     packages = packages or config_file.installables.keys()
-
-    # check the license properties for the packages to install
-    if not args.check_license:
-        logger.warning("The --skip-license-check option is deprecated; it now has no effect")
-    pre_install_license_check(packages, config_file)
 
     # collect any locally built archives.
     local_archives = {}
@@ -732,12 +716,6 @@ def install_packages(args, config_file, install_dir, platform, packages):
     # do the actual install of the new/updated packages
     packages = do_install(packages, config_file, installed_file, platform, install_dir,
                           args.dry_run, local_archives=local_archives)
-
-    # check the license_file properties for actually-installed packages
-    if not args.check_license:
-        logger.warning("The --skip-license-check option is deprecated; it now has no effect")
-    if not args.dry_run:
-        post_install_license_check(packages, config_file, installed_file)
 
     # update the installed-packages.xml file
     try:
