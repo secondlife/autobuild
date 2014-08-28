@@ -44,9 +44,12 @@ class BaseTest(unittest.TestCase):
         # Unfortunately, when we run tests, sys.argv[0] is (e.g.) "nosetests"!
         # So we can't just call get_autobuild_executable_path(); in fact that
         # function is untestable. Derive a suitable autobuild command relative
-        # to this module's location.
+        # to this module's location. Note that this is OUR bin directory and
+        # OUR autobuild.cmd script -- not anything created by pip.
         self.autobuild_bin = os.path.abspath(os.path.join(self.this_dir, os.pardir, os.pardir,
                                                           "bin", "autobuild"))
+        if sys.platform.startswith("win"):
+            self.autobuild_bin += ".cmd"
 
     def autobuild(self, *args, **kwds):
         """
