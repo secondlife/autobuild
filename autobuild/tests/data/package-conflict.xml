@@ -1,6 +1,17 @@
 <?xml version="1.0" ?>
 <llsd>
 <map>
+    <key>package_description</key>
+    <map>
+      <key>copyright</key>
+      <string>Copyright 2014 Linden Research, Inc.</string>
+      <key>license</key>
+      <string>GPL</string>
+      <key>license_file</key>
+      <string>LICENSES/test1.txt</string>
+      <key>name</key>
+      <string>test1</string>
+    </map>
     <key>installables</key>
     <map>
       <key>bingo</key>

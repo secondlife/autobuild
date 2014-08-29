@@ -177,13 +177,14 @@ def setup():
         """
         def __init__(self,
                      install_filename=None,
-                     installed_filename=os.path.join(INSTALL_DIR, "packages-installed.xml"),
+                     installed_filename=os.path.join(INSTALL_DIR, "installed-packages.xml"),
                      select_dir=INSTALL_DIR, # uses common.select_directories() now
                      platform="common",
                      dry_run=False,
                      list_archives=False,
                      list_installed=False,
                      list_licenses=False,
+                     copyrights=False,
                      list_installed_urls=False,
                      list_dirty=False,
                      query_installed_file=False,
@@ -525,10 +526,20 @@ class TestInstallArchive(BaseTest):
     def test_list_licenses(self):
         self.options.package = None # install all
         autobuild_tool_install.AutobuildTool().run(self.options)
+
         self.options.list_licenses = True
         with CaptureStdout() as stream:
             autobuild_tool_install.AutobuildTool().run(self.options)
-        assert_equals(set_from_stream(stream), set(("Apache 2.0", "tut")))
+        assert_equals(set_from_stream(stream), set(("GPL", "Apache 2.0", "tut")))
+
+    def test_copyrights(self):
+        self.options.package = None # install all
+        autobuild_tool_install.AutobuildTool().run(self.options)
+
+        self.options.copyrights = True
+        with CaptureStdout() as stream:
+            autobuild_tool_install.AutobuildTool().run(self.options)
+        assert_equals(stream.getvalue(), "Copyright 2014 Linden Research, Inc.\nbogus: The Owner\n")
 
 # -------------------------------------  -------------------------------------
 class TestInstallCachedArchive(BaseTest):

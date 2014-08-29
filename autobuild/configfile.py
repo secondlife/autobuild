@@ -215,7 +215,7 @@ class ConfigurationDescription(common.Serialized):
             try:
                 saved_data = llsd.parse(autobuild_xml)
             except llsd.LLSDParseError:
-                raise common.AutobuildError("Config file %s is corrupt. Aborting..." % self.path)
+                raise common.AutobuildError("Configuration file %s is corrupt. Aborting..." % self.path)
             if not 'version' in saved_data:
                 raise common.AutobuildError("incompatible configuration file %s\n"
                     "if this is a legacy format autobuild.xml file, please try the workaround found here:\n"
@@ -419,6 +419,7 @@ class PackageDescription(common.Serialized):
         self.platforms = {}
         self.license = None
         self.license_file = None
+        self.copyright = None
         self.version = None
         self.install_dir = None
         if isinstance(arg, dict):

@@ -39,6 +39,10 @@
       <string>http://www.secondlife.com/</string>
       <key>license</key>
       <string>GPL2</string>
+      <key>copyright</key>
+      <string>Copyright 2014 Linden Research, Inc.</string>
+      <key>license_file</key>
+      <string>LICENSES/test1.txt</string>
       <key>manifest</key>
       <map>
         <key>common</key>

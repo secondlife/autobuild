@@ -110,12 +110,39 @@ def handle_query_args(options, config_file, installed_file):
         return print_list("Packages", config_file.installables.keys())
 
     if options.list_licenses:
-        licenses = []
+        if config_file.package_description.license is not None:
+            licenses = [config_file.package_description.license]
+        else:
+            licenses = []
         for installed in installed_file.dependencies.itervalues():
-            license = installed['package_description']['license']
-            if license not in licenses:
+            license = installed['package_description'].get('license')
+            if license is not None and license not in licenses:
                 licenses.append(license)
         return print_list("Licenses", licenses)
+
+    if options.copyrights:
+        copyrights = dict()
+        def recurse_dependencies(packages, copyrights):
+            if 'dependencies' in packages:
+                for pkg in packages['dependencies'].iterkeys():
+                    # since we prevent two versions of the same package from being installed, 
+                    # we don't need to worry about two different copyrights here for the same package
+                    if pkg not in copyrights:
+                        if 'copyright' in packages['dependencies'][pkg]['package_description']:
+                            copyrights[pkg] = packages['dependencies'][pkg]['package_description']['copyright'].strip()+'\n'
+                            recurse_dependencies(packages['dependencies'][pkg], copyrights)
+                        else:
+                            logger.warning("Package '%s' does not specify a copyright" % pkg)
+        recurse_dependencies(installed_file, copyrights)
+        if 'package_description' in config_file and config_file.package_description.get('copyright') is not None:
+            all_copyrights="%s" % config_file.package_description['copyright'].strip()+'\n'
+        else:
+            # warning already issued by configfile
+            all_copyrights=""
+        for pkg in sorted(copyrights):
+            all_copyrights+="%s: %s" % (pkg,copyrights[pkg])
+        print all_copyrights.rstrip() # the rstrip prevents two newlines on the end
+        return True
 
     if options.export_manifest:
         for package in installed_file.dependencies.itervalues():
@@ -539,8 +566,6 @@ def _install_common(platform, package, package_file, install_dir, installed_file
     if not ( metadata.package_description.get('license') or package.license ):
         clean_files(install_dir, files) # clean up any partial install
         raise InstallError("no license specified in metadata or configuration for %s." % package.name)
-    else:
-        logger.debug("license " + metadata.package_description.get('license') or package.license)
 
     license_file = metadata.package_description.get('license_file') or package.license_file
     if license_file is None \
@@ -550,8 +575,6 @@ def _install_common(platform, package, package_file, install_dir, installed_file
               ):
         clean_files(install_dir, files) # clean up any partial install
         raise InstallError("nonexistent license_file for %s: %s" % (package.name, license_file))
-    else:
-        logger.debug("license_file: " + license_file)
     
     return metadata, files
 
@@ -802,7 +825,13 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             action='store_true',
             default=False,
             dest='list_licenses',
-            help="List known licenses and exit.")
+            help="List licenses for this package and all installed dependencies.")
+        parser.add_argument(
+            '--copyrights',
+            action='store_true',
+            default=False,
+            dest='copyrights',
+            help="Print copyrights for this package and all installed dependencies.")
         parser.add_argument(
             '--list-dirty',
             action='store_true',
@@ -834,9 +863,9 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             default=self.configurations_from_environment())
 
     def run(self, args):
+        platform=common.establish_platform(args.platform,addrsize=args.addrsize)
         # load the list of packages to install
         logger.debug("loading " + args.install_filename)
-        platform=common.establish_platform(args.platform,addrsize=args.addrsize)
         config = configfile.ConfigurationDescription(args.install_filename)
 
         # write packages into 'packages' subdir of build directory by default

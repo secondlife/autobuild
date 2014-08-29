@@ -97,8 +97,14 @@
         <string>1.0</string>
       </map>
     </map>
-    <key>package_definition</key>
+    <key>package_description</key>
     <map>
+      <key>copyright</key>
+      <string>Copyright 2014 Linden Research, Inc.</string>
+      <key>license</key>
+      <string>GPL</string>
+      <key>license_file</key>
+      <string>LICENSES/test1.txt</string>
       <key>name</key>
       <string>anonymous</string>
     </map>
