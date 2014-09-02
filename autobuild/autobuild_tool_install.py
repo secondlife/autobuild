@@ -540,6 +540,12 @@ def _install_common(platform, package, package_file, install_dir, installed_file
 
     metadata = get_metadata_from_package(package_file, package)
 
+    # Check for required package_description elements
+    package_errors = configfile.check_package_attributes(metadata, additional_requirements=['version'])
+    if package_errors:
+        logger.warning(package_errors + "\n    in package %s\n    build will be marked as 'dirty'" % package.name)
+        metadata.dirty = True
+
     # Check for transitive dependency conflicts
     dependancy_conflicts = transitive_search(metadata, installed_file)
     if dependancy_conflicts:

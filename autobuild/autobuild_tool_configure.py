@@ -76,6 +76,10 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         common.establish_build_id(args.build_id)  # sets id (even if not specified),
                                                   # and stores in the AUTOBUILD_BUILD_ID environment variable
         config = configfile.ConfigurationDescription(args.config_file)
+        package_errors = configfile.check_package_attributes(config)
+        if package_errors:
+            raise ConfigurationError("%s\n    in configuration %s" \
+                                     % (package_errors, args.config_file))
         current_directory = os.getcwd()
         try:
             build_configurations = common.select_configurations(args, config, "configuring for")

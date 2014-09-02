@@ -37,6 +37,9 @@ class TestConfigure(BaseTest, AutobuildBaselineCompare):
         self.tmp_file = self.get_tmp_file(0)
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         package = configfile.PackageDescription('test')
+        package.license="LGPL"
+        package.copyright="copy left"
+        package.license_file="LICENSES/file"
         platform = configfile.PlatformDescription()
         build_configuration = configfile.BuildConfigurationDescription()
         build_configuration.configure = Executable(command="noop.py")

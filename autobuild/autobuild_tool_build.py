@@ -107,6 +107,9 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         build_id = common.establish_build_id(args.build_id)  # sets id (even if not specified),
                                                              # and stores in the AUTOBUILD_BUILD_ID environment variable
         config = configfile.ConfigurationDescription(args.config_file)
+        package_errors = configfile.check_package_attributes(config) #, additional_requirements=['version_file'])
+        if package_errors:
+            raise BuildError(package_errors + "\n    in configuration %s" % args.config_file)
         current_directory = os.getcwd()
         if args.clean_only:
             logger.info("building with --clean-only required")

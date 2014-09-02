@@ -421,7 +421,7 @@ def establish_build_id(build_id_arg):
         build_id = os.environ['AUTOBUILD_BUILD_ID']
     else:
         build_id = time.strftime("%Y%m%d%H%M")
-        logger.warn("Warning: no --id argument or AUTOBUILD_BUILD_ID environment variable specified\nUsing the date and time (%s), which may not be unique" % build_id)
+        logger.warn("Warning: no --id argument or AUTOBUILD_BUILD_ID environment variable specified;\n    using the date and time (%s), which may not be unique" % build_id)
     os.environ['AUTOBUILD_BUILD_ID'] = build_id
     return build_id
 

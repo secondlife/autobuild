@@ -155,6 +155,8 @@ def _get_new_metadata(config, args_name, args_archive, arguments):
 
     for description_key in _PACKAGE_ATTRIBUTES:
         if description_key in key_values:
+            logger.warning("specifying '%s' in the installable is no longer required\n  if it is in the package metadata"
+                           % description_key)
             if description_key in metadata.package_description \
               and metadata.package_description[description_key] is not None \
               and key_values[description_key] != metadata.package_description[description_key]:

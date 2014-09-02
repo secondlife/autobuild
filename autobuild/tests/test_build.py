@@ -50,7 +50,9 @@ class TestBuild(basetest.BaseTest, AutobuildBaselineCompare):
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         package = configfile.PackageDescription('test')
         package.license="LGPL"
+        package.license_file="LICENSES/file"
         package.version="0"
+        package.copyright="copy right"
         platform = configfile.PlatformDescription()
         self.tmp_build_dir=tempfile.mkdtemp(prefix=os.path.dirname(self.tmp_file)+"/build-")
         platform.build_directory = self.tmp_build_dir
@@ -87,6 +89,9 @@ class TestEnvironment(basetest.BaseTest, AutobuildBaselineCompare):
         self.tmp_file = self.get_tmp_file(0)
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         package = configfile.PackageDescription('test')
+        package.license="LGPL"
+        package.license_file="LICENSES/file"
+        package.copyright="no copy"
         platform = configfile.PlatformDescription()
         self.tmp_build_dir=tempfile.mkdtemp(prefix=os.path.dirname(self.tmp_file)+"/build-")
         platform.build_directory = self.tmp_build_dir

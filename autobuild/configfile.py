@@ -242,7 +242,24 @@ class ConfigurationDescription(common.Serialized):
         else:
             raise ConfigurationError("cannot create configuration file %s" % self.path)
 
-    
+
+def check_package_attributes(container, additional_requirements=[]):
+    """
+    container may be a ConfigurationDescription or MetadataDescription
+    additional_requirements are context-specific attributes to be required
+    returns a string of problems found 
+    """
+    errors = []
+    required_attributes = ['license', 'license_file', 'copyright', 'name']
+    package = getattr(container, 'package_description', None)
+    if package is not None:
+        for attribute in required_attributes + additional_requirements:
+            if not getattr(package, attribute, None):
+                errors.append("'%s' not specified in the package_description" % attribute)
+    else:
+        errors.append("no package_description found")
+    return '\n'.join(errors)
+
 class Dependencies(common.Serialized):
     """
     The record of packages installed in a build tree.
@@ -421,6 +438,7 @@ class PackageDescription(common.Serialized):
         self.license_file = None
         self.copyright = None
         self.version = None
+        self.name = None
         self.install_dir = None
         if isinstance(arg, dict):
             self.__init_from_dict(dict(arg))
