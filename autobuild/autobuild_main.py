@@ -23,24 +23,39 @@
 import sys
 import os
 
-# We have NOT yet tested autobuild with Python 3!
-if sys.version_info[0] >= 3:
-    print >>sys.stderr, \
-          "WARNING: autobuild is untested with Python 3, experiment at your own risk"
+# Hide some load-time logic in a throwaway class: don't pollute the
+# module-scope namespace with all these helper variables.
+class _local_scope(object):
+    ERROR   = "*** ERROR:"
+    WARNING = "WARNING:"
+    msgind  = max(len(ERROR), len(WARNING))
+    vermsg  = "\n%s You are running with Python %s.%s.%s." % \
+               ((msgind*' ',) + sys.version_info[:3])
 
-try:
-    import common
-    import argparse
-    import logging
-    from common import AutobuildError
-except ImportError:
-    # If we have import troubles, check Python version. As of autobuild
-    # version 0.9, autobuild requires at least Python 2.7.
-    if sys.version_info[:2] < (2, 7):
+    # We have NOT yet tested autobuild with Python 3!
+    if sys.version_info[0] >= 3:
         print >>sys.stderr, \
-              "*** ERROR: autobuild now requires at least Python 2.7;\n" \
-              "           you are running with Python %s.%s" % sys.version_info[:2]
-        raise
+              "%s autobuild is untested with Python 3+, experiment at your own risk.%s" % \
+              (WARNING.ljust(msgind), vermsg)
+
+    # As of autobuild version 0.9, autobuild requires at least Python 2.7.
+    elif sys.version_info[:2] == (2, 6):
+        # However, version Python 2.6 + hand-installed argparse module MAY work,
+        # so produce a warning for 2.6 rather than a hard error. If you haven't
+        # installed argparse, you'll immediately get an ImportError below.
+        print >>sys.stderr, \
+              "%s autobuild is supported only for Python 2.7.%s" % \
+              (WARNING.ljust(msgind), vermsg)
+    elif sys.version_info[:2] < (2, 6):
+        # Older than Python 2.6 is very likely to produce hard-to-diagnose errors.
+        # Nip that in the bud.
+        sys.exit("%s autobuild now requires Python 2.7.%s" %
+                 (ERROR.ljust(msgind), vermsg))
+
+import common
+import argparse
+import logging
+from common import AutobuildError
 
 ## Environment variable name used for default log level verbosity
 AUTOBUILD_LOGLEVEL = 'AUTOBUILD_LOGLEVEL'
