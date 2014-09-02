@@ -99,7 +99,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             config.save()
 
 
-_PACKAGE_ATTRIBUTES = ['description', 'copyright', 'license', 'license_file', 'version']
+_PACKAGE_ATTRIBUTES = ['description', 'copyright', 'license', 'license_file', 'version_file']
 _ARCHIVE_ATTRIBUTES = ['hash', 'hash_algorithm', 'url']
 
 

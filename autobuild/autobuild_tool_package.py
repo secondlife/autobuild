@@ -30,7 +30,7 @@ configuration file. The manifest can include platform-specific and
 platform-common files which may use glob-style wildcards.
 
 The package command optionally enforces the restriction that a license
-string and a valid licensefile for the package has been specified. The operation
+string and a valid license_file for the package has been specified. The operation
 will be aborted in this is not the case.
 
 In summary, the package command requires that you have specified the
@@ -38,7 +38,7 @@ following metadata in the autobuild.xml file:
 
 * build_directory
 * manifest
-* version
+* version_file
 * license
 * license_file (assumes LICENSES/<package-name>.txt otherwise)
 """
@@ -156,8 +156,11 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
         raise PackageError("no package name specified in configuration")
     if not package_description.license:
         raise PackageError("no license specified in configuration")
-    if not package_description.version:
-        raise PackageError("no version number specified in configuration")
+##  autobuild.xml's version_file is validated by build subcommand.
+##  By this time we should only have to validate metadata package version;
+##  this happens a few lines down, after reading metadata_file.
+##  if not package_description.version_file:
+##      raise PackageError("no version file specified in configuration")
     if not os.path.isdir(build_directory):
         raise PackageError("build directory %s is not a directory" % build_directory)
     logger.info("packaging from %s" % build_directory)
@@ -177,11 +180,15 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     if metadata_file.dirty:
         if clean_only:
             raise PackageError("Package depends on local or legacy installables\n"
-                               +"  use 'autobuild install --list-dirty' to see problem packages\n"
-                               +"  rerun without --clean-only to allow packaging anyway")
+                               "  use 'autobuild install --list-dirty' to see problem packages\n"
+                               "  rerun without --clean-only to allow packaging anyway")
         else:
             logger.warning("WARNING: package depends on local or legacy installables\n"
-                           +"  use 'autobuild install --list-dirty' to see problem packages")
+                           "  use 'autobuild install --list-dirty' to see problem packages")
+    if not metadata_file.package_description.version:
+        raise PackageError("no version in metadata package_description -- "
+                           "please verify %s version_file and rerun build" %
+                           os.path.basename(config.path))
     if package_description.license_file:
         if package_description.license_file not in files:
             files.append(package_description.license_file)
@@ -191,7 +198,8 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     if metadata_file.build_id:
         build_id = metadata_file.build_id
     else:
-        raise PackageError("no build_id in metadata - rerun build\n  you may specify (--id <id>) or let it default to the date")
+        raise PackageError("no build_id in metadata - rerun build\n"
+                           "  you may specify (--id <id>) or let it default to the date")
     if metadata_file.platform != platform_name:
         raise PackageError("build platform (%s) does not match current platform (%s)"
                            % (metadata_file.platform, platform_name))
@@ -209,7 +217,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     config_directory = os.path.dirname(config.path)
     if not archive_filename:
         tardir = config_directory
-        tarname = _generate_archive_name(package_description, build_id, platform_name)
+        tarname = _generate_archive_name(metadata_file.package_description, build_id, platform_name)
         tarfilename = os.path.join(tardir, tarname)
     elif os.path.isabs(archive_filename):
         tarfilename = archive_filename

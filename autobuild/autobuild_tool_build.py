@@ -140,12 +140,23 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 if not args.dry_run and os.path.exists(metadata_file_name):
                     os.unlink(metadata_file_name)
                 if result != 0:
-                    raise BuildError("building default configuration returned %d" % result)
+                    raise BuildError("building configuration %s returned %d" %
+                                     (build_configuration, result))
 
                 # Create the metadata record for inclusion in the package
                 metadata_file = configfile.MetadataDescription(path=metadata_file_name, create_quietly=True)
-                # include the package description from the configuration
-                metadata_file.package_description = config.package_description
+                # COPY the package description from the configuration: we're
+                # going to convert it to metadata format.
+                metadata_file.package_description = \
+                    configfile.PackageDescription(config.package_description)
+                # A metadata package_description has a version attribute
+                # instead of a version_file attribute.
+                metadata_file.package_description.version = \
+                    metadata_file.package_description.read_version_file(build_directory)
+                del metadata_file.package_description["version_file"]
+                logger.info("built %s version %s" %
+                            (metadata_file.package_description.name,
+                             metadata_file.package_description.version))
                 metadata_file.package_description.platforms = None  # omit data on platform configurations
                 metadata_file.platform = platform
                 metadata_file.configuration = build_configuration.name
