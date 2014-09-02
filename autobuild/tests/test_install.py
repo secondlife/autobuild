@@ -185,6 +185,7 @@ def setup():
                      list_installed=False,
                      list_licenses=False,
                      copyrights=False,
+                     versions=False,
                      list_installed_urls=False,
                      list_dirty=False,
                      query_installed_file=False,
@@ -540,6 +541,15 @@ class TestInstallArchive(BaseTest):
         with CaptureStdout() as stream:
             autobuild_tool_install.AutobuildTool().run(self.options)
         assert_equals(stream.getvalue(), "Copyright 2014 Linden Research, Inc.\nbogus: The Owner\n")
+
+    def test_versionss(self):
+        self.options.package = None # install all
+        autobuild_tool_install.AutobuildTool().run(self.options)
+
+        self.options.versions = True
+        with CaptureStdout() as stream:
+            autobuild_tool_install.AutobuildTool().run(self.options)
+        assert_equals(stream.getvalue(), "bogus: 1\n")
 
 # -------------------------------------  -------------------------------------
 class TestInstallCachedArchive(BaseTest):

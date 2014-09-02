@@ -144,6 +144,26 @@ def handle_query_args(options, config_file, installed_file):
         print all_copyrights.rstrip() # the rstrip prevents two newlines on the end
         return True
 
+    if options.versions:
+        versions = dict()
+        def recurse_dependencies(packages, versions):
+            if 'dependencies' in packages:
+                for pkg in packages['dependencies'].iterkeys():
+                    # since we prevent two versions of the same package from being installed, 
+                    # we don't need to worry about two different versions here for the same package
+                    if pkg not in versions:
+                        if 'copyright' in packages['dependencies'][pkg]['package_description']:
+                            versions[pkg] = packages['dependencies'][pkg]['package_description']['version'].strip()+'\n'
+                            recurse_dependencies(packages['dependencies'][pkg], versions)
+                        else:
+                            logger.warning("Package '%s' does not specify a version" % pkg)
+        recurse_dependencies(installed_file, versions)
+        all_versions=""
+        for pkg in sorted(versions):
+            all_versions+="%s: %s" % (pkg,versions[pkg])
+        print all_versions.rstrip() # the rstrip prevents two newlines on the end
+        return True
+
     if options.export_manifest:
         for package in installed_file.dependencies.itervalues():
             item = pprint.pformat(package).rstrip()  # trim final newline
@@ -838,6 +858,12 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             default=False,
             dest='copyrights',
             help="Print copyrights for this package and all installed dependencies.")
+        parser.add_argument(
+            '--versions',
+            action='store_true',
+            default=False,
+            dest='versions',
+            help="Print versions for all installed dependencies.")
         parser.add_argument(
             '--list-dirty',
             action='store_true',
