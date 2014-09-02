@@ -490,14 +490,14 @@ class PackageDescription(common.Serialized):
                         AUTOBUILD_CONFIG_FILE)
 
         if not self.version_file:
-            # ----------------------- remove after 0.9 -----------------------
+            # ----------------------- remove after 1.0 -----------------------
             # Only use the verbose explanation for the first version in which
             # we introduce the version_file requirement. After that it just
             # gets lame. (If you are editing this file and notice that
-            # version.py sets AUTOBUILD_VERSION_STRING > "0.9", feel free to
+            # version.py sets AUTOBUILD_VERSION_STRING > "1.0", feel free to
             # delete this comment, the version test and the verbose
             # AutobuildError.)
-            if common.AUTOBUILD_VERSION_STRING == "0.9":
+            if common.AUTOBUILD_VERSION_STRING == "1.0":
                 raise AutobuildError("""
 New requirement: instead of stating a particular version number in the %(xml)s
 file, we now require you to configure a version_file attribute. This should be
@@ -508,7 +508,7 @@ separate text file allows your build script to create that file from data
 available in the package. version_file need not be in the manifest; it's used
 only by 'autobuild build' to create package metadata.
 """ % dict(xml=AUTOBUILD_CONFIG_FILE))
-            # Once we get past version 0.9, use simpler error message.
+            # Once we get past version 1.0, use simpler error message.
             # -------------------------- end remove --------------------------
             raise AutobuildError("Missing version_file key")
 
