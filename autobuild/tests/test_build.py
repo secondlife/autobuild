@@ -59,6 +59,7 @@ class LocalBase(basetest.BaseTest, AutobuildBaselineCompare):
     def get_config(self):
         config = configfile.ConfigurationDescription(self.tmp_file)
         package = configfile.PackageDescription('test')
+        package.license = "LGPL"
         package.license_file="LICENSES/file"
         package.copyright="copy right"
         platform = configfile.PlatformDescription()
@@ -81,7 +82,6 @@ class LocalBase(basetest.BaseTest, AutobuildBaselineCompare):
 class TestBuild(LocalBase):
     def get_config(self):
         config = super(TestBuild, self).get_config()
-        config.package_description.license = "LGPL"
         config.package_description.version = "0"
         logger.debug("config: %s" % pprint.pformat(config))
         return config
@@ -99,12 +99,10 @@ class TestBuild(LocalBase):
 class TestEnvironment(LocalBase):
     def get_config(self):
         config = super(TestEnvironment, self).get_config()
+        config.package_description.copyright="no copy"
         config.package_description.platforms[common.get_current_platform()] \
               .configurations["Release"].build = Executable(command="envtest.py")
         return config
-        package.license="LGPL"
-        package.license_file="LICENSES/file"
-        package.copyright="no copy"
 
     def test_env(self):
         # verify that the AUTOBUILD env var is set to point to something executable
