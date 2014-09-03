@@ -27,9 +27,6 @@ Command to manage the creation and installation of package archives.
 """
 
 import sys
-if sys.version_info[0] != 2 or sys.version_info[1] < 7:
-    sys.exit("Autobuild requires at least Python version 2.7")
-
 import os
 
 script_path = os.path.dirname(os.path.realpath(os.path.abspath(__file__)))
