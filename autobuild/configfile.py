@@ -498,7 +498,7 @@ class PackageDescription(common.Serialized):
             # delete this comment, the version test and the verbose
             # AutobuildError.)
             if common.AUTOBUILD_VERSION_STRING == "1.0":
-                raise AutobuildError("""
+                raise common.AutobuildError("""
 New requirement: instead of stating a particular version number in the %(xml)s
 file, we now require you to configure a version_file attribute. This should be
 the path (relative to the build_directory) of a small text file containing
@@ -510,19 +510,19 @@ only by 'autobuild build' to create package metadata.
 """ % dict(xml=AUTOBUILD_CONFIG_FILE))
             # Once we get past version 1.0, use simpler error message.
             # -------------------------- end remove --------------------------
-            raise AutobuildError("Missing version_file key")
+            raise common.AutobuildError("Missing version_file key")
 
         version_file = os.path.join(build_directory, self.version_file)
         try:
             with open(version_file) as vf:
                 version = vf.read().strip()
         except IOError, err:
-            raise AutobuildError("Can't read version_file '%s': %s" %
-                                 (self.version_file, err))
+            raise common.AutobuildError("Can't read version_file '%s': %s" %
+                                        (self.version_file, err))
 
         if not version:
-            raise AutobuildError("version_file '%s' contains no version info" %
-                                 self.version_file)
+            raise common.AutobuildError("version_file '%s' contains no version info" %
+                                        self.version_file)
         return version
 
     def __init_from_dict(self, dictionary):
