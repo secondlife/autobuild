@@ -422,13 +422,20 @@ class PackageDescription(common.Serialized):
         license
         license_file
         homepage
-        version
+        version~
+        version_file~
         patches
         platforms**
         install_dir*
 
-    The install_dir attribute is only used
-    in PackageDescription objects stored in INSTALLED_CONFIG_FILE. 
+    *The install_dir attribute is only used in PackageDescription objects
+    stored in INSTALLED_CONFIG_FILE.
+
+    ~The version and version_file attributes are used differently in
+    AUTOBUILD_CONFIG_FILE and INSTALLED_CONFIG_FILE. In AUTOBUILD_CONFIG_FILE,
+    we require version_file and ignore version with a deprecation warning.
+    When we write metadata to INSTALLED_CONFIG_FILE, we read the version_file
+    and store a version attribute instead of the version_file attribute.
     """
     
     def __init__(self, arg):
@@ -438,6 +445,7 @@ class PackageDescription(common.Serialized):
         self.copyright = None
         self.version = None
         self.name = None
+        self.version_file = None
         self.install_dir = None
         if isinstance(arg, dict):
             self.__init_from_dict(dict(arg))
@@ -466,6 +474,55 @@ class PackageDescription(common.Serialized):
         if target_platform is None:
             target_platform = self.platforms.get("common")
         return target_platform
+
+    def read_version_file(self, build_directory):
+        """
+        Validate that this PackageDescription from AUTOBUILD_CONFIG_FILE has a
+        version_file attribute referencing a readable file. Read it and return
+        the contained version, else raise AutobuildError.
+
+        If a legacy AUTOBUILD_CONFIG_FILE contains a version attribute,
+        produce a deprecation warning.
+        """
+        if self.version:
+            logger.warn("package_description.version ignored in %s; use version_file instead" %
+                        AUTOBUILD_CONFIG_FILE)
+
+        if not self.version_file:
+            # ----------------------- remove after 1.0 -----------------------
+            # Only use the verbose explanation for the first version in which
+            # we introduce the version_file requirement. After that it just
+            # gets lame. (If you are editing this file and notice that
+            # version.py sets AUTOBUILD_VERSION_STRING > "1.0", feel free to
+            # delete this comment, the version test and the verbose
+            # AutobuildError.)
+            if common.AUTOBUILD_VERSION_STRING == "1.0":
+                raise common.AutobuildError("""
+New requirement: instead of stating a particular version number in the %(xml)s
+file, we now require you to configure a version_file attribute. This should be
+the path (relative to the build_directory) of a small text file containing
+only the package version string. Freezing the version number into %(xml)s
+means we often forget to update it there. Reading the version number from a
+separate text file allows your build script to create that file from data
+available in the package. version_file need not be in the manifest; it's used
+only by 'autobuild build' to create package metadata.
+""" % dict(xml=AUTOBUILD_CONFIG_FILE))
+            # Once we get past version 1.0, use simpler error message.
+            # -------------------------- end remove --------------------------
+            raise common.AutobuildError("Missing version_file key")
+
+        version_file = os.path.join(build_directory, self.version_file)
+        try:
+            with open(version_file) as vf:
+                version = vf.read().strip()
+        except IOError, err:
+            raise common.AutobuildError("Can't read version_file '%s': %s" %
+                                        (self.version_file, err))
+
+        if not version:
+            raise common.AutobuildError("version_file '%s' contains no version info" %
+                                        self.version_file)
+        return version
 
     def __init_from_dict(self, dictionary):
         platforms = dictionary.pop('platforms', {})
