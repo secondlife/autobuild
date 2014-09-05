@@ -119,6 +119,16 @@ def establish_platform(specified_platform=None, addrsize=DEFAULT_ADDRSIZE):
     
     return Platform
 
+def get_version_tuple(version_string):
+    try:
+        return tuple(int(v) for v in version_string.split('.'))
+    except (AttributeError, ValueError) as err:
+        # version_string might not have a split() method: might not be str.
+        # One or more components might not be int values.
+        logger.debug("Can't parse version string %r: %s" % (version_string, err))
+        # Treat any unparseable version as "very old"
+        return (0,)
+
 def get_current_user():
     """
     Get the login name for the current user.

@@ -39,7 +39,6 @@ except ImportError:
 
 import common
 from executable import Executable
-import update
 import logging
 
 logger = logging.getLogger('autobuild.configfile')
@@ -55,11 +54,6 @@ INSTALLED_CONFIG_FILE = "installed-packages.xml"
 AUTOBUILD_METADATA_VERSION = "1"
 AUTOBUILD_METADATA_TYPE = "metadata"
 PACKAGE_METADATA_FILE = "autobuild-package.xml"
-
-
-# FIXME: remove when refactor is complete
-class ConfigFile:
-    pass
 
 
 class ConfigurationError(common.AutobuildError):
@@ -198,6 +192,9 @@ class ConfigurationDescription(common.Serialized):
         file(self.path, 'wb').write(llsd.format_pretty_xml(_compact_to_dict(self)))
             
     def __load(self, path):
+        # circular imports, sorry, must import update locally
+        import update
+
         if os.path.isabs(path):
             self.path = path
         else:
@@ -216,27 +213,23 @@ class ConfigurationDescription(common.Serialized):
                 saved_data = llsd.parse(autobuild_xml)
             except llsd.LLSDParseError:
                 raise common.AutobuildError("Configuration file %s is corrupt. Aborting..." % self.path)
-            if not 'version' in saved_data:
-                raise common.AutobuildError("incompatible configuration file %s\n"
-                    "if this is a legacy format autobuild.xml file, please try the workaround found here:\n"
-                    "https://wiki.lindenlab.com/wiki/Autobuild/Incompatible_Configuration_File_Error" % self.path)
-            if saved_data['version'] == self.version:
-                if (not 'type' in saved_data) or (saved_data['type'] != 'autobuild'):
-                    raise common.AutobuildError(self.path + ' not an autobuild configuration file')
-                package_description = saved_data.pop('package_description', None)
-                if package_description is not None:
-                    self.package_description = PackageDescription(package_description)
-                installables = saved_data.pop('installables', {})
-                for (name, package) in installables.iteritems():
-                    self.installables[name] = PackageDescription(package)
-                self.update(saved_data)
-                logger.debug("Configuration file '%s'" % self.path)
-            else:
-                if saved_data['version'] in update.updaters:
-                    update.updaters[saved_data['version']](saved_data, self)
-                else:
-                    raise ConfigurationError("cannot update version %s file %s" %
-                                             (saved_data['version'], self.path))
+            saved_data, modified = update.convert_to_current(self.path, saved_data)
+            # Presumably this check comes after format-version updates because
+            # at some point in paleontological history the file format did not
+            # include "type".
+            if saved_data.get("type", None) != 'autobuild':
+                raise common.AutobuildError(self.path + ' not an autobuild configuration file')
+            package_description = saved_data.pop('package_description', None)
+            if package_description is not None:
+                self.package_description = PackageDescription(package_description)
+            installables = saved_data.pop('installables', {})
+            for (name, package) in installables.iteritems():
+                self.installables[name] = PackageDescription(package)
+            self.update(saved_data)
+            logger.debug("Configuration file '%s'" % self.path)
+            if modified:
+                logger.warn("Saving configuration file %s in format %s" %
+                            (self.path, AUTOBUILD_CONFIG_VERSION))
         elif not os.path.exists(self.path):
             logger.warn("Configuration file '%s' not found" % self.path)
         else:

@@ -39,6 +39,7 @@ import urlparse
 import posixpath
 import subprocess
 from basetest import *
+from nose.tools import *                # assert_equals etc.
 from string import Template
 from threading import Thread
 from BaseHTTPServer import HTTPServer
@@ -73,9 +74,6 @@ def url_for(tail):
 
 def in_dir(dir, file):
     return os.path.join(dir, os.path.basename(file))
-
-def assert_equals(left, right):
-    assert left == right, "%r != %r" % (left, right)
 
 def set_from_stream(stream):
     """
