@@ -341,14 +341,14 @@ class _package(InteractiveCommand):
 class Package(_package):
 
     ARGUMENTS = ['name', 'description', 'copyright', 'license', 'license_file',
-                 'version', ]
+                 'version_file', ]
 
     ARG_DICT = {'name':             {'help': 'Name of package'},
                 'description':      {'help': 'Package description'},
                 'copyright':        {'help': 'Copyright string (as appropriate for your package)'},
                 'license':          {'help': 'Type of license (as appropriate for your package)'},
                 'license_file':     {'help': 'Path to license file relative to package root, if known'},
-                'version':          {'help': 'Version'},
+                'version_file':     {'help': 'Path to version file relative to build_directory'},
                 }
 
     HELP = "Information about the package"
