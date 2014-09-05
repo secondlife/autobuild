@@ -213,7 +213,7 @@ class ConfigurationDescription(common.Serialized):
                 saved_data = llsd.parse(autobuild_xml)
             except llsd.LLSDParseError:
                 raise common.AutobuildError("Configuration file %s is corrupt. Aborting..." % self.path)
-            saved_data, modified = update.convert_to_current(self.path, saved_data)
+            saved_data, orig_ver = update.convert_to_current(self.path, saved_data)
             # Presumably this check comes after format-version updates because
             # at some point in paleontological history the file format did not
             # include "type".
@@ -227,9 +227,15 @@ class ConfigurationDescription(common.Serialized):
                 self.installables[name] = PackageDescription(package)
             self.update(saved_data)
             logger.debug("Configuration file '%s'" % self.path)
-            if modified:
+            if orig_ver:
                 logger.warn("Saving configuration file %s in format %s" %
                             (self.path, AUTOBUILD_CONFIG_VERSION))
+                self.save()
+                # We don't want orig_ver to appear in the saved file: that's
+                # for internal use only. But we do want to track it because
+                # there are those who care what kind of file we originally
+                # read.
+                self["orig_ver"] = orig_ver
         elif not os.path.exists(self.path):
             logger.warn("Configuration file '%s' not found" % self.path)
         else:

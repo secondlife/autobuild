@@ -187,16 +187,16 @@ class TestUpdater(TestCase):
 
         # config too old to even have a version key
         with exc(update.UpdateError):
-            config, mod = update.convert_to_current("NAME", {})
+            config, orig_ver = update.convert_to_current("NAME", {})
 
         # current config needs no update
-        config, mod = update.convert_to_current("NAME", dict(version="1.4"))
-        assert_false(mod)
+        config, orig_ver = update.convert_to_current("NAME", dict(version="1.4"))
+        assert_equals(orig_ver, None)
         assert "track" not in config, "updater called on current config"
 
         # oldest supported config gets all updaters
-        config, mod = update.convert_to_current("NAME", dict(version="1.1"))
-        assert mod, "old config not updated"
+        config, orig_ver = update.convert_to_current("NAME", dict(version="1.1"))
+        assert_equals(orig_ver, "1.1")
         assert "track" in config, "updater not called on old config"
         assert_equals(config["track"], ["to 1.2", "to 1.3", "to 1.4"])
         assert_equals(config["version"], "1.4")

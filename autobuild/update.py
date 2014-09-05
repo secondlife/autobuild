@@ -136,32 +136,40 @@ def _get_applicable_updaters(configname, version):
 def convert_to_current(configname, config):
     """
     Pass the LLSD config data read from file configname.
-    Returns (config data, False) if it's already at the current version -- or
-    (modified config data, True) if modified from its original format by
-    whatever applicable converters we found -- or raises UpdateError.
+    Returns (config data, None) if it's already at the current version -- or
+    (modified config data, original version) if modified from its original
+    format by whatever applicable converters we found -- or raises
+    UpdateError.
     """
     try:
         version = config["version"]
     except KeyError:
         # There was an original autobuild.xml format that predated the
         # introduction of the version key. But that's so old that even as of
-        # version 1.1 we refused to deal with it.
+        # version 1.1 we refused to deal with it. (This weasels out of the
+        # problem of what "original version" to return, since None is
+        # obviously wrong here.)
         raise UpdateError("""incompatible configuration file %s
 if this is a legacy format autobuild.xml file, please try the workaround found here:
 https://wiki.lindenlab.com/wiki/Autobuild/Incompatible_Configuration_File_Error""" % configname)
 
-    modified = False
-    for fromver, tover, converter in _get_applicable_updaters(configname, version):
+    triples = _get_applicable_updaters(configname, version)
+    if not triples:
+        # no update needed
+        return config, None
+
+    # updates needed, apply them
+    for fromver, tover, converter in triples:
         # info message clarifies the context in which a subsequent error might
         # appear
         logger.info("Converting %s data from format version %s to version %s..." %
                     (configname, fromver, tover))
         config = converter(config)
-        modified = True
         # update the version string in the config data; don't require every
         # converter to do that independently; easy to forget
         config["version"] = tover
-    return config, modified
+
+    return config, version
 
 # ****************************************************************************
 #   Updaters
