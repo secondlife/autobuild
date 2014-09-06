@@ -41,6 +41,7 @@ from autobuild.autobuild_main import Autobuild
 from baseline_compare import AutobuildBaselineCompare
 from autobuild.autobuild_tool_edit import AutobuildTool
 from basetest import BaseTest
+from nose.tools import *                # assert_equals() et al.
 
 
 class TestEdit(BaseTest, AutobuildBaselineCompare):
@@ -64,9 +65,9 @@ class TestEdit(BaseTest, AutobuildBaselineCompare):
         Check results.
         """
         args = ['build', "--config-file=%s" % self.tmp_file, 'name=newbuild', 'platform=windows', 'command=makethis']
-        expected_config = {'package_description': {'platforms': {'windows': {'name': 'windows', 'configurations': {'newbuild': {'build': {'command': 'makethis'}, 'name': 'newbuild'}}}}}, 'version': '1.2', 'type': 'autobuild'}
+        expected_config = {'package_description': {'platforms': {'windows': {'name': 'windows', 'configurations': {'newbuild': {'build': {'command': 'makethis'}, 'name': 'newbuild'}}}}}, 'version': configfile.AUTOBUILD_CONFIG_VERSION, 'type': 'autobuild'}
         built_config = self._try_cmd(args)
-        assert (expected_config == built_config)
+        assert_equals(expected_config, built_config)
            
     def test_configure(self):
         """
@@ -74,9 +75,9 @@ class TestEdit(BaseTest, AutobuildBaselineCompare):
         Check results.
         """
         args = ['configure', "--config-file=%s" % self.tmp_file, 'name=newbuild', 'platform=windows', 'command=makethat']
-        expected_config = {'package_description': {'platforms': {'windows': {'name': 'windows', 'configurations': {'newbuild': {'configure': {'command': 'makethat'}, 'name': 'newbuild'}}}}}, 'version': '1.2', 'type': 'autobuild'}
+        expected_config = {'package_description': {'platforms': {'windows': {'name': 'windows', 'configurations': {'newbuild': {'configure': {'command': 'makethat'}, 'name': 'newbuild'}}}}}, 'version': configfile.AUTOBUILD_CONFIG_VERSION, 'type': 'autobuild'}
         built_config = self._try_cmd(args)
-        assert (expected_config == built_config)
+        assert_equals(expected_config, built_config)
 
     def test_build_configure(self):
         """
@@ -85,17 +86,17 @@ class TestEdit(BaseTest, AutobuildBaselineCompare):
         """
         args = ['configure', "--config-file=%s" % self.tmp_file, 'name=newbuild', 'platform=windows', 'command=makethat']
         built_config1 = self._try_cmd(args)
-        expected_config1 = {'package_description': {'platforms': {'windows': {'name': 'windows', 'configurations': {'newbuild': {'configure': {'command': 'makethat'}, 'name': 'newbuild'}}}}}, 'version': '1.2', 'type': 'autobuild'}
-        assert (expected_config1 == built_config1)
+        expected_config1 = {'package_description': {'platforms': {'windows': {'name': 'windows', 'configurations': {'newbuild': {'configure': {'command': 'makethat'}, 'name': 'newbuild'}}}}}, 'version': configfile.AUTOBUILD_CONFIG_VERSION, 'type': 'autobuild'}
+        assert_equals(expected_config1, built_config1)
         args = ['build', "--config-file=%s" % self.tmp_file, 'name=newbuild', 'platform=windows', 'command=makethis']
         built_config2 = self._try_cmd(args)
-        expected_config2 = {'package_description': {'platforms': {'windows': {'name': 'windows', 'configurations': {'newbuild': {'build': {'command': 'makethis'}, 'name': 'newbuild', 'configure': {'command': 'makethat'}}}}}}, 'version': '1.2', 'type': 'autobuild'}
-        assert (expected_config2 == built_config2)
+        expected_config2 = {'package_description': {'platforms': {'windows': {'name': 'windows', 'configurations': {'newbuild': {'build': {'command': 'makethis'}, 'name': 'newbuild', 'configure': {'command': 'makethat'}}}}}}, 'version': configfile.AUTOBUILD_CONFIG_VERSION, 'type': 'autobuild'}
+        assert_equals(expected_config2, built_config2)
         
     def test_platform_configure(self):
         args = ['platform', "--config-file=%s" % self.tmp_file, 'name=windows', 'build_directory=foo/bar/baz']
         built_config = self._try_cmd(args)
-        assert built_config['package_description']['platforms']['windows']['build_directory'] == 'foo/bar/baz'
+        assert_equals(built_config['package_description']['platforms']['windows']['build_directory'], 'foo/bar/baz')
 
     def tearDown(self):
         self.cleanup_tmp_file()

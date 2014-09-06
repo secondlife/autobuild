@@ -107,9 +107,40 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         build_id = common.establish_build_id(args.build_id)  # sets id (even if not specified),
                                                              # and stores in the AUTOBUILD_BUILD_ID environment variable
         config = configfile.ConfigurationDescription(args.config_file)
-        package_errors = configfile.check_package_attributes(config) #, additional_requirements=['version_file'])
+        package_errors = \
+            configfile.check_package_attributes(config,
+                                                additional_requirements=['version_file'])
         if package_errors:
-            raise BuildError(package_errors + "\n    in configuration %s" % args.config_file)
+            # Now that we've deprecated hard-coded version and started
+            # requiring version_file instead, provide an explanation when it's
+            # missing, instead of confounding a longtime autobuild user with
+            # failure to meet a brand-new requirement.
+            # Recall that package_errors isa str that also has an attrs
+            # attribute. Only emit the verbose message if version_file is
+            # actually one of the problematic attributes, and the config file
+            # had to be converted from an earlier file format, and the
+            # original file format version predates version_file.
+            # (missing orig_ver attribute means a current autobuild.xml, which
+            # is why we pass get() a default value that bypasses verbose)
+            # (version_file was introduced at AUTOBUILD_CONFIG_VERSION 1.3)
+            if "version_file" in package_errors.attrs \
+            and common.get_version_tuple(config.get("orig_ver", "1.3")) < (1, 3):
+                verbose = """
+New requirement: instead of stating a particular version number in the %(xml)s
+file, we now require you to configure a version_file attribute. This should be
+the path (relative to the build_directory) of a small text file containing
+only the package version string. Freezing the version number into %(xml)s
+means we often forget to update it there. Reading the version number from a
+separate text file allows your build script to create that file from data
+available in the package. version_file need not be in the manifest; it's used
+only by 'autobuild build' to create package metadata.
+""" % dict(xml=configfile.AUTOBUILD_CONFIG_FILE)
+            else:
+                verbose = ""
+            # Now, regardless of the value of 'verbose', show the message.
+            raise BuildError(''.join((package_errors,
+                                      "\n    in configuration ", args.config_file,
+                                      verbose)))
         current_directory = os.getcwd()
         if args.clean_only:
             logger.info("building with --clean-only required")

@@ -64,6 +64,9 @@ class LocalBase(basetest.BaseTest, AutobuildBaselineCompare):
         package.copyright="copy right"
         platform = configfile.PlatformDescription()
         platform.build_directory = self.tmp_build_dir
+        package.version_file = os.path.join(self.tmp_build_dir, "version.txt")
+        with open(package.version_file, "w") as vf:
+            vf.write("1.0\n")
         build_configuration = configfile.BuildConfigurationDescription()
         build_configuration.build = Executable(command="noop.py")
         build_configuration.default = True

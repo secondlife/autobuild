@@ -28,6 +28,7 @@ Author : Alain Linden
 """
 
 import os
+import itertools
 import pprint
 import sys
 import StringIO
@@ -44,7 +45,7 @@ import logging
 logger = logging.getLogger('autobuild.configfile')
 
 AUTOBUILD_CONFIG_FILE = os.environ.get("AUTOBUILD_CONFIG_FILE", "autobuild.xml")
-AUTOBUILD_CONFIG_VERSION = "1.2"
+AUTOBUILD_CONFIG_VERSION = "1.3"        # introduced version_file requirement
 AUTOBUILD_CONFIG_TYPE = "autobuild"
 
 AUTOBUILD_INSTALLED_VERSION = "1"
@@ -241,23 +242,55 @@ class ConfigurationDescription(common.Serialized):
         else:
             raise ConfigurationError("cannot create configuration file %s" % self.path)
 
+class AttrErrorString(str):
+    """
+    check_package_attributes wants to return a string containing collected
+    errors. When that string is non-empty, the caller can raise an exception,
+    produce a warning, concatenate additional information, etc.
+
+    But some callers care specifically about which attributes are missing. We
+    want to attach additional information to the error return. Hence this
+    class.
+
+    In Python 2.x, the distinction between 'str' and 'unicode' still matters.
+    We derive from str rather than unicode because check_package_attributes()
+    actually controls the entire content of the string: it does not embed
+    arbitrary caller data.
+    """
+    # To intercept str construction, have to override __new__() as well as
+    # __init__().
+    def __new__(cls, attrs, message):
+        # Merely returning the new instance allows Python to proceed to call
+        # __init__() with the new instance and the same other args.
+        return super(AttrErrorString, cls).__new__(cls, message)
+
+    def __init__(self, attrs, message):
+        super(AttrErrorString, self).__init__(message)
+        self.attrs = attrs
 
 def check_package_attributes(container, additional_requirements=[]):
     """
     container may be a ConfigurationDescription or MetadataDescription
     additional_requirements are context-specific attributes to be required
-    returns a string of problems found 
+    Returns an AttrErrorString of problems found. Caller can treat this like a
+    str, or query its attrs attribute to discover the specific attributes with
+    problems.
     """
+    attrs  = []
     errors = []
     required_attributes = ['license', 'license_file', 'copyright', 'name']
-    package = getattr(container, 'package_description', None)
-    if package is not None:
-        for attribute in required_attributes + additional_requirements:
-            if not getattr(package, attribute, None):
-                errors.append("'%s' not specified in the package_description" % attribute)
-    else:
+    try:
+        package = container.package_description
+    except AttributeError:
+        attrs.append("package_description")
         errors.append("no package_description found")
-    return '\n'.join(errors)
+    else:
+        for attribute in itertools.chain(required_attributes, additional_requirements):
+            # this test intentionally conflates missing, None, empty string
+            if not getattr(package, attribute, None):
+                attrs.append(attribute)
+                errors.append("'%s' not specified in the package_description" % attribute)
+    return AttrErrorString(attrs, '\n'.join(errors))
 
 class Dependencies(common.Serialized):
     """
@@ -444,8 +477,8 @@ class PackageDescription(common.Serialized):
         self.license_file = None
         self.copyright = None
         self.version = None
-        self.name = None
         self.version_file = None
+        self.name = None
         self.install_dir = None
         if isinstance(arg, dict):
             self.__init_from_dict(dict(arg))
@@ -489,26 +522,8 @@ class PackageDescription(common.Serialized):
                         AUTOBUILD_CONFIG_FILE)
 
         if not self.version_file:
-            # ----------------------- remove after 1.0 -----------------------
-            # Only use the verbose explanation for the first version in which
-            # we introduce the version_file requirement. After that it just
-            # gets lame. (If you are editing this file and notice that
-            # version.py sets AUTOBUILD_VERSION_STRING > "1.0", feel free to
-            # delete this comment, the version test and the verbose
-            # AutobuildError.)
-            if common.AUTOBUILD_VERSION_STRING == "1.0":
-                raise common.AutobuildError("""
-New requirement: instead of stating a particular version number in the %(xml)s
-file, we now require you to configure a version_file attribute. This should be
-the path (relative to the build_directory) of a small text file containing
-only the package version string. Freezing the version number into %(xml)s
-means we often forget to update it there. Reading the version number from a
-separate text file allows your build script to create that file from data
-available in the package. version_file need not be in the manifest; it's used
-only by 'autobuild build' to create package metadata.
-""" % dict(xml=AUTOBUILD_CONFIG_FILE))
-            # Once we get past version 1.0, use simpler error message.
-            # -------------------------- end remove --------------------------
+            # should never hit this because caller should have already called
+            # check_package_attributes(), but suspenders and belt
             raise common.AutobuildError("Missing version_file key")
 
         version_file = os.path.join(build_directory, self.version_file)

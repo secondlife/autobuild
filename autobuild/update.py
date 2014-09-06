@@ -162,7 +162,7 @@ https://wiki.lindenlab.com/wiki/Autobuild/Incompatible_Configuration_File_Error"
     for fromver, tover, converter in triples:
         # info message clarifies the context in which a subsequent error might
         # appear
-        logger.info("Converting %s data from format version %s to version %s..." %
+        logger.warn("Converting %s data from format version %s to version %s..." %
                     (configname, fromver, tover))
         config = converter(config)
         # update the version string in the config data; don't require every
@@ -303,3 +303,10 @@ class _Update_1_1(object):
             return platform
 
 _register('1.1', '1.2', _Update_1_1())
+
+# -------------------------------- 1.2 -> 1.3 --------------------------------
+# We don't actually convert from 1.2: 1.3 introduces a new requirement, but we
+# can't implicitly derive the new version_file attribute from 1.2 data. This
+# change is handled elsewhere: autobuild_tool_build.py. Nonetheless we need a
+# no-op converter, else we blow up with inability to convert the file forward.
+_register('1.2', '1.3', lambda config: config)
