@@ -11,64 +11,12 @@ $/LicenseInfo$
 """
 
 import re
-from contextlib import contextmanager
 from unittest import TestCase
 from nose.tools import *                # assert_equals() et al.
+from basetest import exc
 from patch import patch
 
-try:
-    import update
-except ImportError:
-    import os
-    import sys
-    sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir))
-    import update
-
-@contextmanager
-def exc(exceptionslist, pattern=None):
-    """
-    Usage:
-
-    # succeeds
-    with exc(ValueError):
-        int('abc')
-
-    # fails with AssertionError
-    with exc(ValueError):
-        int('123')
-
-    # can specify multiple expected exceptions
-    with exc((IndexError, ValueError)):
-        int(''[0])
-    with exc((IndexError, ValueError)):
-        int('a'[0])
-
-    # can match expected message, when exception type isn't sufficient
-    with exc(Exception, 'badness'):
-        raise Exception('much badness has occurred')
-    """
-    try:
-        # run the body of the with block
-        yield
-    except exceptionslist as err:
-        # okay, with block did raise one of the expected exceptions;
-        # did the caller need the exception message to match a pattern?
-        if pattern and not re.search(pattern, str(err)):
-            raise AssertionError("exception %s does not match '%s': '%s'" %
-                                 (err.__class__.__name__, pattern, err))
-    else:
-        # with block did not raise any of the expected exceptions: FAIL
-        try:
-            # did caller pass a tuple of exceptions?
-            iter(exceptionslist)
-        except TypeError:
-            # just one exception class: use its name
-            exceptionnames = exceptionslist.__class__.__name__
-        else:
-            # tuple of exception classes: format their names
-            exceptionnames = "any of (%s)" % \
-                ','.join(ex.__class__.__name__ for ex in exceptionslist)
-        raise AssertionError("with block did not raise " + exceptionnames)
+from autobuild import update
 
 
 def test_register():

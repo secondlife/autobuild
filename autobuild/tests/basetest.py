@@ -30,10 +30,12 @@
 import os
 import sys
 import errno
+import re
 import subprocess
 import time
 import shutil
 import unittest
+from contextlib import contextmanager
 from cStringIO import StringIO
 
 from autobuild import common
@@ -111,7 +113,63 @@ def assert_in(item, container):
 
 def assert_not_in(item, container):
     assert item not in container, "%r should not be in %r" % (item, container)
-            
+
+@contextmanager
+def exc(exceptionslist, pattern=None, without=None):
+    """
+    Usage:
+
+    # succeeds
+    with exc(ValueError):
+        int('abc')
+
+    # fails with AssertionError
+    with exc(ValueError):
+        int('123')
+
+    # can specify multiple expected exceptions
+    with exc((IndexError, ValueError)):
+        int(''[0])
+    with exc((IndexError, ValueError)):
+        int('a'[0])
+
+    # can match expected message, when exception type isn't sufficient
+    with exc(Exception, 'badness'):
+        raise Exception('much badness has occurred')
+
+    # or can verify that exception message does NOT contain certain text
+    with exc(Exception, without='string'):
+        raise Exception('much int badness has occurred')
+    """
+    try:
+        # run the body of the with block
+        yield
+    except exceptionslist as err:
+        # okay, with block did raise one of the expected exceptions;
+        # did the caller need the exception message to match a pattern?
+        if pattern:
+            if not re.search(pattern, str(err)):
+                raise AssertionError("exception %s does not match '%s': '%s'" %
+                                     (err.__class__.__name__, pattern, err))
+        # or not to match a pattern?
+        if without:
+            if re.search(without, str(err)):
+                raise AssertionError("exception %s should not match '%s': '%s'" %
+                                     (err.__class__.__name__, without, err))
+    else:
+        # with block did not raise any of the expected exceptions: FAIL
+        try:
+            # did caller pass a tuple of exceptions?
+            iter(exceptionslist)
+        except TypeError:
+            # just one exception class: use its name
+            exceptionnames = exceptionslist.__name__
+        else:
+            # tuple of exception classes: format their names
+            exceptionnames = "any of (%s)" % \
+                ','.join(ex.__name__ for ex in exceptionslist)
+        raise AssertionError("with block did not raise " + exceptionnames)
+
 class ExpectError(object):
     """
     Usage:
