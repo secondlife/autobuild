@@ -115,7 +115,7 @@ def assert_not_in(item, container):
     assert item not in container, "%r should not be in %r" % (item, container)
 
 @contextmanager
-def exc(exceptionslist, pattern=None, without=None):
+def exc(exceptionslist, pattern=None, without=None, message=None):
     """
     Usage:
 
@@ -168,9 +168,10 @@ def exc(exceptionslist, pattern=None, without=None):
             # tuple of exception classes: format their names
             exceptionnames = "any of (%s)" % \
                 ','.join(ex.__name__ for ex in exceptionslist)
-        raise AssertionError("with block did not raise " + exceptionnames)
+        raise AssertionError(message or
+                             ("with block did not raise " + exceptionnames))
 
-class ExpectError(object):
+def ExpectError(errfrag, expectation, exception=common.AutobuildError):
     """
     Usage:
 
@@ -187,26 +188,7 @@ class ExpectError(object):
     else:
         assert False, "Expected a bad thing to happen"
     """
-    def __init__(self, errfrag, expectation, exception=common.AutobuildError):
-        self.errfrag = errfrag
-        self.expectation = expectation
-        self.exception = exception
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, tb):
-        # We expect an exception. If we get here without one, it's a problem.
-        if not any((type, value, tb)):
-            assert False, self.expectation
-        # Okay, it's an exception; is it the type we want?
-        if not isinstance(value, self.exception):
-            return False                # let exception propagate
-        # We reached here with an exception of the right type. Does it contain
-        # the message fragment we're expecting?
-        assert_in(self.errfrag, str(value))
-        # If all the above is true, then swallow the exception and proceed.
-        return True
+    return exc(exception, pattern=errfrag, message=expectation)
 
 class CaptureStdout(object):
     """
