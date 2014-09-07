@@ -90,6 +90,25 @@ class TestPackaging(BaseTest):
         assert os.path.exists(self.tar_name), "%s does not exist" % self.tar_name
         self.tar_has_expected(self.tar_name)
 
+    def test_package_other_version(self):
+        # read the existing metadata file and update stored package version
+        build_directory = self.config.get_build_directory(None, 'common')
+        metadata_filename = os.path.join(build_directory,
+                                         configfile.PACKAGE_METADATA_FILE)
+        metadata = configfile.MetadataDescription(metadata_filename)
+        metadata.package_description.version = "2.3"
+        metadata.save()
+        # okay, now use that to build package
+        package.package(self.config, build_directory, 'common', archive_format='tbz2')
+        # should have used updated package version in tarball name
+        expected_tar_name = self.tar_name.replace("-1.0-", "-2.3-")
+        if not os.path.exists(expected_tar_name):
+            if os.path.exists(self.tar_name):
+                raise AssertionError("package built %s instead of %s" %
+                                     (self.tar_name, expected_tar_name))
+            raise AssertionError("package built neither %s nor %s" %
+                                 (self.tar_name, expected_tar_name))
+
     def test_autobuild_package(self):
         with CaptureStdout() as stream:
             self.autobuild("package",
