@@ -262,7 +262,17 @@ if common.get_current_platform() is "windows":
 
 
 def do_source_environment(args):
-    var_mapping = {'AUTOBUILD_EXECUTABLE_PATH': common.get_autobuild_executable_path(),
+    # OPEN-259: it turns out to be important that if AUTOBUILD is already set
+    # in the environment, we should LEAVE IT ALONE. So if it exists, use the
+    # existing value. Otherwise, everywhere but Windows, just use our own
+    # executable path. On Windows (sigh), the function returns a pathname we
+    # can use internally -- but since source_environment is specifically for
+    # feeding a bash shell, twiddle that pathname for cygwin bash.
+    autobuild_path = common.get_autobuild_executable_path()
+    AUTOBUILD = os.environ.get("AUTOBUILD",
+                               autobuild_path if common.get_current_platform() != "windows"
+                               else ("$(cygpath -u '%s')"% autobuild_path))
+    var_mapping = {'AUTOBUILD_EXECUTABLE_PATH': AUTOBUILD,
                    'AUTOBUILD_VERSION_STRING': common.AUTOBUILD_VERSION_STRING,
                    'AUTOBUILD_PLATFORM': common.get_current_platform(),
                    'MAKEFLAGS': "",
@@ -286,7 +296,6 @@ def do_source_environment(args):
             vs_ver = "100"
             
         var_mapping.update(load_vsvars(vs_ver))
-        var_mapping.update(AUTOBUILD_EXECUTABLE_PATH=("$(cygpath -u '%s')" % common.get_autobuild_executable_path()))
 
         try:
             use_ib = int(os.environ['USE_INCREDIBUILD'])
