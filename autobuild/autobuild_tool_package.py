@@ -123,6 +123,10 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="package a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
+        parser.add_argument('--results-file',
+                            default=None,
+                            dest='results_file',
+                            help="file name in which to write results as shell variable assignments")
 
     def run(self, args):
         logger.debug("loading " + args.autobuild_filename)
@@ -131,6 +135,9 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             logger.info("packaging with --clean-only required")
         if args.check_license:
             logger.warning("The --skip-license-check option is deprecated; it now has no effect")
+        if not args.dry_run and args.results_file and os.path.exists(args.results_file):
+            logger.debug("clearing previous results: %s" % args.results_file)
+            os.remove(args.results_file)
         config = configfile.ConfigurationDescription(args.autobuild_filename)
 
         build_dirs = common.select_directories(args, config, "build", "packaging",
@@ -142,14 +149,14 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         is_clean = True
         for build_dir in build_dirs:
             package(config, build_dir, platform, archive_filename=args.archive_filename,
-                    archive_format=args.archive_format, clean_only=args.clean_only, dry_run=args.dry_run)
+                    archive_format=args.archive_format, clean_only=args.clean_only, results_file=args.results_file, dry_run=args.dry_run)
 
 
 class PackageError(AutobuildError):
     pass
 
 
-def package(config, build_directory, platform_name, archive_filename=None, archive_format=None, clean_only=False, dry_run=False):
+def package(config, build_directory, platform_name, archive_filename=None, archive_format=None, clean_only=False, results_file=None, dry_run=False):
     """
     Create an archive for the given platform.
     Returns True if the archive is not dirty, False if it is
@@ -209,11 +216,19 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
         raise PackageError("build platform (%s) does not match current platform (%s)"
                            % (metadata_file.platform, platform_name))
 
-    # Not using logging, since this output should be produced unconditionally on stdout
-    # Downstream build tools utilize this output - TBD ... find out if this is true ...
+    # printing unconditionally on stdout for backward compatibility
+    # the Linden Lab build scripts no longer rely on this
+    # (they use the --results-file option instead)
     print "packing %s" % package_description.name
 
+    results = None
     if not dry_run:
+        if results_file:
+            try:
+                results=open(results_file,'w')
+            except IOError, err:
+                raise PackageError("Unable to open results file %s:\n%s" % (results_file, err))
+            results.write('name="%s"\n' % package_description.name)
         metadata_file.save()
 
     # add the metadata file name to the list of files _after_ putting that list in the metadata
@@ -236,11 +251,13 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
         archive_description = platform_description.archive
         format = _determine_archive_format(archive_format, archive_description)
         if format == 'tbz2':
-            _create_tarfile(tarfilename + '.tar.bz2', build_directory, files)
+            _create_tarfile(tarfilename + '.tar.bz2', build_directory, files, results)
         elif format == 'zip':
-            _create_zip_archive(tarfilename + '.zip', build_directory, files)
+            _create_zip_archive(tarfilename + '.zip', build_directory, files, results)
         else:
             raise PackageError("archive format %s is not supported" % format)
+    if not dry_run and results:
+        results.close()
     return not metadata_file.dirty
 
 def _determine_archive_format(archive_format_argument, archive_description):
@@ -279,7 +296,7 @@ def _get_file_list(platform_description, build_directory):
         os.chdir(current_directory)
     return files
 
-def _create_tarfile(tarfilename, build_directory, filelist):
+def _create_tarfile(tarfilename, build_directory, filelist, results):
     if not os.path.exists(os.path.dirname(tarfilename)):
         os.makedirs(os.path.dirname(tarfilename))
     current_directory = os.getcwd()
@@ -305,13 +322,16 @@ def _create_tarfile(tarfilename, build_directory, filelist):
         tfile.close()
     finally:
         os.chdir(current_directory)
-    # Not using logging, since this output should be produced unconditionally on stdout
-    # Downstream build tools utilize this output
+    # printing unconditionally on stdout for backward compatibility
+    # the Linden Lab build scripts no longer rely on this
+    # (they use the --results-file option instead)
     print "wrote  %s" % tarfilename
-    _print_hash(tarfilename)
+    if results:
+        results.write('filename="%s"\n' % tarfilename)
+    _print_hash(tarfilename, results)
 
 
-def _create_zip_archive(archive_filename, build_directory, file_list):
+def _create_zip_archive(archive_filename, build_directory, file_list, results):
     if not os.path.exists(os.path.dirname(archive_filename)):
         os.makedirs(os.path.dirname(archive_filename))
     current_directory = os.getcwd()
@@ -324,8 +344,13 @@ def _create_zip_archive(archive_filename, build_directory, file_list):
         archive.close()
     finally:
         os.chdir(current_directory)
+    # printing unconditionally on stdout for backward compatibility
+    # the Linden Lab build scripts no longer rely on this
+    # (they use the --results-file option instead)
     print "wrote  %s" % archive_filename
-    _print_hash(archive_filename)
+    if results:
+        results.write('filename="%s"\n' % archive_filename)
+    _print_hash(archive_filename, results)
 
 
 def _add_file_to_zip_archive(zip_file, unnormalized_file, archive_filename, added_files):
@@ -349,7 +374,7 @@ def _add_file_to_zip_archive(zip_file, unnormalized_file, archive_filename, adde
         logger.info('added ' + file)
 
 
-def _print_hash(filename):
+def _print_hash(filename, results):
     fp = open(filename, 'rb')
     m = hashlib.md5()
     while True:
@@ -357,6 +382,13 @@ def _print_hash(filename):
         if not d:
             break
         m.update(d)
+    # printing unconditionally on stdout for backward compatibility
+    # the Linden Lab build scripts no longer rely on this
+    # (they use the --results-file option instead)
+    print "md5    %s" % m.hexdigest()
+    if results:
+        results.write('md5="%s"\n' % m.hexdigest())
+
     # Not using logging, since this output should be produced unconditionally on stdout
     # Downstream build tools utilize this output
-    print "md5    %s" % m.hexdigest()
+

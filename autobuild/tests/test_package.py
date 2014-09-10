@@ -26,6 +26,7 @@
 import os
 import sys
 import logging
+import re
 import shutil
 import tarfile
 import tempfile
@@ -34,7 +35,7 @@ from zipfile import ZipFile
 
 import autobuild.autobuild_tool_package as package
 from autobuild import configfile
-from basetest import BaseTest, ExpectError, CaptureStdout, clean_dir
+from basetest import BaseTest, ExpectError, CaptureStdout, clean_dir, clean_file
         
 
 # ****************************************************************************
@@ -89,6 +90,20 @@ class TestPackaging(BaseTest):
         package.package(self.config, self.config.get_build_directory(None, 'common'), 'common', archive_format='tbz2')
         assert os.path.exists(self.tar_name), "%s does not exist" % self.tar_name
         self.tar_has_expected(self.tar_name)
+
+    def test_results(self):
+        logger.setLevel(logging.DEBUG)
+        results_output=tempfile.mktemp()
+        package.package(self.config, self.config.get_build_directory(None, 'common'), 
+                        'common', archive_format='tbz2', results_file=results_output)
+        expected_results_regex='name="%s"\nfilename="%s"\nmd5="%s"\n$' \
+          % ('test1', re.escape(self.tar_name), "[0-9a-f]{32}")
+        expected=re.compile(expected_results_regex, flags=re.MULTILINE)
+        assert os.path.exists(results_output), "results file not found: %s" % results_output
+        actual_results = open(results_output,'r').read()
+        assert expected.match(actual_results), \
+          "\n!!! expected regex:\n%s\n!!! actual result:\n%s" % (expected_results_regex, actual_results)
+        clean_file(results_output)
 
     def test_package_other_version(self):
         # read the existing metadata file and update stored package version
