@@ -225,7 +225,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     if not dry_run:
         if results_file:
             try:
-                results=open(results_file,'w')
+                results=open(results_file,'wb')
             except IOError, err:
                 raise PackageError("Unable to open results file %s:\n%s" % (results_file, err))
             results.write('name="%s"\n' % package_description.name)
