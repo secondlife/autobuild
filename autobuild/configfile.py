@@ -265,7 +265,7 @@ class AttrErrorString(str):
         return super(AttrErrorString, cls).__new__(cls, message)
 
     def __init__(self, attrs, message):
-        super(AttrErrorString, self).__init__(message)
+        super(AttrErrorString, self).__init__()
         self.attrs = attrs
 
 def check_package_attributes(container, additional_requirements=[]):
