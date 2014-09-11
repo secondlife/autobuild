@@ -68,13 +68,35 @@ class RunHelp(argparse.Action):
         print parser.format_help()
         parser.exit(0)
 
+class Version(argparse.Action):
+    """
+    The argparse action='version' action is almost good, but it produces its
+    output on stderr instead of on stdout. We consider that a bug.
+    """
+    def __init__(self, option_strings, version=None,
+                 dest=argparse.SUPPRESS,
+                 default=argparse.SUPPRESS,
+                 help="show program's version number and exit", **kwds):
+        super(Version, self).__init__(option_strings=option_strings,
+                                      dest=dest,
+                                      default=default,
+                                      nargs=0,
+                                      help=help,
+                                      **kwds)
+        self.version = version
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        formatter = parser._get_formatter()
+        formatter.add_text(self.version or parser.version)
+        print formatter.format_help()
+        parser.exit(message="")
 
 class Autobuild(object):
     def __init__(self):
         self.parser = argparse.ArgumentParser(
             description='Autobuild', prog='autobuild', add_help=False)
         
-        self.parser.add_argument('-V', '--version', action='version',
+        self.parser.add_argument('-V', '--version', action=Version,
                                  version='%%(prog)s %s' % common.AUTOBUILD_VERSION_STRING)
 
         self.subparsers = self.parser.add_subparsers(title='Sub Commands',
