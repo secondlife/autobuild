@@ -647,7 +647,8 @@ def package_in_installed(new_package, installed):
             if new_package['package_description']['name'] == used:
                 if 'archive' in new_package and new_package['archive']:
                     # this is a dependency of the new package, so we have archive data
-                    if new_package['archive']['url']  != previous[used]['archive']['url']:
+                    if new_package['archive']['url'].rsplit('/',1)[-1] \
+                      != previous[used]['archive']['url'].rsplit('/',1)[-1]:
                         conflict += "  url           %s\n" % previous[used]['archive']['url']
                     if new_package['archive']['hash'] != previous[used]['archive']['hash']:
                         conflict += "  hash          %s\n" % previous[used]['archive']['hash']
