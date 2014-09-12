@@ -33,11 +33,11 @@ if __name__ == '__main__':
     # some such.
     command = [os.environ["AUTOBUILD"], "--version"]
     autobuild = subprocess.Popen(command,
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                 stdout=subprocess.PIPE,
                                  # Use command shell to perform that search.
                                  shell=sys.platform.startswith("win"))
     stdout, stderr = autobuild.communicate()
     rc = autobuild.wait()
     assert rc == 0, "%s => %s" % (' '.join(command), rc)
-    assert not stdout, "%s\nstdout: '%s'" % (' '.join(command), stdout)
-    assert stderr.startswith("autobuild ")
+    assert stdout.startswith("autobuild "), \
+           "does not look like autobuild --version output:\n" + stdout
