@@ -37,7 +37,7 @@ BUILD = 1
 # embedded in the package itself changes, e.g. from 0.8 to 0.9 -- but we don't
 # notice, simply incrementing the build number? The package build we expected
 # to become 0.8.5 should really be 0.9.1 instead -- NOT 0.9.5.
-VERSION_WHEN_LAST_PACKAGED = "0.8"
+VERSION_WHEN_LAST_PACKAGED = "1.0"
 
 # from http://stackoverflow.com/questions/2058802/how-can-i-get-the-version-defined-in-setup-py-setuptools-in-my-package :
 # "make a version.py in your package with a __version__ line, then read it
@@ -86,6 +86,9 @@ setup(
     scripts=[],
     license='MIT',
     classifiers=filter(None, CLASSIFIERS.split("\n")),
-    install_requires=['llbase', 'pydot2'],
+    # argparse is specifically for Python 2.6 compatibility. If/when we drop
+    # Python 2.6 support, that module can be removed from this list: it's
+    # bundled with Python 2.7+.
+    install_requires=['llbase', 'pydot2', 'argparse'],
     #ext_modules=ext_modules,
     )

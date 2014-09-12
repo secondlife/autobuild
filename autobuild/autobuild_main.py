@@ -38,14 +38,7 @@ class _local_scope(object):
               "%s autobuild is untested with Python 3+, experiment at your own risk.%s" % \
               (WARNING.ljust(msgind), vermsg)
 
-    # As of autobuild version 0.9, autobuild requires at least Python 2.7.
-    elif sys.version_info[:2] == (2, 6):
-        # However, version Python 2.6 + hand-installed argparse module MAY work,
-        # so produce a warning for 2.6 rather than a hard error. If you haven't
-        # installed argparse, you'll immediately get an ImportError below.
-        print >>sys.stderr, \
-              "%s autobuild is supported only for Python 2.7.%s" % \
-              (WARNING.ljust(msgind), vermsg)
+    # As of autobuild version 0.9, autobuild requires at least Python 2.6.
     elif sys.version_info[:2] < (2, 6):
         # Older than Python 2.6 is very likely to produce hard-to-diagnose errors.
         # Nip that in the bud.

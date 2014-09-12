@@ -35,7 +35,23 @@ import os
 import sys
 import tempfile
 
-import pydot
+try:
+    import pydot
+except ImportError:
+    # Workaround for an obscure test case: on some TeamCity build hosts, we run
+    # self-tests from a Mercurial checkout rather than from a pip install. In that
+    # scenario, pip can't have fulfilled our pydot2 requirement, so import pydot
+    # will fail. But we don't want a spurious test failure showing up; just skip
+    # that test.
+    try:
+        from nose.plugins.skip import SkipTest
+    except ImportError:
+        # whoops, user machine, it's a real problem: use real ImportError
+        SkipTest = ImportError
+    # Of course either exception is equally dismaying to an interactive user.
+    raise SkipTest("Cannot import pydot module; "
+                   "did you use pip install to install autobuild?")
+
 import webbrowser
 
 import common
