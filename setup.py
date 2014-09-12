@@ -25,6 +25,7 @@
 from distribute_setup import use_setuptools
 use_setuptools()
 from setuptools import setup
+import sys
 import os.path
 
 # most of this is shamelessly cloned from llbase's setup.py
@@ -87,8 +88,9 @@ setup(
     license='MIT',
     classifiers=filter(None, CLASSIFIERS.split("\n")),
     # argparse is specifically for Python 2.6 compatibility. If/when we drop
-    # Python 2.6 support, that module can be removed from this list: it's
-    # bundled with Python 2.7+.
-    install_requires=['llbase', 'pydot2', 'argparse'],
+    # Python 2.6 support, the conditional argparse item can be removed from
+    # install_requires: it's bundled with Python 2.7+.
+    install_requires=['llbase', 'pydot2'] + \
+                     (['argparse'] if sys.version_info[:2] < (2, 7) else []),
     #ext_modules=ext_modules,
     )

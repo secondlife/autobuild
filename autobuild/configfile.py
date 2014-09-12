@@ -265,6 +265,9 @@ class AttrErrorString(str):
         return super(AttrErrorString, cls).__new__(cls, message)
 
     def __init__(self, attrs, message):
+        # Since we've already passed 'message' to super().__new__(), it's
+        # ignored by this super().__init__() call -- and in fact it produces
+        # DeprecationWarnings -- so avoid the clutter by not even passing it.
         super(AttrErrorString, self).__init__()
         self.attrs = attrs
 
