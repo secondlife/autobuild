@@ -228,7 +228,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
                 results=open(results_file,'wb')
             except IOError, err:
                 raise PackageError("Unable to open results file %s:\n%s" % (results_file, err))
-            results.write('name="%s"\n' % package_description.name)
+            results.write('autobuild_package_name="%s"\n' % package_description.name)
         metadata_file.save()
 
     # add the metadata file name to the list of files _after_ putting that list in the metadata
@@ -327,7 +327,7 @@ def _create_tarfile(tarfilename, build_directory, filelist, results):
     # (they use the --results-file option instead)
     print "wrote  %s" % tarfilename
     if results:
-        results.write('filename="%s"\n' % tarfilename)
+        results.write('autobuild_package_filename="%s"\n' % tarfilename)
     _print_hash(tarfilename, results)
 
 
@@ -349,7 +349,7 @@ def _create_zip_archive(archive_filename, build_directory, file_list, results):
     # (they use the --results-file option instead)
     print "wrote  %s" % archive_filename
     if results:
-        results.write('filename="%s"\n' % archive_filename)
+        results.write('autobuild_package_filename="%s"\n' % archive_filename)
     _print_hash(archive_filename, results)
 
 
@@ -387,7 +387,7 @@ def _print_hash(filename, results):
     # (they use the --results-file option instead)
     print "md5    %s" % m.hexdigest()
     if results:
-        results.write('md5="%s"\n' % m.hexdigest())
+        results.write('autobuild_package_md5="%s"\n' % m.hexdigest())
 
     # Not using logging, since this output should be produced unconditionally on stdout
     # Downstream build tools utilize this output
