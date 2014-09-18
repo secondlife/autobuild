@@ -23,17 +23,7 @@ end_section()
 }
 
 set -e
-if [ "x${TEAMCITY_PROJECT_NAME}" != "x" ]
-then
-    begin_section "VirtualEnv install nose"
-    virtualenv py_install_wrapper
-    . py_install_wrapper/bin/activate
-    pip install pyparsing==1.5.7
-    pip install pydot
-    pip install nose
-    pip install llbase
-    end_section "VirtualEnv install nose"
-fi
+python --version
 
 begin_section "Self Test"
 if nosetests -v
