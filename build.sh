@@ -32,6 +32,7 @@ then
     ExitStatus=0
 else
     echo_service_message buildStatus text="'Self Test Failed'" status="'FAILURE'"
+    ExitStatus=1
 fi
 end_section "Self Test"
 
