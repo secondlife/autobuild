@@ -23,10 +23,10 @@ end_section()
 }
 
 set -e
-python --version
+$python_command --version
 
 begin_section "Self Test"
-if nosetests -v
+if $python_command nosetests -v
 then
     echo_service_message buildStatus text="'Self Test Passed'" status="'SUCCESS'"
     ExitStatus=0
