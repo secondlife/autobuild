@@ -23,17 +23,24 @@ end_section()
 }
 
 set -e
-python --version
-
-begin_section "Self Test"
-if nosetests -v
+if [ -x "$PYTHON" ]
 then
-    echo_service_message buildStatus text="'Self Test Passed'" status="'SUCCESS'"
-    ExitStatus=0
+    $PYTHON --version
+
+    begin_section "Self Test"
+    if $PYTHON nosetests -v
+    then
+        echo_service_message buildStatus text="'Self Test Passed'" status="'SUCCESS'"
+        ExitStatus=0
+    else
+        echo_service_message buildStatus text="'Self Test Failed'" status="'FAILURE'"
+        ExitStatus=1
+    fi
+    end_section "Self Test"
+
 else
-    echo_service_message buildStatus text="'Self Test Failed'" status="'FAILURE'"
+    echo_service_message buildStatus text="'\$PYTHON is not executable'" status="'FAILURE'"
     ExitStatus=1
 fi
-end_section "Self Test"
 
 exit $ExitStatus
