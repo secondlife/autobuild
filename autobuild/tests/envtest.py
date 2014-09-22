@@ -23,6 +23,7 @@
 
 import os
 import sys
+import re
 import subprocess
 
 if __name__ == '__main__':
@@ -31,7 +32,21 @@ if __name__ == '__main__':
     # should be a command we can execute, but (at least on Windows) the
     # corresponding executable file may be $AUTOBUILD.cmd or $AUTOBUILD.exe or
     # some such.
-    command = [os.environ["AUTOBUILD"], "--version"]
+    AUTOBUILD = os.environ["AUTOBUILD"]
+    # HACK HACK HACK: Specifically when running self-tests on TeamCity under
+    # build.sh under cygwin bash, AUTOBUILD is set to (e.g.)
+    # "/cygdrive/c/some/path/autobuild.cmd". OPEN-259 mandates that we leave
+    # any existing AUTOBUILD variable alone, so that's how it arrives here
+    # too. Naturally, subprocess.Popen() knows nothing of /cygdrive/c. Fix
+    # that. We believe this particular badness affects only this test,
+    # otherwise we'd make the change in central autobuild execution machinery
+    # instead of here in an individual test script.
+    match = re.match(r"/cygdrive/(.)/", AUTOBUILD)
+    if match:
+        # match.group(1) is the drive letter;
+        # [match.end(0):] strips off the entire matched prefix.
+        AUTOBUILD = "%s:/%s" % (match.group(1), AUTOBUILD[match.end(0):])
+    command = [AUTOBUILD, "--version"]
     autobuild = subprocess.Popen(command,
                                  stdout=subprocess.PIPE,
                                  # Use command shell to perform that search.
