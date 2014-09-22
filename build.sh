@@ -23,10 +23,18 @@ end_section()
 }
 
 set -e
-$python_command --version
+case "$arch" in
+    CYGWIN)
+        # this ensures we use the Windows Python
+        nosetests="nosetests.exe"
+        ;;
+    *)
+        nosetests="nosetests"
+        ;;
+esac
 
 begin_section "Self Test"
-if $python_command nosetests -v
+if $nosetests -v
 then
     echo_service_message buildStatus text="'Self Test Passed'" status="'SUCCESS'"
     ExitStatus=0
