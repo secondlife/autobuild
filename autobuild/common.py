@@ -92,6 +92,10 @@ def establish_platform(specified_platform=None, addrsize=DEFAULT_ADDRSIZE):
         addrsize = 32
     if specified_platform is not None:
         Platform=specified_platform
+    elif os.environ.get('AUTOBUILD_PLATFORM_OVERRIDE'):
+        Platform=os.environ.get('AUTOBUILD_PLATFORM_OVERRIDE')
+    elif os.environ.get('AUTOBUILD_PLATFORM'):
+        Platform=os.environ.get('AUTOBUILD_PLATFORM')
     elif sys.platform == 'darwin':
         if addrsize == 64:
             Platform = PLATFORM_DARWIN64
