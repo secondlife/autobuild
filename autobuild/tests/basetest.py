@@ -114,6 +114,15 @@ def assert_in(item, container):
 def assert_not_in(item, container):
     assert item not in container, "%r should not be in %r" % (item, container)
 
+def assert_found_in(regex, container):
+    pattern = re.compile(regex)
+    assert any(pattern.search(item) for item in container), "search failed for %r in %r" % (regex, container)
+
+def assert_not_found_in(regex, container):
+    pattern = re.compile(regex)
+    assert not any(pattern.search(item) for item in container), "search found %r in %r" % (regex, container)
+
+
 @contextmanager
 def exc(exceptionslist, pattern=None, without=None, message=None):
     """

@@ -126,6 +126,9 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         parser.add_argument('--no-display',
                             dest='display', action='store_false', default=True,
                             help='do not generate and display graph; output dot file on stdout instead')
+        parser.add_argument('--output', '-o',
+                            dest='output', default=None,
+                            help='do not display graph; store graph file in the specified file')
     def run(self, args):
         platform=common.establish_platform(args.platform, addrsize=args.addrsize)
         metadata = None
@@ -212,17 +215,23 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             root.set_root('true')
             root.set_shape('octagon')
             
-            if args.display:
-                graph_file = os.path.join(tempfile.gettempdir(), metadata['package_description']['name'] + "_graph_" + args.graph_type + '.png')
+            if args.display or args.output:
+                if args.output:
+                    graph_file = args.output
+                else:
+                    graph_file = os.path.join(tempfile.gettempdir(), 
+                                              metadata['package_description']['name'] + "_graph_" 
+                                              + args.graph_type + '.png')
                 logger.info("writing %s" % graph_file)
                 graph.write_png(graph_file, prog=args.graph_type)
-                webbrowser.open('file:'+graph_file)
+                if args.display and not args.output:
+                    webbrowser.open('file:'+graph_file)
             else:
                 print "%s" % graph.to_string()
 
         else:
-            logger.error("No metadata found")
-        
+            raise GraphError("No metadata found")
+
 
 if __name__ == '__main__':
     sys.exit("Please invoke this script using 'autobuild %s'" %
