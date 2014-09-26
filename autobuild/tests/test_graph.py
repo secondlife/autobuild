@@ -32,8 +32,11 @@ import os
 import logging
 import tempfile
 
+from pydot import InvocationException   # in case graphviz not installed
+
 from unittest import TestCase
 from nose.tools import *                # assert_equals() et al.
+from nose.plugins.skip import SkipTest
 
 #from autobuild.autobuild_main import Autobuild
 import autobuild.common as common
@@ -84,15 +87,19 @@ class TestGraph(BaseTest):
 
     def test_output(self):
         self.tmp_dir = tempfile.mkdtemp()
-        self.options.output = os.path.join(self.tmp_dir, "graph.png")
-        self.options.source_file = os.path.join(self.this_dir, "data", "bongo-0.1-common-111.tar.bz2")
         try:
-            graph.AutobuildTool().run(self.options)
-        except AutobuildError:
+            self.options.output = os.path.join(self.tmp_dir, "graph.png")
+            self.options.source_file = os.path.join(self.this_dir, "data", "bongo-0.1-common-111.tar.bz2")
+            try:
+                graph.AutobuildTool().run(self.options)
+            except InvocationException as err:
+                # don't require that graphviz be installed to pass unit tests
+                raise SkipTest(str(err))
+            # for now, settle for detecting that the png file was created
+            assert os.path.exists(self.options.output)
+
+        finally:
             clean_dir(self.tmp_dir)
-            raise
-        # for now, settle for detecting that the png file was created
-        assert os.path.exists(self.options.output)
 
     def tearDown(self):
         BaseTest.tearDown(self)
