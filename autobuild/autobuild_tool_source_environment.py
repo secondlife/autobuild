@@ -326,7 +326,7 @@ def do_source_environment(args):
                    'DISTCC_HOSTS': "",
                    }
 
-    if common.get_current_platform() is "windows":
+    if common.get_current_platform() == "windows":
         try:
             # reset stdout in binary mode so sh doesn't get confused by '\r'
             import msvcrt
