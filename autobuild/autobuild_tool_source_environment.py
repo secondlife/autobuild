@@ -21,18 +21,15 @@
 # $/LicenseInfo$
 
 import os
+import sys
+from ast import literal_eval
+import logging
+from pprint import pformat
+import re
 import shutil
 import stat
 import subprocess
-import sys
 import tempfile
-import logging
-
-try:
-    from llbase import llsd
-except ImportError:
-    sys.exit("Failed to import llsd via the llbase module; to install, use:\n"
-             "  pip install llbase")
 
 import common
 import autobuild_base
@@ -61,62 +58,115 @@ if os.path.exists(helper):
         assert sys.path[_helper_idx] == helper
         del sys.path[_helper_idx]
 
+class SourceEnvError(common.AutobuildError):
+    pass
 
 def load_vsvars(vsver):
-    vsvars_path = os.path.join(os.environ["VS%sCOMNTOOLS" % vsver], "vsvars32.bat")
-    temp_script_name = tempfile.mktemp(suffix=".cmd")
+    key = "VS%sCOMNTOOLS" % vsver
+    logger.debug("vsver %s, key %s" % (vsver, key))
+    try:
+        # We've seen traceback output from this if vsver doesn't match an
+        # environment variable. Produce a reasonable error message instead.
+        VSxxxCOMNTOOLS = os.environ[key]
+    except KeyError:
+        candidates = [k for k in os.environ.iterkeys()
+                      if re.match(r"VS.*COMNTOOLS$", k)]
+        explain = " (candidates: %s)" % ", ".join(candidates) if candidates \
+                  else ""
+        raise SourceEnvError("No env variable %s, is Visual Studio %s installed?%s" %
+                             (key, vsver, explain))
 
-    shutil.copy(vsvars_path, temp_script_name)
-    # append our little llsd+notation bit to the end
-    temp_script_file = open(temp_script_name, "a")
-    temp_script_file.write("""
-        echo {
-        echo "VSPATH":"%PATH%",
-        echo "VSINCLUDE":"%INCLUDE%",
-        echo "VSLIB":"%LIB%",
-        echo "VSLIBPATH":"%LIBPATH%",
-        echo }
-    """)
-    temp_script_file.close()
+    vsvars_path = os.path.join(VSxxxCOMNTOOLS, "vsvars32.bat")
+    # Invent a temp filename into which to capture our script output. Some
+    # versions of vsvars32.bat emit stdout, some don't; we've been bitten both
+    # ways. Bypass that by not commingling our desired output into stdout.
+    temp_output = tempfile.NamedTemporaryFile(suffix=".pydata", delete=False)
+    temp_output.close()
+    try:
+        # Write a little temp batch file to suck in vsvars32.bat and regurgitate
+        # its contents in a form we can parse.
+        # First call vsvars32.bat to update the cmd shell's environment. Then
+        # use Python itself -- not just any Python interpreter, but THIS one
+        # -- to format the ENTIRE environment into temp_output.name.
+        temp_script_content = """\
+call "%s"
+"%s" -c "import os, pprint; pprint.pprint(os.environ)" > "%s"
+""" % (vsvars_path, sys.executable, temp_output.name)
+        # Specify mode="w" for text mode ("\r\n" newlines); default is binary.
+        with tempfile.NamedTemporaryFile(suffix=".cmd", delete=False, mode="w") as temp_script:
+            temp_script.write(temp_script_content)
+            temp_script_name = temp_script.name
+        logger.debug("wrote to %s:\n%s" % (temp_script_name, temp_script_content))
 
-    if sys.platform == "cygwin":
-        # cygwin needs the file to have executable permissions, and translated to a path
-        # name that cmd.exe can understand
-        cmdline = ["cygpath", "-d", "%s" % temp_script_name]
-        logger.debug(cmdline)
-        os.chmod(temp_script_name, stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
-        (temp_script_name, _) = subprocess.Popen(cmdline, stdout=subprocess.PIPE).communicate()
-        temp_script_name = temp_script_name.rstrip()
+        try:
+            # This stanza should be irrelevant these days because we make a
+            # point of avoiding cygwin Python exactly because of pathname
+            # compatibility problems. Retain it, though, just in case it's
+            # saving somebody's butt.
+            if sys.platform == "cygwin":
+                # cygwin needs the file to have executable permissions
+                os.chmod(temp_script_name, stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
+                # and translated to a path name that cmd.exe can understand
+                temp_script_name = cygpath("-d", temp_script_name)
 
-    cmdline = ['cmd', '/Q', '/C', temp_script_name]
-    logger.debug(cmdline)
-    cmd = subprocess.Popen(cmdline, stdout=subprocess.PIPE)
-    (cmdout, cmderr) = cmd.communicate()
+            # Run our little batch script. Intercept any stdout it produces,
+            # which would confuse our invoker, who wants to parse OUR stdout.
+            cmdline = ['cmd', '/Q', '/C', temp_script_name]
+            logger.debug(cmdline)
+            script = subprocess.Popen(cmdline,
+                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            logger.debug(script.communicate()[0].rstrip())
+            rc = script.wait()
+            if rc != 0:
+                raise SourceEnvError("%s failed with rc %s" % (' '.join(cmdline), rc))
 
-    logger.debug("cmdout: %r" % cmdout)
+        finally:
+            # Whether or not the temporary script file worked, clean it up.
+            os.remove(temp_script_name)
 
-    os.remove(temp_script_name)
+        # Read our temporary output file, knowing that it cannot contain any
+        # output produced by vsvars32.bat itself.
+        with open(temp_output.name) as tf:
+            raw_environ = tf.read()
 
-    # *HACK
-    # slice off the 1st line ("Setting environment for using..." preamble)
-    cmdout = '\n'.join(cmdout.split('\n')[1:])
-    # escape backslashes
-    cmdout = '\\\\'.join(cmdout.split('\\'))
+    finally:
+        # Clean up our temporary output file.
+        os.remove(temp_output.name)
 
-    vsvars = llsd.parse(cmdout)
+    try:
+        # trust pprint.pprint() to produce output readable by ast.literal_eval()
+        vsvars = literal_eval(raw_environ)
+    except Exception:
+        # but in case of a glitch, report raw string data for debugging
+        logger.debug("pprint output of vsvars32:\n" + raw_environ)
+        raise
 
-    logger.debug("VSVARS: %r" % vsvars)
+    logger.debug("environment from vsvars32:\n" + pformat(vsvars))
 
-    # translate paths from windows to cygwin format
-    vsvars['VSPATH'] = ":".join(
-        ['"$(cygpath -u \'%s\')"' % p for p in vsvars['VSPATH'].split(';')]
-    )
-
-    # fix for broken builds on windows (don't let anything escape the closing quote)
-    for (k, v) in vsvars.iteritems():
-        vsvars[k] = v.rstrip('\\')
+    # Now weed out of vsvars anything identical to OUR environment. Retain
+    # only environment variables actually modified by vsvars32.bat.
+    # Use items() rather than iteritems(): capture the list of items up front
+    # instead of trying to traverse vsvars while modifying it.
+    for var, value in vsvars.items():
+        # Bear in mind that some variables were introduced by vsvars32.bat and
+        # are therefore NOT in our os.environ.
+        if os.environ.get(var) == value:
+            # Any environment variable from our batch script that's identical
+            # to our own os.environ was simply inherited. Discard it.
+            del vsvars[var]
+    logger.debug("set by vsvars32:\n" + pformat(vsvars))
 
     return vsvars
+
+
+def cygpath(*args):
+    """run cygpath with specified command-line args, returning its output"""
+    cmdline = ["cygpath"] + list(args)
+    stdout = subprocess.Popen(cmdline, stdout=subprocess.PIPE) \
+                       .communicate()[0].rstrip()
+    logger.debug("%s => '%s'" % (cmdline, stdout))
+    return stdout
+
 
 environment_template = """
     # disable verbose debugging output (maybe someday we'll want to make this configurable with -v ?)
@@ -217,7 +267,7 @@ if common.get_current_platform() is "windows":
         local vcproj=$1
         local config=$2
 
-        if ((%(USE_INCREDIBUILD)d)) ; then
+        if (($USE_INCREDIBUILD)) ; then
             BuildConsole "$vcproj" /CFG="$config"
         else
             devenv "$vcproj" /build "$config"
@@ -229,7 +279,7 @@ if common.get_current_platform() is "windows":
         local config=$2
         local proj=$3
 
-        if ((%(USE_INCREDIBUILD)d)) ; then
+        if (($USE_INCREDIBUILD)) ; then
             if [ -z "$proj" ] ; then
                 BuildConsole "$solution" /CFG="$config"
             else
@@ -246,19 +296,16 @@ if common.get_current_platform() is "windows":
 
     # function for loading visual studio related env vars
     load_vsvars() {
-        export PATH=%(VSPATH)s:"$PATH"
-        export INCLUDE="%(VSINCLUDE)s"
-        export LIB="%(VSLIB)s"
-        export LIBPATH="%(VSLIBPATH)s"
+%(vsvars)s
     }
     
-    if ! ((%(USE_INCREDIBUILD)d)) ; then
+    if ! (($USE_INCREDIBUILD)) ; then
         load_vsvars
     fi
 
     $restore_xtrace
     """
-    environment_template = "%s\n%s" % (environment_template, windows_template)
+    environment_template = '\n'.join((environment_template, windows_template))
 
 
 def do_source_environment(args):
@@ -289,18 +336,61 @@ def do_source_environment(args):
             pass
 
         # load vsvars32.bat variables
-        # *TODO - find a way to configure this instead of hardcoding to vc80
+        # *TODO - find a way to configure this instead of hardcoding default
+        vs_ver = os.environ.get('AUTOBUILD_VSVER', '100')
+        vsvars = load_vsvars(vs_ver)
+        exports = []
+        # We don't know which environment variables might be modified by
+        # vsvars32.bat, but one of them is likely to be PATH. Treat PATH
+        # specially: when a bash script invokes our load_vsvars() shell
+        # function, we want to prepend to its existing PATH rather than
+        # replacing it with whatever's visible to Python right now.
         try:
-            vs_ver = os.environ['AUTOBUILD_VSVER']
+            PATH = vsvars.pop("PATH")
         except KeyError:
-            vs_ver = "100"
-            
-        var_mapping.update(load_vsvars(vs_ver))
+            pass
+        else:
+            # Translate paths from windows to cygwin format.
+            # Match patterns of the form %SomeVar%. Match the SHORTEST such
+            # string so that %var1% ... %var2% are two distinct matches.
+            percents = re.compile(r"%(.*?)%")
+            PATH = ":".join(
+                # Some pathnames in the PATH var may be individually quoted --
+                # strip quotes from those.
+                # Moreover, some may have %SomeVar% substitutions; replace
+                # with ${SomeVar} substitutions for bash. (Use curly braces
+                # because we don't want to have to care what follows.)
+                # may as well de-dup while we're at it
+                dedup(cygpath("-u", percents.sub(r"${\1}", p.strip('"')))
+                      for p in PATH.split(';'))
+            )
+            exports.append(("PATH", PATH + ":$PATH"))
+
+        # Resetting our PROMPT is a bit heavy-handed. Plus the substitution
+        # syntax probably differs.
+        vsvars.pop("PROMPT", None)
+
+        # A pathname ending with a backslash (as many do on Windows), when
+        # embedded in quotes in a bash script, might inadvertently escape the
+        # close quote. Remove all trailing backslashes.
+        for (k, v) in vsvars.iteritems():
+            exports.append((k, v.rstrip('\\')))
+
+        # may as well sort by keys
+        exports.sort()
+
+        # Since at coding time we don't know the set of all modified
+        # environment variables, don't try to name them individually in the
+        # template. Instead, bundle all relevant export statements into a
+        # single substitution.
+        var_mapping["vsvars"] = '\n'.join(
+            ('        export %s="%s"' % varval for varval in exports)
+        )
 
         try:
             use_ib = int(os.environ['USE_INCREDIBUILD'])
         except ValueError:
-            logger.warning("USE_INCREDIBUILD environment variable contained garbage %r (expected 0 or 1), turning incredibuild off" % os.environ['USE_INCREDIBUILD'])
+            logger.warning("USE_INCREDIBUILD environment variable contained garbage %r (expected 0 or 1)" % os.environ['USE_INCREDIBUILD'])
             use_ib = 0
         except KeyError:
             use_ib = int(bool(common.find_executable('BuildConsole')))
@@ -312,6 +402,14 @@ def do_source_environment(args):
     if get_params:
         # *TODO - run get_params.generate_bash_script()
         pass
+
+
+def dedup(iterable):
+    seen = set()
+    for item in iterable:
+        if item not in seen:
+            seen.add(item)
+            yield item
 
 
 class AutobuildTool(autobuild_base.AutobuildBase):
