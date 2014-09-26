@@ -32,7 +32,12 @@ import os
 import logging
 import tempfile
 
-from pydot import InvocationException   # in case graphviz not installed
+try:
+    # in case graphviz not installed
+    from pydot import InvocationException
+except ImportError:
+    # in case pydot not installed!
+    InvocationException = None
 
 from unittest import TestCase
 from nose.tools import *                # assert_equals() et al.
@@ -86,6 +91,10 @@ class TestGraph(BaseTest):
         assert_in("bingo -> bongo;", output_lines)
 
     def test_output(self):
+        if InvocationException is None:
+            # If we don't even have pydot installed, this test is pretty
+            # pointless.
+            raise SkipTest("pydot not installed, skipping")
         self.tmp_dir = tempfile.mkdtemp()
         try:
             self.options.output = os.path.join(self.tmp_dir, "graph.png")
