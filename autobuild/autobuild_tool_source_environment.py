@@ -257,7 +257,7 @@ environment_template = """
     $restore_xtrace
 """
 
-if common.get_current_platform() is "windows":
+if common.get_current_platform() == "windows":
     windows_template = """
     # disable verbose debugging output
     set +o xtrace
