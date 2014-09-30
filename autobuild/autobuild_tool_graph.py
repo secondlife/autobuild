@@ -133,7 +133,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         platform=common.establish_platform(args.platform, addrsize=args.addrsize)
         metadata = None
         incomplete = ''
-        if args.source_file is None:
+        if not args.source_file:
             # no file specified, so assume we are in a build tree and find the 
             # metadata in the current build directory
             logger.info("searching for metadata in the current build tree")
