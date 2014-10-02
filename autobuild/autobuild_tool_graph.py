@@ -126,9 +126,12 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         parser.add_argument('--no-display',
                             dest='display', action='store_false', default=True,
                             help='do not generate and display graph; output dot file on stdout instead')
-        parser.add_argument('--output', '-o',
-                            dest='output', default=None,
+        parser.add_argument('--graph-file', '-g',
+                            dest='graph_file', default=None,
                             help='do not display graph; store graph file in the specified file')
+        parser.add_argument('--dot-file', '-D',
+                            dest='dot_file', default=None,
+                            help='save the dot input file in the specified file')
     def run(self, args):
         platform=common.establish_platform(args.platform, addrsize=args.addrsize)
         metadata = None
@@ -176,7 +179,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                     raise GraphError("No metadata found in archive '%s'" % args.file)
             
         if metadata:
-            graph = pydot.Dot(label=metadata['package_description']['name']+incomplete+' dependencies', graph_type='digraph')
+            graph = pydot.Dot(label=metadata['package_description']['name']+incomplete+' dependencies for '+platform, graph_type='digraph')
             graph.set('overlap', 'false')
             graph.set('splines', 'true')
             graph.set('scale', '2')
@@ -214,17 +217,25 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             root = add_depends(graph, metadata)
             root.set_root('true')
             root.set_shape('octagon')
-            
-            if args.display or args.output:
-                if args.output:
-                    graph_file = args.output
+
+            if args.dot_file:
+                try:
+                    dot_file=open(args.dot_file,'wb')
+                except IOError, err:
+                    raise GraphError("Unable to open dot file %s: %s" % (args.dot_file, err))
+                dot_file.write(graph.to_string())
+                dot_file.close()
+                
+            if args.display or args.graph_file:
+                if args.graph_file:
+                    graph_file = args.graph_file
                 else:
                     graph_file = os.path.join(tempfile.gettempdir(), 
                                               metadata['package_description']['name'] + "_graph_" 
                                               + args.graph_type + '.png')
                 logger.info("writing %s" % graph_file)
                 graph.write_png(graph_file, prog=args.graph_type)
-                if args.display and not args.output:
+                if args.display and not args.graph_file:
                     webbrowser.open('file:'+graph_file)
             else:
                 print "%s" % graph.to_string()

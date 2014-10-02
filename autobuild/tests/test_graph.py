@@ -55,7 +55,8 @@ class GraphOptions(object):
         self.source_file = None
         self.graph_type='dot'
         self.display=False
-        self.output=None
+        self.graph_file=None
+        self.dot_file=None
         self.platform=None
         self.addrsize=common.DEFAULT_ADDRSIZE
 
@@ -76,7 +77,7 @@ class TestGraph(BaseTest):
         with CaptureStdout() as stream:
             graph.AutobuildTool().run(self.options)
             output_lines = stream.getvalue().splitlines()
-        assert_in("label=\"bingo dependencies\";", output_lines)
+        assert_found_in("label=\"bingo dependencies for ", output_lines) # omit platform
         assert_found_in("bingo \\[.*\\];", output_lines)
         assert_not_found_in("->", output_lines)
 
@@ -86,7 +87,7 @@ class TestGraph(BaseTest):
         with CaptureStdout() as stream:
             graph.AutobuildTool().run(self.options)
             output_lines = stream.getvalue().splitlines()
-        assert_in("label=\"bongo dependencies\";", output_lines)
+        assert_found_in("label=\"bongo dependencies for ", output_lines) # omit platform
         assert_in("bingo;", output_lines)
         assert_in("bingo -> bongo;", output_lines)
 
@@ -97,7 +98,8 @@ class TestGraph(BaseTest):
             raise SkipTest("pydot not installed, skipping")
         self.tmp_dir = tempfile.mkdtemp()
         try:
-            self.options.output = os.path.join(self.tmp_dir, "graph.png")
+            self.options.graph_file = os.path.join(self.tmp_dir, "graph.png")
+            self.options.dot_file = os.path.join(self.tmp_dir, "graph.dot")
             self.options.source_file = os.path.join(self.this_dir, "data", "bongo-0.1-common-111.tar.bz2")
             try:
                 graph.AutobuildTool().run(self.options)
@@ -105,7 +107,8 @@ class TestGraph(BaseTest):
                 # don't require that graphviz be installed to pass unit tests
                 raise SkipTest(str(err))
             # for now, settle for detecting that the png file was created
-            assert os.path.exists(self.options.output)
+            assert os.path.exists(self.options.graph_file)
+            assert os.path.exists(self.options.dot_file)
 
         finally:
             clean_dir(self.tmp_dir)
