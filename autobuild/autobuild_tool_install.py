@@ -313,23 +313,25 @@ def extract_metadata_from_package(archive_path, metadata_file_name):
     """
     metadata_file = None
     if not os.path.exists(archive_path):
-        logger.error("cannot extract metadata from non-existing package: %s" % archive_path)
-        return False
-    logger.debug("extracting metadata from %s" % os.path.basename(archive_path))
-    if tarfile.is_tarfile(archive_path):
-        tar = tarfile.open(archive_path, 'r')
-        try:
-            metadata_file = tar.extractfile(metadata_file_name)
-        except KeyError, err:
-            pass  # returning None will indicate that it was not there
-    elif zipfile.is_zipfile(archive_path):
-        try:
-            zip = zipfile.ZipFile(archive_path, 'r')
-            metadata_file = zip.open(metadata_file_name, 'r')
-        except KeyError, err:
-            pass  # returning None will indicate that it was not there
+        logger.error("no package found at: %s" % archive_path)
     else:
-        logger.error("package %s is not archived in a supported format" % archive_path)
+        logger.debug("extracting metadata from %s" % os.path.basename(archive_path))
+        if tarfile.is_tarfile(archive_path):
+            tar = tarfile.open(archive_path, 'r')
+            try:
+                metadata_file = tar.extractfile(metadata_file_name)
+            except KeyError, err:
+                metadata_file = None
+                pass  # returning None will indicate that it was not there
+        elif zipfile.is_zipfile(archive_path):
+            try:
+                zip = zipfile.ZipFile(archive_path, 'r')
+                metadata_file = zip.open(metadata_file_name, 'r')
+            except KeyError, err:
+                metadata_file = None
+                pass  # returning None will indicate that it was not there
+        else:
+            logger.error("package %s is not archived in a supported format" % archive_path)
     return metadata_file
 
 

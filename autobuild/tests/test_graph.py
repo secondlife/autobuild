@@ -70,6 +70,10 @@ class TestGraph(BaseTest):
             self.options.source_file = os.path.join(self.this_dir, "data", "nometa-0.1-common-111.tar.bz2")
             graph.AutobuildTool().run(self.options)
 
+    def test_nopackage(self):
+        with ExpectError("No metadatas found", "no error detected when archive does not exist"):
+            self.options.source_file = os.path.join(self.this_dir, "data", "nonexistant.tar.bz2")
+            graph.AutobuildTool().run(self.options)
 
     def test_nodepends(self):
         self.options.source_file = os.path.join(self.this_dir, "data", "bingo-0.1-common-111.tar.bz2")
