@@ -71,7 +71,7 @@ class TestGraph(BaseTest):
             graph.AutobuildTool().run(self.options)
 
     def test_nopackage(self):
-        with ExpectError("No metadatas found", "no error detected when archive does not exist"):
+        with ExpectError("No metadata found", "no error detected when archive does not exist"):
             self.options.source_file = os.path.join(self.this_dir, "data", "nonexistant.tar.bz2")
             graph.AutobuildTool().run(self.options)
 
