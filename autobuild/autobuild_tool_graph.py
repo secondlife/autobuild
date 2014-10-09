@@ -191,9 +191,10 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
             def add_depends(graph, pkg):
                 name = pkg['package_description']['name']
+                got = graph.get_node(name) # can return a single Node instance, a list of Nodes, or None 
                 try:
-                    pkg_node = graph.get_node(name)[0]
-                except IndexError:
+                    pkg_node = got if got is None or isinstance(got, pydot.Node) else got[0]
+                except IndexError: # some versions of pydot may return an empty list instead of None
                     pkg_node = None
                 if pkg_node is None:
                     logger.debug(" graph adding package %s" % name)
