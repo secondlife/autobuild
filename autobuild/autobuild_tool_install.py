@@ -493,6 +493,8 @@ def _install_binary(platform, package, config_file, install_dir, installed_file,
         else:
             if installed['archive'] == archive:
                 logger.debug("%s is already installed" % package_name)
+                if 'dirty' in installed and installed['dirty']:
+                    logger.warning("installed '%s' package is dirty" % package_name)
                 return
         # otherwise, fall down to below and it will be uninstalled
     
