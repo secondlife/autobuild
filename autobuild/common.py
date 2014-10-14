@@ -243,10 +243,10 @@ def find_executable(executables, exts=None):
         exts = sys.platform.startswith("win") and [".com", ".exe", ".bat", ".cmd"] or []
     # The original implementation iterated over directories in PATH, checking
     # for each name in 'executables' in a given directory. This makes
-    # intuitive sense -- but it's wrong. When 'executables' is (e.g.) ['pscp',
-    # 'scp'] it means that if pscp exists on this platform, we need to
-    # prioritize that over plain 'scp' -- even if the directory containing
-    # plain 'scp' comes first. So the outer loop should be over 'executables'.
+    # intuitive sense -- but it's wrong. When 'executables' is (e.g.) ['foobar',
+    # 'foo'] it means that if foobar exists on this platform, we need to
+    # prioritize that over plain 'foo' -- even if the directory containing
+    # plain 'foo' comes first. So the outer loop should be over 'executables'.
     for e in executables:
         for p in os.environ.get('PATH', "").split(os.pathsep):
             for ext in itertools.chain(exts, [""]):

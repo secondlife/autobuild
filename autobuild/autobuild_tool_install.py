@@ -213,13 +213,6 @@ def package_cache_path(package):
     """
     return os.path.join(common.get_install_cache_dir(), os.path.basename(package))
 
-def get_default_scp_command():
-    """
-    Return the full path to the scp command
-    """
-    scp = common.find_executable(['pscp', 'scp'], ['.exe'])
-    return scp
-
 def get_package_file(package_url, hash_algorithm=None, expected_hash=None):
     """
     Get the package file in the cache, downloading if needed.
@@ -233,7 +226,7 @@ def get_package_file(package_url, hash_algorithm=None, expected_hash=None):
         if os.path.exists(cache_file):
             # some failures seem to leave empty cache files... delete and retry
             if os.path.getsize(cache_file) == 0:
-                logger.exception("empty cache file found")
+                logger.warning("empty cache file found")
                 os.remove(cache_file)
                 cache_file = None
             else:
@@ -242,50 +235,45 @@ def get_package_file(package_url, hash_algorithm=None, expected_hash=None):
             # download timeout so a download doesn't hang
             download_timeout_seconds = 120
             
-            # save the old timeout
-            old_download_timeout = socket.getdefaulttimeout()
-
-            # Set up the 'scp' handler
-            opener = urllib2.build_opener()
-            scp_or_http = __SCPOrHTTPHandler(get_default_scp_command())
-            opener.add_handler(scp_or_http)
-            urllib2.install_opener(opener)
-
             # Attempt to download the remote file
-            logger.info("downloading %s to %s" % (package_url, cache_file))
+            logger.info("downloading %s\n         to %s" % (package_url, cache_file))
             #
             # Exception handling:
             # 1. Isolate any exception from the setdefaulttimeout call.
-            # 2. urllib2.urlopen supposedly wraps all errors in URLErrror. Include socket.timeout just in case.
+            # 2. urllib2.urlopen supposedly wraps all errors in URLErrror.
             # 3. This code is here just to implement socket timeouts. The last general exception was already here so just leave it.
             #
-            socket.setdefaulttimeout(download_timeout_seconds)
             try:
-                file(cache_file, 'wb').write(urllib2.urlopen(package_url).read())
+                package_response = urllib2.urlopen(package_url, None, download_timeout_seconds)
+            except urllib2.URLError as err:
+                logger.warning("error: %s\n  downloading package %s" % (err.reason, package_url))
+                package_response = None
+                cache_file = None
+
+            if package_response is not None:
+                with file(cache_file, 'wb') as cache:
+                    max_block_size = 1024*1024
+                    block = package_response.read(max_block_size)
+                    while block:
+                        cache.write(block)
+                        block = package_response.read(max_block_size)
                 # some failures seem to leave empty cache files... delete and retry
                 if os.path.exists(cache_file) and os.path.getsize(cache_file) == 0:
-                    logger.exception("download failed to write cache file")
+                    logger.warning("download failed to write cache file")
                     os.remove(cache_file)
                     cache_file = None
-            except (Exception, socket.timeout, urllib2.URLError):
-                logger.warning("  error downloading package: %s"
-                                 % package_url)
-                cache_file = None
-            socket.setdefaulttimeout(old_download_timeout)
-            scp_or_http.cleanup()
 
         # error out if MD5 doesn't match
         if cache_file is not None \
           and hash_algorithm is not None \
           and not hash_algorithms.verify_hash(hash_algorithm, cache_file, expected_hash):
-            logger.exception("Corrupt archive: %s mismatch for %s" % ((hash_algorithm or "md5"), cache_file))
+            logger.warning("Corrupt archive: %s mismatch for %s" % ((hash_algorithm or "md5"), cache_file))
             os.remove(cache_file)
             cache_file = None
-
         if cache_file is None:
             download_retries -= 1
             if download_retries > 0:
-                logger.exception("Retrying download")
+                logger.warning("Retrying download")
 
     return cache_file
 
@@ -334,7 +322,6 @@ def extract_metadata_from_package(archive_path, metadata_file_name):
             logger.error("package %s is not archived in a supported format" % archive_path)
     return metadata_file
 
-
 def __extract_tar_file(cachename, install_dir, exclude=[]):
     # Attempt to extract the package from the install cache
     tar = tarfile.open(cachename, 'r')
@@ -358,57 +345,6 @@ def __extract_zip_archive(cachename, install_dir, exclude=[]):
         raise common.AutobuildError("conflicting files:\n  "+'\n  '.join(conflicts))
     zip_archive.extractall(path=install_dir, members=extract)
     return extract
-
-
-class __SCPOrHTTPHandler(urllib2.BaseHandler):
-    """
-    Evil hack to allow both the build system and developers consume
-    proprietary binaries.
-    To use http, export the environment variable:
-    INSTALL_USE_HTTP_FOR_SCP=true
-    """
-    def __init__(self, scp_binary):
-        self._scp = scp_binary
-        self._dir = None
-
-    def scp_open(self, request):
-        #scp:codex.lindenlab.com:/local/share/install_pkgs/package.tar.bz2
-        remote = request.get_full_url()[4:]
-        if os.getenv('INSTALL_USE_HTTP_FOR_SCP', None) == 'true':
-            return self.do_http(remote)
-        try:
-            return self.do_scp(remote)
-        except:
-            self.cleanup()
-            raise
-
-    def do_http(self, remote):
-        url = remote.split(':', 1)
-        if not url[1].startswith('/'):
-            # in case it's in a homedir or something
-            url.insert(1, '/')
-        url.insert(0, "http://")
-        url = ''.join(url)
-        logger.info("using HTTP: " + url)
-        return urllib2.urlopen(url)
-
-    def do_scp(self, remote):
-        if not self._dir:
-            self._dir = tempfile.mkdtemp()
-        local = os.path.join(self._dir, remote.split('/')[-1])
-        if not self._scp:
-            raise common.AutobuildError("no scp command available; cannot fetch %s" % remote)
-        command = (self._scp, remote, local)
-        logger.info("using SCP: " + remote)
-        rv = subprocess.call(command)
-        if rv != 0:
-            raise common.AutobuildError("cannot fetch %s" % remote)
-        return file(local, 'rb')
-
-    def cleanup(self):
-        if self._dir:
-            shutil.rmtree(self._dir)
-
 
 def do_install(packages, config_file, installed_file, platform, install_dir, dry_run, local_archives=[]):
     """
@@ -486,7 +422,7 @@ def _install_binary(platform, package, config_file, install_dir, installed_file,
     # installed).
     if installed:
         if installed['install_type'] == 'local':
-            logger.warn("""skipping %s package because it was installed locally from %s
+            logger.warning("""skipping %s package because it was installed locally from %s
   To allow new installation, run 
   autobuild uninstall %s""" % (package_name, installed['archive']['url'], package_name))
             return
@@ -580,7 +516,7 @@ def _install_common(platform, package, package_file, install_dir, installed_file
         logger.debug("creating " + install_dir)
         os.makedirs(install_dir)
 
-    logger.warn("installing %s from archive" % package.name)
+    logger.warning("installing %s from archive" % package.name)
     # extract the files from the package
     try:
         files = _install_package(package_file, install_dir, exclude=[configfile.PACKAGE_METADATA_FILE])
@@ -703,7 +639,7 @@ def uninstall(package_name, installed_config):
         logger.debug("%s not installed, no uninstall needed" % package_name)
         return
 
-    logger.warn("uninstalling %s" % package_name)
+    logger.warning("uninstalling %s" % package_name)
     clean_files(package.install_dir, package.manifest)
     
 def clean_files(install_dir, files):
