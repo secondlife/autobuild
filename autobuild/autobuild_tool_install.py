@@ -40,7 +40,7 @@ import pprint
 import logging
 import tarfile
 import zipfile
-import urllib2
+import requests
 import subprocess
 import socket
 import itertools
@@ -237,26 +237,19 @@ def get_package_file(package_url, hash_algorithm=None, expected_hash=None):
             
             # Attempt to download the remote file
             logger.info("downloading %s\n         to %s" % (package_url, cache_file))
-            #
-            # Exception handling:
-            # 1. Isolate any exception from the setdefaulttimeout call.
-            # 2. urllib2.urlopen supposedly wraps all errors in URLErrror.
-            # 3. This code is here just to implement socket timeouts. The last general exception was already here so just leave it.
-            #
             try:
-                package_response = urllib2.urlopen(package_url, None, download_timeout_seconds)
-            except urllib2.URLError as err:
-                logger.warning("error: %s\n  downloading package %s" % (err.reason, package_url))
+                package_response = requests.get(package_url, timeout=download_timeout_seconds, stream=True)
+                package_response.raise_for_status() # throws exception for any non-success
+            except requests.exceptions.RequestException as err:
+                logger.warning("error: %s" % err)
                 package_response = None
                 cache_file = None
 
             if package_response is not None:
                 with file(cache_file, 'wb') as cache:
                     max_block_size = 1024*1024
-                    block = package_response.read(max_block_size)
-                    while block:
+                    for block in package_response.iter_content(max_block_size):
                         cache.write(block)
-                        block = package_response.read(max_block_size)
                 # some failures seem to leave empty cache files... delete and retry
                 if os.path.exists(cache_file) and os.path.getsize(cache_file) == 0:
                     logger.warning("download failed to write cache file")
