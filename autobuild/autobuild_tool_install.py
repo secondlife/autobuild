@@ -656,6 +656,7 @@ def uninstall(package_name, installed_config):
 
     logger.warning("uninstalling previous '%s' package" % package_name)
     clean_files(package.install_dir, package.manifest)
+    installed_config.save()
 
 def clean_files(install_dir, files):
     # Tarballs that name directories name them before the files they contain,
