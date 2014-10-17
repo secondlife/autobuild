@@ -213,7 +213,7 @@ def package_cache_path(package):
     """
     return os.path.join(common.get_install_cache_dir(), os.path.basename(package))
 
-def get_package_file(package_url, hash_algorithm=None, expected_hash=None):
+def get_package_file(package_name, package_url, hash_algorithm=None, expected_hash=None):
     """
     Get the package file in the cache, downloading if needed.
     Validate the cache file using the hash (removing it if needed)
@@ -236,7 +236,8 @@ def get_package_file(package_url, hash_algorithm=None, expected_hash=None):
             download_timeout_seconds = 120
             
             # Attempt to download the remote file
-            logger.info("downloading %s\n         to %s" % (package_url, cache_file))
+            logger.warning("downloading %s" % package_name)
+            logger.info("  get %s\n     to %s" % (package_url, cache_file))
             try:
                 package_response = requests.get(package_url, timeout=download_timeout_seconds, stream=True)
                 package_response.raise_for_status() # throws exception for any non-success
@@ -369,7 +370,7 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
 
 
 def _install_local(platform, package, package_path, install_dir, installed_file, dry_run):
-    logger.warn("installing %s from local archive" % package.name)
+    logger.warning("installing %s from local archive" % package.name)
     metadata, files = _install_common(platform, package, package_path, install_dir, installed_file, dry_run)
 
     if metadata:
@@ -429,7 +430,7 @@ def _install_binary(platform, package, config_file, install_dir, installed_file,
     
     # get the package file in the cache, downloading if needed, and verify the hash
     # (raises InstallError on failure, so no check is needed)
-    cachefile = get_package_file(archive.url, hash_algorithm=(archive.hash_algorithm or None), expected_hash=archive.hash)
+    cachefile = get_package_file(package_name, archive.url, hash_algorithm=(archive.hash_algorithm or None), expected_hash=archive.hash)
     if cachefile is None:
         raise InstallError("Failed to download package" + archive.url)
 

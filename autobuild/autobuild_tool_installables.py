@@ -132,7 +132,7 @@ def _get_new_metadata(config, args_name, args_archive, arguments):
             archive_url = archive_path
         else:
             archive_url = 'file://'+config.absolute_path(archive_path)
-        archive_file = get_package_file(archive_url)
+        archive_file = get_package_file(args_name, archive_url)
         if archive_file:
             metadata = get_metadata_from_package(archive_file)
             metadata.archive = configfile.ArchiveDescription()
