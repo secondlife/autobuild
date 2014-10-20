@@ -198,7 +198,12 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                     pkg_node = None
                 if pkg_node is None:
                     logger.debug(" graph adding package %s" % name)
-                    pkg_node = pydot.Node(name)
+                    # can't use the dict .get to supply an empty string default for these, 
+                    # because the value in the dict is None.
+                    pkg_version = pkg['package_description']['version'] if pkg['package_description']['version'] else "";
+                    pkg_build_id = pkg['build_id'] if pkg['build_id'] else "";
+                    # create the new node with name, version, and build id
+                    pkg_node = pydot.Node(name, label="%s\n%s\n%s" % (name, pkg_version, pkg_build_id))
                     if 'dirty' in pkg and (pkg['dirty'] == 'True' or pkg['dirty'] is True):
                         logger.debug(" setting %s dirty: %s" % (name, ("missing" if 'dirty' not in pkg else "explicit")))
                         pkg_node.set_shape('ellipse')
