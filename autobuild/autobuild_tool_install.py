@@ -213,7 +213,7 @@ def package_cache_path(package):
     """
     return os.path.join(common.get_install_cache_dir(), os.path.basename(package))
 
-def get_package_file(package_name, package_url, hash_algorithm=None, expected_hash=None):
+def get_package_file(package_name, package_url, hash_algorithm='md5', expected_hash=None):
     """
     Get the package file in the cache, downloading if needed.
     Validate the cache file using the hash (removing it if needed)
@@ -226,7 +226,12 @@ def get_package_file(package_name, package_url, hash_algorithm=None, expected_ha
         if os.path.exists(cache_file):
             # some failures seem to leave empty cache files... delete and retry
             if os.path.getsize(cache_file) == 0:
-                logger.warning("empty cache file found")
+                logger.warning("empty cache file removed")
+                os.remove(cache_file)
+                cache_file = None
+            elif hash_algorithm is not None \
+              and not hash_algorithms.verify_hash(hash_algorithm, cache_file, expected_hash):
+                logger.warning("corrupt cached file removed: %s mismatch" % (hash_algorithm or "md5"))
                 os.remove(cache_file)
                 cache_file = None
             else:
@@ -248,9 +253,26 @@ def get_package_file(package_name, package_url, hash_algorithm=None, expected_ha
 
             if package_response is not None:
                 with file(cache_file, 'wb') as cache:
-                    max_block_size = 1024*1024
+                    max_block_size = 1024*1024 # if this is changed, also change 'MB' in progress message below
+                    package_size = int(package_response.headers.get("content-length", 0))
+                    package_blocks = package_size / max_block_size if package_size else 0
+                    if package_blocks < (package_size * max_block_size):
+                        package_blocks += 1 
+                    blocks_recvd = 0
                     for block in package_response.iter_content(max_block_size):
+                        blocks_recvd += 1
+                        if logger.getEffectiveLevel() <= logging.INFO:
+                            # use CR and trailing comma to rewrite the same line each time for progress
+                            if package_blocks:
+                                print "%dMB / %dMB (%d%%)\r" % (blocks_recvd, package_blocks, int(100*blocks_recvd/package_blocks)),
+                                sys.stdout.flush()
+                            else:
+                                print "%d\r" % blocks_recvd,
+                                sys.stdout.flush()
                         cache.write(block)
+                if logger.getEffectiveLevel() <= logging.INFO:
+                    print "" # get a new line following progress message
+                    sys.stdout.flush()
                 # some failures seem to leave empty cache files... delete and retry
                 if os.path.exists(cache_file) and os.path.getsize(cache_file) == 0:
                     logger.warning("download failed to write cache file")
@@ -259,11 +281,12 @@ def get_package_file(package_name, package_url, hash_algorithm=None, expected_ha
 
         # error out if MD5 doesn't match
         if cache_file is not None \
-          and hash_algorithm is not None \
-          and not hash_algorithms.verify_hash(hash_algorithm, cache_file, expected_hash):
-            logger.warning("Corrupt archive: %s mismatch for %s" % ((hash_algorithm or "md5"), cache_file))
-            os.remove(cache_file)
-            cache_file = None
+          and hash_algorithm is not None:
+            logger.info("verifying archive")
+            if not hash_algorithms.verify_hash(hash_algorithm, cache_file, expected_hash):
+                logger.warning("download error: %s mismatch for %s" % ((hash_algorithm or "md5"), cache_file))
+                os.remove(cache_file)
+                cache_file = None
         if cache_file is None:
             download_retries -= 1
             if download_retries > 0:
@@ -280,6 +303,7 @@ def _install_package(archive_path, install_dir, exclude=[]):
         logger.error("cannot extract non-existing package: %s" % archive_path)
         return False
     logger.warn("extracting from %s" % os.path.basename(archive_path))
+    sys.stdout.flush() # so that the above will appear during uncompressing very large archives
     if tarfile.is_tarfile(archive_path):
         return __extract_tar_file(archive_path, install_dir, exclude=exclude)
     elif zipfile.is_zipfile(archive_path):
@@ -430,7 +454,7 @@ def _install_binary(platform, package, config_file, install_dir, installed_file,
     
     # get the package file in the cache, downloading if needed, and verify the hash
     # (raises InstallError on failure, so no check is needed)
-    cachefile = get_package_file(package_name, archive.url, hash_algorithm=(archive.hash_algorithm or None), expected_hash=archive.hash)
+    cachefile = get_package_file(package_name, archive.url, hash_algorithm=(archive.hash_algorithm or 'md5'), expected_hash=archive.hash)
     if cachefile is None:
         raise InstallError("Failed to download package" + archive.url)
 
