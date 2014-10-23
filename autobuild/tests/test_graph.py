@@ -82,7 +82,7 @@ class TestGraph(BaseTest):
             graph.AutobuildTool().run(self.options)
             output_lines = stream.getvalue().splitlines()
         assert_found_in("label=\"bingo dependencies for ", output_lines) # omit platform
-        assert_found_in("bingo \\[.*\\];", output_lines)
+        assert_found_in("bingo \\[", output_lines)
         assert_not_found_in("->", output_lines)
 
     def test_depends(self):
@@ -92,7 +92,7 @@ class TestGraph(BaseTest):
             graph.AutobuildTool().run(self.options)
             output_lines = stream.getvalue().splitlines()
         assert_found_in("label=\"bongo dependencies for ", output_lines) # omit platform
-        assert_in("bingo [label=\"bingo\\n0.2\\n222\"];", output_lines)
+        assert_found_in("bingo \\[", output_lines)
         assert_in("bingo -> bongo;", output_lines)
 
     def test_output(self):
