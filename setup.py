@@ -90,7 +90,7 @@ setup(
     # argparse is specifically for Python 2.6 compatibility. If/when we drop
     # Python 2.6 support, the conditional argparse item can be removed from
     # install_requires: it's bundled with Python 2.7+.
-    install_requires=['llbase', 'pydot2', 'requests'] + \
+    install_requires=['llbase', 'pydot2'] + \
                      (['argparse'] if sys.version_info[:2] < (2, 7) else []),
     #ext_modules=ext_modules,
     )
