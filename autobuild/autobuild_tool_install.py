@@ -246,7 +246,7 @@ def get_package_file(package_name, package_url, hash_algorithm='md5', expected_h
             try:
                 package_response = urllib2.urlopen(package_url, None, download_timeout_seconds)
             except urllib2.URLError as err:
-                logger.warning("error: %s\n  downloading package %s" % (err.reason, package_url))
+                logger.warning("error: %s\n  downloading package %s" % (err, package_url))
                 package_response = None
                 cache_file = None
 
