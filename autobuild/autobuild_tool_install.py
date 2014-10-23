@@ -282,7 +282,7 @@ def get_package_file(package_name, package_url, hash_algorithm='md5', expected_h
         # error out if MD5 doesn't match
         if cache_file is not None \
           and hash_algorithm is not None:
-            logger.info("verifying archive")
+            logger.info("verifying %s" % package_name)
             if not hash_algorithms.verify_hash(hash_algorithm, cache_file, expected_hash):
                 logger.warning("download error: %s mismatch for %s" % ((hash_algorithm or "md5"), cache_file))
                 os.remove(cache_file)
@@ -302,7 +302,7 @@ def _install_package(archive_path, install_dir, exclude=[]):
     if not os.path.exists(archive_path):
         logger.error("cannot extract non-existing package: %s" % archive_path)
         return False
-    logger.warn("extracting from %s" % os.path.basename(archive_path))
+    logger.warning("extracting from %s" % os.path.basename(archive_path))
     sys.stdout.flush() # so that the above will appear during uncompressing very large archives
     if tarfile.is_tarfile(archive_path):
         return __extract_tar_file(archive_path, install_dir, exclude=exclude)
@@ -381,7 +381,7 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
             # raise error if named package doesn't exist in autobuild.xml
             raise InstallError('unknown package: %s' % pname)
 
-        logger.warn("checking package %s" % pname)
+        logger.warning("checking %s" % pname)
         
         # Existing tarball install, or new package install of either kind
         if pname in local_archives:
@@ -548,7 +548,7 @@ Conflicts with:
         logger.debug("creating " + install_dir)
         os.makedirs(install_dir)
 
-    logger.warning("installing %s from archive" % package.name)
+    logger.warning("installing %s" % package.name)
     # extract the files from the package
     try:
         files = _install_package(package_file, install_dir, exclude=[configfile.PACKAGE_METADATA_FILE])
