@@ -440,25 +440,17 @@ def _install_binary(platform, package, config_file, install_dir, installed_file,
     # whether the installed ArchiveDescription matches the requested one. This
     # test also handles the case when inst_plat.archive is None (not yet
     # installed).
-    if installed:
-        if installed['install_type'] == 'local':
-            logger.warning("""skipping %s package because it was installed locally from %s
+    if installed and installed['install_type'] == 'local':
+        logger.warning("""skipping %s package because it was installed locally from %s
   To allow new installation, run 
   autobuild uninstall %s""" % (package_name, installed['archive']['url'], package_name))
-            return
-        else:
-            if installed['archive'] == archive:
-                logger.debug("%s is already installed" % package_name)
-                if 'dirty' in installed and installed['dirty']:
-                    logger.warning("installed '%s' package is dirty" % package_name)
-                return
-        # otherwise, fall down to below and it will be uninstalled
+        return False
     
     # get the package file in the cache, downloading if needed, and verify the hash
     # (raises InstallError on failure, so no check is needed)
     cachefile = get_package_file(package_name, archive.url, hash_algorithm=(archive.hash_algorithm or 'md5'), expected_hash=archive.hash)
     if cachefile is None:
-        raise InstallError("Failed to download package" + archive.url)
+        raise InstallError("Failed to download package '%s' from '%s'" % (package_name, archive.url))
 
     metadata, files = _install_common(platform, package, cachefile, install_dir, installed_file, dry_run)
     if metadata:
