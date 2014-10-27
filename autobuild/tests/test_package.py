@@ -96,7 +96,7 @@ class TestPackaging(BaseTest):
         results_output=tempfile.mktemp()
         package.package(self.config, self.config.get_build_directory(None, 'common'), 
                         'common', archive_format='tbz2', results_file=results_output)
-        expected_results_regex='autobuild_package_name="%s"\nautobuild_package_filename="%s"\nautobuild_package_md5="%s"\n$' \
+        expected_results_regex='autobuild_package_name="%s"\nautobuild_package_clean=true\nautobuild_package_filename="%s"\nautobuild_package_md5="%s"\n$' \
           % ('test1', re.escape(self.tar_name), "[0-9a-f]{32}")
         expected=re.compile(expected_results_regex, flags=re.MULTILINE)
         assert os.path.exists(results_output), "results file not found: %s" % results_output
