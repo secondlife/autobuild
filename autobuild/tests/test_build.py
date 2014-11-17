@@ -109,7 +109,7 @@ class LocalBase(BaseTest, AutobuildBaselineCompare):
 class TestBuild(LocalBase):
     def get_config(self):
         config = super(TestBuild, self).get_config()
-        config.package_description.version = "0"
+        #config.package_description.version = "0"
         logger.debug("config: %s" % pprint.pformat(config))
         return config
 

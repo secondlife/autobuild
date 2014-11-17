@@ -186,6 +186,8 @@ def setup():
                      versions=False,
                      list_installed_urls=False,
                      list_dirty=False,
+                     all=False,
+                     configurations=[],
                      query_installed_file=False,
                      check_license=True,
                      export_manifest=False,
