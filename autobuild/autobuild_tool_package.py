@@ -197,7 +197,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
         else:
             logger.warning("WARNING: package depends on local or legacy installables\n"
                            "  use 'autobuild install --list-dirty' to see problem packages")
-    if not metadata_file.package_description.version:
+    if not getattr(metadata_file.package_description,'version',None):
         raise PackageError("no version in metadata package_description -- "
                            "please verify %s version_file and rerun build" %
                            os.path.basename(config.path))
