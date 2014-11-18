@@ -11,6 +11,26 @@
       <string>LICENSES/test1.txt</string>
       <key>name</key>
       <string>test1</string>
+      <key>platforms</key>
+      <map>
+        <key>common</key>
+        <map>
+          <key>configurations</key>
+          <map>
+            <key>Default</key>
+            <map>
+              <key>name</key>
+              <string>Default</string>
+              <key>build_directory</key>
+              <string>build</string>
+              <key>default</key>
+              <string>True</string>
+            </map>
+          </map>
+          <key>name</key>
+          <string>common</string>
+        </map>
+      </map>
     </map>
     <key>installables</key>
     <map>

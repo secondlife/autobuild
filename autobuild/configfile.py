@@ -112,6 +112,7 @@ class ConfigurationDescription(common.Serialized):
         """
         Returns the absolute path to the build directory for the platform.
         """
+        build_directory=None
         platform_description = self.get_platform(platform_name)
         common_platform_description = self.package_description.platforms.get('common', None)
         config_directory = os.path.dirname(self.path)
@@ -120,18 +121,18 @@ class ConfigurationDescription(common.Serialized):
             build_directory = configuration.build_directory
             if not os.path.isabs(build_directory):
                 build_directory = os.path.abspath(os.path.join(config_directory, build_directory))
-            return build_directory
-
-        if platform_description.build_directory is not None:
-            build_directory = platform_description.build_directory
-            if not os.path.isabs(build_directory):
-                build_directory = os.path.abspath(os.path.join(config_directory, build_directory))
+        elif platform_description.build_directory is not None:
+             build_directory = platform_description.build_directory
+             if not os.path.isabs(build_directory):
+                 build_directory = os.path.abspath(os.path.join(config_directory, build_directory))
         elif common_platform_description is not None and common_platform_description.build_directory is not None:
             build_directory = common_platform_description.build_directory
             if not os.path.isabs(build_directory):
                 build_directory = os.path.abspath(os.path.join(config_directory, build_directory))
         else:
             build_directory = config_directory
+
+        common.establish_build_dir(build_directory) # save global state
         return build_directory
 
     def get_default_build_configurations(self, platform_name=common.get_current_platform()):
@@ -313,7 +314,9 @@ class Dependencies(common.Serialized):
         """
         Save the configuration state to the input file.
         """
-        file(self.path, 'wb').write(llsd.format_pretty_xml(_compact_to_dict(self)))
+        dict_representation=_compact_to_dict(self)
+        del dict_representation['path'] # there's no need for the file to include its own name
+        file(self.path, 'wb').write(llsd.format_pretty_xml(dict_representation))
             
     def __load(self, path=None):
         if os.path.isabs(path):

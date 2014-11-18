@@ -75,6 +75,34 @@ def get_current_platform():
         establish_platform(None) # uses the default for where we are running to set Platform
     return Platform
 
+BuildDir=None
+def establish_build_dir(directory):
+    global BuildDir
+    logger.debug("Establishing build dir as '%s'" % directory)
+    BuildDir = directory
+
+def get_current_build_dir():
+    """
+    Return the absolute path for the current build directory
+    """
+    global BuildDir
+    if BuildDir is None:
+        raise AutobuildError("No build directory established")
+    return BuildDir
+
+def build_dir_relative_path(path):
+    """
+    Returns a relative path derived from the input path rooted at the configuration file's
+    directory when the input is an absolute path.
+    """
+    outpath=path
+    if os.path.isabs(path):
+        build_dir=os.path.join(get_current_build_dir(),"")
+        logger.debug("path '%s' build_dir '%s'" % (path, build_dir))
+        if path.startswith(build_dir):
+            outpath=path[len(build_dir):]
+    return outpath
+
 def is_system_64bit():
     """
     Returns True if the build system is 64-bit compatible.

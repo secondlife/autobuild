@@ -649,7 +649,7 @@ def package_in_installed(new_package, installed):
 def _update_installed_package_files(metadata, package,
                                     platform=None, installed_file=None, install_dir=None, files=None):
     installed_package = metadata
-    installed_package.install_dir = install_dir
+    installed_package.install_dir = common.build_dir_relative_path(install_dir)
 
     installed_platform = package.get_platform(platform)
     installed_package.archive = installed_platform.archive
@@ -674,38 +674,49 @@ def uninstall(package_name, installed_config):
         return
 
     logger.warning("uninstalling previous '%s' package" % package_name)
-    clean_files(package.install_dir, package.manifest)
+    clean_files(os.path.join(common.get_current_build_dir(),package.install_dir), package.manifest)
     installed_config.save()
 
 def clean_files(install_dir, files):
     # Tarballs that name directories name them before the files they contain,
     # so the unpacker will create the directory before creating files in it.
     # For exactly that reason, we must remove things in reverse order.
+    logger.debug("uninstalling from '%s'" % install_dir)
     directories=set() # directories we've removed files from
     for filename in files:
         install_path = os.path.join(install_dir, filename)
-        try:
-            os.remove(install_path)
-            # We used to print "removing f" before the call above, the
-            # assumption being that we'd either succeed or produce a
-            # traceback. But there are a couple different ways we could get
-            # through this logic without actually deleting. So produce a
-            # message only when we're sure we've actually deleted something.
-            logger.debug("    removed " + filename)
-        except OSError, err:
-            if err.errno == errno.ENOENT:
-                # this file has already been deleted for some reason -- fine
-                pass
+        if os.path.exists(install_path):
+            try:
+                os.remove(install_path)
+                # We used to print "removing f" before the call above, the
+                # assumption being that we'd either succeed or produce a
+                # traceback. But there are a couple different ways we could get
+                # through this logic without actually deleting. So produce a
+                # message only when we're sure we've actually deleted something.
+                logger.debug("    removed " + filename)
+            except OSError, err:
+                if err.errno == errno.ENOENT:
+                    logger.warning("    expected file not found: " + install_path)
+                    # this file has already been deleted for some reason -- fine
+                    pass
+        else:
+            logger.warning("    expected file not found: " + install_path)
         directories.add(os.path.dirname(filename))
 
     # Check to see if any of the directories from which we removed files are now 
     # empty; if so, delete them.  Do the checks in descending length order so that
     # subdirectories will appear before their containing directory.
-    for dirname in sorted(directories, cmp=lambda x,y: cmp(len(y),len(x))):
-        dir_path = os.path.join(install_dir, dirname)
-        if os.path.exists(dir_path) and not os.listdir(dir_path):
-            os.rmdir(dir_path)
-            logger.debug("    removed " + dirname)
+    while len(directories) > 0:
+        parents=set()
+        for dirname in sorted(directories, cmp=lambda x,y: cmp(len(y),len(x))):
+            dir_path = os.path.join(install_dir, dirname)
+            if os.path.exists(dir_path) and not os.listdir(dir_path):
+                os.rmdir(dir_path)
+                logger.debug("    removed " + dirname)
+                parent=os.path.dirname(dirname)
+                if dir_path:
+                    parents.add(parent)
+        directories=parents
 
 def install_packages(args, config_file, install_dir, platform, packages):
     if not args.check_license:
@@ -875,6 +886,13 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         # load the list of packages to install
         logger.debug("loading " + args.install_filename)
         config = configfile.ConfigurationDescription(args.install_filename)
+
+        # establish a build directory default
+        # so that the install directory path can be stored relative to it
+        logger.debug("installing platform "+platform)
+
+        for build_configuration in common.select_configurations(args, config, "installing for"):
+            build_directory = config.get_build_directory(build_configuration, platform_name=platform)
 
         # write packages into 'packages' subdir of build directory by default
         install_dirs = \

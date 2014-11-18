@@ -308,7 +308,8 @@ class BaseTest(object):
         tmp_dest.write(content)
         
     def localizedConfig(self, template):
-        temp_config_fd, config_filename=tempfile.mkstemp(prefix=os.path.join(mydir, "data", "package-"),suffix="-config.xml")
+        temp_config_basename=os.path.splitext(os.path.basename(template))[0]
+        temp_config_fd, config_filename=tempfile.mkstemp(prefix=os.path.join(mydir, "data", temp_config_basename+"-"),suffix="-local.xml")
         temp_config=os.fdopen(temp_config_fd,'w')
         template_path=os.path.join(mydir,"data",template)
         logger.debug("localize config file '%s' -> '%s'" % (template_path,config_filename))
@@ -542,7 +543,8 @@ class TestInstallArchive(BaseTest):
             autobuild_tool_install.AutobuildTool().run(self.options)
         assert_equals(stream.getvalue(), "Copyright 2014 Linden Research, Inc.\nbogus: The Owner\n")
 
-    def test_versionss(self):
+    def test_versions(self):
+        self.options.platform=None
         self.options.package = None # install all
         autobuild_tool_install.AutobuildTool().run(self.options)
 
