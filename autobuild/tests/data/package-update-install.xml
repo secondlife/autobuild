@@ -171,9 +171,11 @@
         </map>
       </map>
     </map>
+    <key>version_file</key>
+    <string>VERSION.txt</string>
     <key>type</key>
     <string>autobuild</string>
     <key>version</key>
-    <string>1.2</string>
+    <string>1.3</string>
   </map>
 </llsd>
