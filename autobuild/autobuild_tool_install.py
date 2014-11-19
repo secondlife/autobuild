@@ -685,7 +685,7 @@ def clean_files(install_dir, files):
     directories=set() # directories we've removed files from
     for filename in files:
         install_path = os.path.join(install_dir, filename)
-        if os.path.exists(install_path):
+        if not os.path.isdir(install_path): # deal with directories below, after all files
             try:
                 os.remove(install_path)
                 # We used to print "removing f" before the call above, the
@@ -696,17 +696,20 @@ def clean_files(install_dir, files):
                 logger.debug("    removed " + filename)
             except OSError, err:
                 if err.errno == errno.ENOENT:
-                    logger.warning("    expected file not found: " + install_path)
                     # this file has already been deleted for some reason -- fine
+                    logger.warning("    expected file not found: " + install_path)
                     pass
-        else:
-            logger.warning("    expected file not found: " + install_path)
+                else:
+                    raise common.AutobuildError(str(err))
         directories.add(os.path.dirname(filename))
 
     # Check to see if any of the directories from which we removed files are now 
-    # empty; if so, delete them.  Do the checks in descending length order so that
-    # subdirectories will appear before their containing directory.
-    while len(directories) > 0:
+    # empty; if so, delete them (they will not have been listed in the manifest).
+    # Do the checks in descending length order so that subdirectories will appear
+    # before their containing directory. The loop is nested in order to clean up
+    # directories that previously contained only subdirectories, so they were not
+    # added to the list when deleting files above.
+    while directories:
         parents=set()
         for dirname in sorted(directories, cmp=lambda x,y: cmp(len(y),len(x))):
             dir_path = os.path.join(install_dir, dirname)
@@ -883,29 +886,28 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
     def run(self, args):
         platform=common.establish_platform(args.platform,addrsize=args.addrsize)
+        logger.debug("installing platform "+platform)
+
         # load the list of packages to install
         logger.debug("loading " + args.install_filename)
         config = configfile.ConfigurationDescription(args.install_filename)
 
-        # establish a build directory default
-        # so that the install directory path can be stored relative to it
-        logger.debug("installing platform "+platform)
-
+        # establish a build directory so that the install directory is relative to it
         for build_configuration in common.select_configurations(args, config, "installing for"):
             build_directory = config.get_build_directory(build_configuration, platform_name=platform)
 
-        # write packages into 'packages' subdir of build directory by default
-        install_dirs = \
-            common.select_directories(args, config,
-                                      "install", "installing packages for",
-                                      lambda cnf:
-                                      os.path.join(config.make_build_directory(cnf, platform=platform, dry_run=args.dry_run),
-                                                   "packages"))
+            # write packages into 'packages' subdir of build directory
+            install_dirs = \
+                common.select_directories(args, config,
+                                          "install", "installing packages for",
+                                          lambda cnf:
+                                          os.path.join(config.make_build_directory(cnf, platform=platform, dry_run=args.dry_run),
+                                                       "packages"))
 
-        # get the absolute paths to the install dir and installed-packages.xml file
-        for install_dir in install_dirs:
-            install_dir = os.path.realpath(install_dir)
-            install_packages(args, config, install_dir, platform, args.package)
+            # get the absolute paths to the install dir and installed-packages.xml file
+            for install_dir in install_dirs:
+                install_dir = os.path.realpath(install_dir)
+                install_packages(args, config, install_dir, platform, args.package)
 
 if __name__ == '__main__':
     sys.exit("Please invoke this script using 'autobuild %s'" %

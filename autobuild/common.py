@@ -75,20 +75,20 @@ def get_current_platform():
         establish_platform(None) # uses the default for where we are running to set Platform
     return Platform
 
-BuildDir=None
+_build_dir=None
 def establish_build_dir(directory):
-    global BuildDir
+    global _build_dir
     logger.debug("Establishing build dir as '%s'" % directory)
-    BuildDir = directory
+    _build_dir = directory
 
 def get_current_build_dir():
     """
     Return the absolute path for the current build directory
     """
-    global BuildDir
-    if BuildDir is None:
+    global _build_dir
+    if _build_dir is None:
         raise AutobuildError("No build directory established")
-    return BuildDir
+    return _build_dir
 
 def build_dir_relative_path(path):
     """
@@ -97,6 +97,9 @@ def build_dir_relative_path(path):
     """
     outpath=path
     if os.path.isabs(path):
+        # ensure that there is a trailing os.pathsep
+        # so that when this prefix is stripped below to make the
+        # path relative, we don't start with os.pathsep
         build_dir=os.path.join(get_current_build_dir(),"")
         logger.debug("path '%s' build_dir '%s'" % (path, build_dir))
         if path.startswith(build_dir):
