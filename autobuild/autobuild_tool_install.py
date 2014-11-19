@@ -44,6 +44,7 @@ import urllib2
 import subprocess
 import socket
 import itertools
+import codecs
 
 import common
 import configfile
@@ -885,6 +886,9 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             default=self.configurations_from_environment())
 
     def run(self, args):
+        UTF8Writer = codecs.getwriter('utf8')
+        sys.stdout = UTF8Writer(sys.stdout)
+
         platform=common.establish_platform(args.platform,addrsize=args.addrsize)
         logger.debug("installing platform "+platform)
 
