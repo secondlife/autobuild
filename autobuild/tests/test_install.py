@@ -601,6 +601,20 @@ class TestInstallLocalArchive(BaseTest):
             autobuild_tool_install.AutobuildTool().run(self.options)
         assert_equals(stream.getvalue(), 'Dirty Packages: bogus\n')
             
+    def test_only_local(self):
+        self.options.local_archives=[os.path.join(mydir, "data", "bogus-0.1-common-111.tar.bz2")]
+        self.options.package=[]
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
+        autobuild_tool_install.AutobuildTool().run(self.options)
+        assert os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
+        assert os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
+        # when a local package is specified without any package names,
+        # the usual rules that not specifying packages means install all
+        # should not happen
+        assert not os.path.exists(os.path.join(self.options.select_dir, "LICENSES", "argparse.txt"))
+            
+
 # -------------------------------------  -------------------------------------
 class TestDownloadFail(BaseTest):
     def setup(self):

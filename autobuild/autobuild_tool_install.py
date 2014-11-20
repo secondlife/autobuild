@@ -739,36 +739,43 @@ def install_packages(args, config_file, install_dir, platform, packages):
     if handle_query_args(args, config_file, installed_file):
         return 0
 
-    # get the list of packages to install -- if none specified, consider all.
-    packages = packages or config_file.installables.keys()
-
-    # collect any locally built archives.
+    local_packages=[]
+    if not packages: # no package names were specified on the command line
+        if args.local_archives: # one or more --local packages were specified
+            logger.warning("Using --local with no package names listed installs only those local packages")
+            local_packages = config_file.installables.keys()
+        else:
+            logger.debug("no package names specified; installing all packages")
+            packages = config_file.installables.keys()
+        
+    # examine any local archives to match then with package names.
     local_archives = {}
     for archive_path in args.local_archives:
-        try:
-            # split_tarname() returns a sequence like:
-            # ("/some/path", ["boost", "1.39.0", "darwin", "20100222a"], ".tar.bz2")
-            # We want just the package name, 'boost' in the example above.
-            package = common.split_tarname(archive_path)[1][0]
-        except IndexError:
-            # But if the archive filename doesn't conform to our expectations,
-            # either subscript operation above might raise IndexError.
-            raise InstallError("cannot get package name from local archive " + archive_path)
-        local_archives[package] = archive_path
+        logger.warning("Checking local archive '%s'" % archive_path)
+        local_metadata = get_metadata_from_package(archive_path)
+        if local_metadata.package_description.name in local_packages:
+            packages.append(local_metadata.package_description.name)
+        if local_metadata.package_description.name in packages:
+            local_archives[local_metadata.package_description.name] = archive_path
+        else:
+            raise InstallError("no package '%s' found for local archive '%s'"
+                               % (local_metadata.package_description.name, archive_path))
 
-    # do the actual install of the new/updated packages
+
+    # do the actual install of any new/updated packages
     packages = do_install(packages, config_file, installed_file, platform, install_dir,
                           args.dry_run, local_archives=local_archives)
 
-    # update the installed-packages.xml file
-    try:
-        # in case we got this far without ever having created installed_file's
-        # parent directory
-        os.makedirs(os.path.dirname(installed_file.path))
-    except OSError, err:
-        if err.errno != errno.EEXIST:
-            raise
-    installed_file.save()
+    if not args.dry_run:
+        # update the installed-packages.xml file
+        try:
+            # in case we got this far without ever having created installed_file's
+            # parent directory
+            os.makedirs(os.path.dirname(installed_file.path))
+        except OSError, err:
+            if err.errno != errno.EEXIST:
+                raise AutobuildError(str(err))
+        installed_file.save()
     return 0
 
 
