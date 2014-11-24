@@ -527,8 +527,7 @@ def _install_common(platform, package, package_file, install_dir, installed_file
   configuration %s
   version       %s
   build_id      %s
-Conflicts with:
-%s
+Conflict: %s
   If you have updated the configuration for any of the conflicting packages,
   try uninstalling those packages and rerunning.""" % \
   (package.name, 
@@ -587,6 +586,7 @@ def transitive_dependency_conflicts(new_package, installed):
     conflict = package_in_installed(new_package, installed)
     if conflict:
         logger.debug("  found conflict in installed packages")
+        conflicts += "with installed package "
         conflicts += conflict
     # Check for conflicts with the dependencies of the new package 
     TransitiveSearched.add(new_package['package_description']['name'])
@@ -597,7 +597,7 @@ def transitive_dependency_conflicts(new_package, installed):
             if new_dependency not in TransitiveSearched:
                 depend_conflicts = transitive_dependency_conflicts(new_package['dependencies'][new_dependency], installed)
                 if depend_conflicts:
-                    conflicts += "Dependency '%s' conflicts with\n" % new_dependency
+                    conflicts += "dependency %s " % new_dependency
                     conflicts += depend_conflicts
                 TransitiveSearched.add(new_dependency)
     return conflicts
@@ -605,7 +605,7 @@ def transitive_dependency_conflicts(new_package, installed):
 def package_in_installed(new_package, installed):
     """
     Searches for new_package in the installed tree, returns error message (or empty string)
-    (checks the root of the tree and walks the intstalled tree)
+    (checks the root of the tree and walks the installed tree)
     """
     conflict = ""
     if 'dependencies' in installed:
@@ -618,25 +618,30 @@ def package_in_installed(new_package, installed):
                     # this is a dependency of the new package, so we have archive data
                     if new_package['archive']['url'].rsplit('/',1)[-1] \
                       != previous[used]['archive']['url'].rsplit('/',1)[-1]:
-                        used_conflict += "  url           %s\n" % previous[used]['archive']['url']
+                        used_conflict += "  installed url  %s\n" % previous[used]['archive']['url']
+                        used_conflict += "             vs  %s\n" % new_package['archive']['url']
                     if new_package['archive']['hash'] != previous[used]['archive']['hash']:
-                        used_conflict += "  hash          %s\n" % previous[used]['archive']['hash']
+                        used_conflict += "  installed hash %s\n" % previous[used]['archive']['hash']
+                        used_conflict += "             vs  %s\n" % new_package['archive']['hash']
                 else:
                     # this is the newly imported package, so we don't have a url for it
                     pass
                 if new_package['configuration'] != previous[used]['configuration']:
-                    used_conflict += "  configuration %s\n" % previous[used]['configuration']
+                    used_conflict += "  installed configuration %s\n" % previous[used]['configuration']
+                    used_conflict += "                      vs  %s\n" % new_package['configuration']
                 if new_package['package_description']['version'] != previous[used]['package_description']['version']:
-                    used_conflict += "  version       %s\n" % previous[used]['package_description']['version']
+                    used_conflict += "  installed version %s\n" % previous[used]['package_description']['version']
+                    used_conflict += "                vs  %s\n" % new_package['package_description']['version']
                 if new_package['build_id'] != previous[used]['build_id']:
-                    used_conflict += "  build_id      %s\n" % previous[used]['build_id']
+                    used_conflict += "  installed build_id %s\n" % previous[used]['build_id']
+                    used_conflict += "                 vs  %s\n" % previous[used]['build_id']
                 if used_conflict:
                     conflict += used + "\n" + used_conflict
             else:
                 # recurse to check the dependencies of previous[used]
                 conflict += package_in_installed(new_package, previous[used])
                 if conflict:
-                    conflict += "    used by %s version %s build %s\n" % \
+                    conflict += "used by %s version %s build %s\n" % \
                       ( previous[used]['package_description']['name'],
                         previous[used]['package_description']['version'],
                         previous[used]['build_id'])
