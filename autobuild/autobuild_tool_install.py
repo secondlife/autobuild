@@ -367,7 +367,7 @@ def __extract_zip_archive(cachename, install_dir, exclude=[]):
     zip_archive.extractall(path=install_dir, members=extract)
     return extract
 
-def do_install(packages, config_file, installed_file, platform, install_dir, dry_run, local_archives=[]):
+def do_install(packages, config_file, installed, platform, install_dir, dry_run, local_archives=[]):
     """
     Install the specified list of packages. By default this will download the
     packages to the local cache, extract the contents of those
@@ -388,17 +388,17 @@ def do_install(packages, config_file, installed_file, platform, install_dir, dry
         
         # Existing tarball install, or new package install of either kind
         if pname in local_archives:
-            if _install_local(platform, package, local_archives[pname], install_dir, installed_file, dry_run):
+            if _install_local(platform, package, local_archives[pname], install_dir, installed, dry_run):
                 installed_pkgs.append(pname)
         else:
-            if _install_binary(platform, package, config_file, install_dir, installed_file, dry_run):
+            if _install_binary(platform, package, config_file, install_dir, installed, dry_run):
                 installed_pkgs.append(pname)
     return installed_pkgs
 
 
-def _install_local(platform, package, package_path, install_dir, installed_file, dry_run):
+def _install_local(platform, package, package_path, install_dir, installed, dry_run):
     logger.warning("installing %s from local archive" % package.name)
-    metadata, files = _install_common(platform, package, package_path, install_dir, installed_file, dry_run)
+    metadata, files = _install_common(platform, package, package_path, install_dir, installed, dry_run)
 
     if metadata:
         installed_package = package.copy()
@@ -414,13 +414,13 @@ def _install_local(platform, package, package_path, install_dir, installed_file,
         metadata.dirty = True
         logger.warning("Using --local install flags any resulting package as 'dirty'")
         _update_installed_package_files(metadata, installed_package,
-                                        platform=platform, installed_file=installed_file,
+                                        platform=platform, installed=installed,
                                         install_dir=install_dir, files=files)
         return True
     else:
         return False
 
-def _install_binary(platform, package, config_file, install_dir, installed_file, dry_run):
+def _install_binary(platform, package, config_file, install_dir, installed, dry_run):
     # Check that we have a platform-specific or common url to use.
     req_plat = package.get_platform(platform)
     package_name = getattr(package, 'name', '(undefined)')
@@ -435,16 +435,16 @@ def _install_binary(platform, package, config_file, install_dir, installed_file,
     if not archive.url:
         raise InstallError("no url specified for package %s for platform %s" % (package_name, platform))
     # Is this package already installed?
-    installed = installed_file.dependencies.get(package.name)
+    installed_pkg = installed.dependencies.get(package.name)
 
     # Rely on ArchiveDescription's equality-comparison method to discover
     # whether the installed ArchiveDescription matches the requested one. This
     # test also handles the case when inst_plat.archive is None (not yet
     # installed).
-    if installed and installed['install_type'] == 'local':
+    if installed_pkg and installed_pkg['install_type'] == 'local':
         logger.warning("""skipping %s package because it was installed locally from %s
   To allow new installation, run 
-  autobuild uninstall %s""" % (package_name, installed['archive']['url'], package_name))
+  autobuild uninstall %s""" % (package_name, installed_pkg['archive']['url'], package_name))
         return False
     
     # get the package file in the cache, downloading if needed, and verify the hash
@@ -453,7 +453,7 @@ def _install_binary(platform, package, config_file, install_dir, installed_file,
     if cachefile is None:
         raise InstallError("Failed to download package '%s' from '%s'" % (package_name, archive.url))
 
-    metadata, files = _install_common(platform, package, cachefile, install_dir, installed_file, dry_run)
+    metadata, files = _install_common(platform, package, cachefile, install_dir, installed, dry_run)
     if metadata:
         installed_package = package.copy()
         if platform not in package.platforms:
@@ -464,7 +464,7 @@ def _install_binary(platform, package, config_file, install_dir, installed_file,
             installed_platform.archive = configfile.ArchiveDescription()
         metadata.install_type = 'package'
         _update_installed_package_files(metadata, package, 
-                                        platform=platform, installed_file=installed_file,
+                                        platform=platform, installed=installed,
                                         install_dir=install_dir, files=files)
         return True
     else:
@@ -501,15 +501,33 @@ def get_metadata_from_package(package_file, package=None):
         metadata = configfile.MetadataDescription(stream=metadata_file)
     return metadata
 
-def _install_common(platform, package, package_file, install_dir, installed_file, dry_run):
-    # dry run mode = download but don't install packages
-    if dry_run:
-        dry_run_msg("Dry run mode: not installing %s" % package.name)
-        return None, None
+def need_new_install(package, metadata, installed):
+    """
+    Uninstall any installed different version
+    Returns a boolean value for whether or not a new install is needed
+    """
+    do_install=False
+    installed_pkg = installed.dependencies.get(package.name, None)
+    if installed_pkg:
+        if installed_pkg['package_description']['version'] != metadata.package_description.version:
+            logger.info("%s version changed from %s to %s" % (package.name,
+                                                              installed_pkg['package_description']['version'],
+                                                              metadata.package_description.version))
+            do_install = True
+        if installed_pkg['build_id'] != metadata.build_id:
+            logger.info("%s build id changed from %s to %s" % (package.name,
+                                                               installed_pkg['build_id'],
+                                                               metadata.build_id))
+            do_install = True
+        if do_install:
+            uninstall(package.name, installed)            
+    else:
+        # If the package has never yet been installed, we're good.
+        logger.debug("%s not installed" % package.name)
+        do_install = True
+    return do_install
 
-    # If this package has already been installed, first uninstall the older
-    # version.
-    uninstall(package.name, installed_file)
+def _install_common(platform, package, package_file, install_dir, installed, dry_run):
 
     metadata = get_metadata_from_package(package_file, package)
 
@@ -519,8 +537,16 @@ def _install_common(platform, package, package_file, install_dir, installed_file
         logger.warning(package_errors + "\n    in package %s\n    build will be marked as 'dirty'" % package.name)
         metadata.dirty = True
 
+    # dry run mode = download but don't install packages
+    if dry_run:
+        dry_run_msg("Dry run mode: not installing %s" % package.name)
+        return None, None
+    # this checks for a different version and uninstalls it if needed
+    if not need_new_install(package, metadata, installed):
+        logger.info("%s is already installed" % package.name)
+        return None, None
     # Check for transitive dependency conflicts
-    dependancy_conflicts = transitive_search(metadata, installed_file)
+    dependancy_conflicts = transitive_search(metadata, installed)
     if dependancy_conflicts:
         raise InstallError("""Package not installed due to conflicts
 %s
@@ -653,14 +679,14 @@ def package_in_installed(new_package, installed):
 
 
 def _update_installed_package_files(metadata, package,
-                                    platform=None, installed_file=None, install_dir=None, files=None):
+                                    platform=None, installed=None, install_dir=None, files=None):
     installed_package = metadata
     installed_package.install_dir = common.build_dir_relative_path(install_dir)
 
     installed_platform = package.get_platform(platform)
     installed_package.archive = installed_platform.archive
     installed_package.manifest = files
-    installed_file.dependencies[metadata.package_description.name] = installed_package
+    installed.dependencies[metadata.package_description.name] = installed_package
 
 
 def uninstall(package_name, installed_config):
@@ -738,10 +764,10 @@ def install_packages(args, config_file, install_dir, platform, packages):
 
     # load the list of already installed packages
     logger.debug("loading " + installed_filename)
-    installed_file = configfile.Dependencies(installed_filename)
+    installed = configfile.Dependencies(installed_filename)
 
     # handle any arguments to query for information
-    if handle_query_args(args, config_file, installed_file):
+    if handle_query_args(args, config_file, installed):
         return 0
 
     local_packages=[]
@@ -768,7 +794,7 @@ def install_packages(args, config_file, install_dir, platform, packages):
 
 
     # do the actual install of any new/updated packages
-    packages = do_install(packages, config_file, installed_file, platform, install_dir,
+    packages = do_install(packages, config_file, installed, platform, install_dir,
                           args.dry_run, local_archives=local_archives)
 
     if not args.dry_run:
@@ -776,11 +802,11 @@ def install_packages(args, config_file, install_dir, platform, packages):
         try:
             # in case we got this far without ever having created installed_file's
             # parent directory
-            os.makedirs(os.path.dirname(installed_file.path))
+            os.makedirs(os.path.dirname(installed.path))
         except OSError, err:
             if err.errno != errno.EEXIST:
                 raise AutobuildError(str(err))
-        installed_file.save()
+        installed.save()
     return 0
 
 
