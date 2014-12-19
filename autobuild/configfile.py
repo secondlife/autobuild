@@ -695,5 +695,7 @@ def _compact_to_dict(obj):
         return result
     elif isinstance(obj, list):
         return [_compact_to_dict(o) for o in obj if o]
+    elif isinstance(obj, set):
+        return [_compact_to_dict(o) for o in obj if o]
     else:
         return obj

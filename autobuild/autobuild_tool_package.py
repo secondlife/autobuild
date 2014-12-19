@@ -177,13 +177,19 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
         raise PackageError("build directory %s is not a directory" % build_directory)
     logger.info("packaging from %s" % build_directory)
     platform_description = config.get_platform(platform_name)
-    files = _get_file_list(platform_description, build_directory)
+    files = set()
+    missing = []
+    files, missing = _get_file_list(platform_description, build_directory)
     if platform_name != 'common':
         try:
-            files.extend(_get_file_list(config.get_platform('common'), build_directory))
+            common_files, common_missing = _get_file_list(config.get_platform('common'), build_directory)
+            files |= common_files
+            missing.extend(common_missing)
         except configfile.ConfigurationError:
             pass  # We don't have a common platform defined, that is ok.
-    
+    if missing:
+        raise PackageError("No files matched manifest specifiers:\n"+'\n'.join(missing))
+
     # add the manifest files to the metadata file (list does not include itself)
     metadata_file_name = configfile.PACKAGE_METADATA_FILE
     logger.debug("metadata file name: %s" % metadata_file_name)
@@ -203,7 +209,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
                            os.path.basename(config.path))
     if package_description.license_file:
         if package_description.license_file not in files:
-            files.append(package_description.license_file)
+            files.add(package_description.license_file)
     if 'source_directory' in metadata_file.package_description:
         del metadata_file.package_description['source_directory']
     metadata_file.manifest = files
@@ -233,7 +239,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
         metadata_file.save()
 
     # add the metadata file name to the list of files _after_ putting that list in the metadata
-    files.append(metadata_file_name)
+    files.add(metadata_file_name)
 
     config_directory = os.path.dirname(config.path)
     if not archive_filename:
@@ -287,15 +293,20 @@ def _generate_archive_name(package_description, build_id, platform_name, suffix=
 def _get_file_list(platform_description, build_directory):
     if not platform_description.manifest:
         return []
-    files = []
+    files = set()
+    missing = []
     current_directory = os.getcwd()
     os.chdir(build_directory)
     try:
         for pattern in platform_description.manifest:
-            files.extend(glob.glob(pattern))
+            found = glob.glob(pattern)
+            if not found:
+                missing.append(pattern)
+            for found_file in found:
+                files.add(found_file)
     finally:
         os.chdir(current_directory)
-    return files
+    return [files, missing]
 
 def _create_tarfile(tarfilename, build_directory, filelist, results):
     if not os.path.exists(os.path.dirname(tarfilename)):

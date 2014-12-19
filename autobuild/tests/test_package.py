@@ -32,9 +32,11 @@ import tarfile
 import tempfile
 import unittest
 from zipfile import ZipFile
+from string import Template
 
 import autobuild.autobuild_tool_package as package
 from autobuild import configfile
+from autobuild import common
 from basetest import BaseTest, ExpectError, CaptureStdout, clean_dir, clean_file
         
 
@@ -48,6 +50,20 @@ from basetest import BaseTest, ExpectError, CaptureStdout, clean_dir, clean_file
 
 logger=logging.getLogger("autobuild.test_package")
 
+class PackageOptions(object):
+    def __init__(self, data_dir):
+        self.addrsize=common.DEFAULT_ADDRSIZE
+        self.clean_only=True
+        self.check_license=False
+        self.dry_run=False
+        self.all=False
+        self.configurations=None
+        self.platform=None
+        self.results_file=None
+        self.archive_filename=None
+        self.archive_format=None
+        self.select_dir=None
+        self.autobuild_filename=os.path.join(data_dir, "autobuild-package-config.xml")
 
 class TestPackaging(BaseTest):
     def setUp(self):
@@ -66,6 +82,15 @@ class TestPackaging(BaseTest):
         self.zip_name = self.tar_basename + ".zip"
         self.expected_files=['include/file1','LICENSES/test1.txt','autobuild-package.xml']
         self.expected_files.sort()
+
+    def instantiateTemplate(self, source_name, dest_name, changes):
+        template_file=open(source_name,'r')
+        template=Template(template_file.read())
+        template_file.close()
+        modified=template.substitute(changes)
+        dest=open(dest_name,'w')
+        dest.write(modified)
+        dest.close()
 
     def tearDown(self):
         clean_dir(self.temp_dir)
@@ -146,6 +171,28 @@ class TestPackaging(BaseTest):
                        "--dry-run")
         assert not os.path.exists(self.zip_name), "%s created by dry run" % self.zip_name
         assert not os.path.exists(self.tar_name), "%s created by dry run" % self.tar_name
+
+    def test_package_missing(self):
+        self.options = PackageOptions(self.data_dir)
+        os.chdir(os.path.join(self.temp_dir, "data"))
+        config_template="autobuild-package-missing-config.xml"
+        # earlier tests establish the 'common' platform
+        # clear that out so that this test uses both the current and common
+        del os.environ['AUTOBUILD_PLATFORM']
+        del os.environ['AUTOBUILD_PLATFORM_OVERRIDE']
+        common.Platform=None
+        self.platform=common.get_current_platform()
+        logger.debug("platform "+self.platform)
+        self.options.platform=self.platform
+        platform_config=self.platform+"-autobuild-package-missing-config.xml"
+        self.instantiateTemplate(config_template
+                                ,platform_config
+                                ,{'PLATFORM':self.platform})
+        self.options.autobuild_filename = platform_config
+        with ExpectError("No files matched manifest specifiers:\n"+'\n'.join(["missing/\*.txt","not_there.txt"]),
+                         "Missing files not detected"):
+            package.AutobuildTool().run(self.options)
+
 
 if __name__ == '__main__':
     unittest.main()
