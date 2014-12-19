@@ -82,6 +82,8 @@ class TestPackaging(BaseTest):
         self.zip_name = self.tar_basename + ".zip"
         self.expected_files=['include/file1','LICENSES/test1.txt','autobuild-package.xml']
         self.expected_files.sort()
+        self.saved_dir=os.getcwd()
+        os.chdir(os.path.join(self.temp_dir, "data"))
 
     def instantiateTemplate(self, source_name, dest_name, changes):
         template_file=open(source_name,'r')
@@ -93,6 +95,7 @@ class TestPackaging(BaseTest):
         dest.close()
 
     def tearDown(self):
+        os.chdir(self.saved_dir)
         clean_dir(self.temp_dir)
         BaseTest.tearDown(self)
 
@@ -174,8 +177,7 @@ class TestPackaging(BaseTest):
 
     def test_package_missing(self):
         self.options = PackageOptions(self.data_dir)
-        os.chdir(os.path.join(self.temp_dir, "data"))
-        config_template="autobuild-package-missing-config.xml"
+        config_template=os.path.join(self.data_dir,"autobuild-package-missing-config.xml")
         # earlier tests establish the 'common' platform
         # clear that out so that this test uses both the current and common
         del os.environ['AUTOBUILD_PLATFORM']
