@@ -388,17 +388,17 @@ def do_install(packages, config_file, installed, platform, install_dir, dry_run,
         
         # Existing tarball install, or new package install of either kind
         if pname in local_archives:
-            if _install_local(platform, package, local_archives[pname], install_dir, installed, dry_run):
+            if _install_local(pname, platform, package, local_archives[pname], install_dir, installed, dry_run):
                 installed_pkgs.append(pname)
         else:
-            if _install_binary(platform, package, config_file, install_dir, installed, dry_run):
+            if _install_binary(pname, platform, package, config_file, install_dir, installed, dry_run):
                 installed_pkgs.append(pname)
     return installed_pkgs
 
 
-def _install_local(platform, package, package_path, install_dir, installed, dry_run):
+def _install_local(configured_name, platform, package, package_path, install_dir, installed, dry_run):
     logger.warning("installing %s from local archive" % package.name)
-    metadata, files = _install_common(platform, package, package_path, install_dir, installed, dry_run)
+    metadata, files = _install_common(configured_name, platform, package, package_path, install_dir, installed, dry_run)
 
     if metadata:
         installed_package = package.copy()
@@ -420,7 +420,7 @@ def _install_local(platform, package, package_path, install_dir, installed, dry_
     else:
         return False
 
-def _install_binary(platform, package, config_file, install_dir, installed, dry_run):
+def _install_binary(configured_name, platform, package, config_file, install_dir, installed, dry_run):
     # Check that we have a platform-specific or common url to use.
     req_plat = package.get_platform(platform)
     package_name = getattr(package, 'name', '(undefined)')
@@ -453,7 +453,7 @@ def _install_binary(platform, package, config_file, install_dir, installed, dry_
     if cachefile is None:
         raise InstallError("Failed to download package '%s' from '%s'" % (package_name, archive.url))
 
-    metadata, files = _install_common(platform, package, cachefile, install_dir, installed, dry_run)
+    metadata, files = _install_common(configured_name, platform, package, cachefile, install_dir, installed, dry_run)
     if metadata:
         installed_package = package.copy()
         if platform not in package.platforms:
@@ -527,7 +527,7 @@ def need_new_install(package, metadata, installed):
         do_install = True
     return do_install
 
-def _install_common(platform, package, package_file, install_dir, installed, dry_run):
+def _install_common(configured_name, platform, package, package_file, install_dir, installed, dry_run):
 
     metadata = get_metadata_from_package(package_file, package)
 
@@ -536,6 +536,9 @@ def _install_common(platform, package, package_file, install_dir, installed, dry
     if package_errors:
         logger.warning(package_errors + "\n    in package %s\n    build will be marked as 'dirty'" % package.name)
         metadata.dirty = True
+
+    if configured_name != package.name:
+        raise InstallError("Configured package name '%s' does not match name in package '%s'" % (configured_name, package.name))
 
     # dry run mode = download but don't install packages
     if dry_run:

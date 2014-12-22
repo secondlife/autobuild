@@ -227,6 +227,9 @@ class ConfigurationDescription(common.Serialized):
             installables = saved_data.pop('installables', {})
             for (name, package) in installables.iteritems():
                 self.installables[name] = PackageDescription(package)
+                if name != self.installables[name].name:
+                    raise ConfigurationError("installable key '%s' does not match package name '%s'"
+                                             % (name, self.installables[name].name))
             self.update(saved_data)
             logger.debug("Configuration file '%s'" % self.path)
             if orig_ver:
