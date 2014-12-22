@@ -291,21 +291,20 @@ def _generate_archive_name(package_description, build_id, platform_name, suffix=
 
 
 def _get_file_list(platform_description, build_directory):
-    if not platform_description.manifest:
-        return []
     files = set()
     missing = []
-    current_directory = os.getcwd()
-    os.chdir(build_directory)
-    try:
-        for pattern in platform_description.manifest:
-            found = glob.glob(pattern)
-            if not found:
-                missing.append(pattern)
-            for found_file in found:
-                files.add(found_file)
-    finally:
-        os.chdir(current_directory)
+    if platform_description.manifest:
+        current_directory = os.getcwd()
+        os.chdir(build_directory)
+        try:
+            for pattern in platform_description.manifest:
+                found = glob.glob(pattern)
+                if not found:
+                    missing.append(pattern)
+                for found_file in found:
+                    files.add(found_file)
+        finally:
+            os.chdir(current_directory)
     return [files, missing]
 
 def _create_tarfile(tarfilename, build_directory, filelist, results):
