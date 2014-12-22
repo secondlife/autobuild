@@ -133,7 +133,7 @@
       <map>
         <!--missing-->
         <key>name</key>
-        <string>bogus</string>
+        <string>nolicense</string>
         <key>platforms</key>
         <map>
           <key>common</key>
@@ -141,7 +141,7 @@
             <key>archive</key>
             <map>
               <key>hash</key>
-              <string>b19a8d8920569a6c67b72c3dc1df493a</string>
+              <string>b45461ffcbaa896a89a90aba379c7d3f</string>
               <key>hash_algorithm</key>
               <string>md5</string>
               <key>url</key>
