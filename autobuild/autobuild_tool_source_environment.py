@@ -99,16 +99,6 @@ call "%s"
         logger.debug("wrote to %s:\n%s" % (temp_script_name, temp_script_content))
 
         try:
-            # This stanza should be irrelevant these days because we make a
-            # point of avoiding cygwin Python exactly because of pathname
-            # compatibility problems. Retain it, though, just in case it's
-            # saving somebody's butt.
-            if sys.platform == "cygwin":
-                # cygwin needs the file to have executable permissions
-                os.chmod(temp_script_name, stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
-                # and translated to a path name that cmd.exe can understand
-                temp_script_name = cygpath("-d", temp_script_name)
-
             # Run our little batch script. Intercept any stdout it produces,
             # which would confuse our invoker, who wants to parse OUR stdout.
             cmdline = ['cmd', '/Q', '/C', temp_script_name]
@@ -311,14 +301,9 @@ if common.get_current_platform() == "windows":
 def do_source_environment(args):
     # OPEN-259: it turns out to be important that if AUTOBUILD is already set
     # in the environment, we should LEAVE IT ALONE. So if it exists, use the
-    # existing value. Otherwise, everywhere but Windows, just use our own
-    # executable path. On Windows (sigh), the function returns a pathname we
-    # can use internally -- but since source_environment is specifically for
-    # feeding a bash shell, twiddle that pathname for cygwin bash.
+    # existing value. Otherwise just use our own executable path.
     autobuild_path = common.get_autobuild_executable_path()
-    AUTOBUILD = os.environ.get("AUTOBUILD",
-                               autobuild_path if common.get_current_platform() != "windows"
-                               else ("$(cygpath -u '%s')"% autobuild_path))
+    AUTOBUILD = os.environ.get("AUTOBUILD", autobuild_path)
     var_mapping = {'AUTOBUILD_EXECUTABLE_PATH': AUTOBUILD,
                    'AUTOBUILD_VERSION_STRING': common.AUTOBUILD_VERSION_STRING,
                    'AUTOBUILD_PLATFORM': common.get_current_platform(),
