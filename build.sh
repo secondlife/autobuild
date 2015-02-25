@@ -34,6 +34,10 @@ case "$arch" in
 esac
 
 begin_section "Self Test"
+
+# ensure AUTOBUILD is in native path form for child processes
+export AUTOBUILD="$(native_path "$AUTOBUILD")"
+
 if $nosetests -v
 then
     echo_service_message buildStatus text="'Self Test Passed'" status="'SUCCESS'"
