@@ -26,6 +26,12 @@ import sys
 import re
 import subprocess
 
+# This script is intended to test whether autobuild sets the AUTOBUILD
+# environment variable for its child processes. Its name, envtest.py, is
+# specifically chosen to cause nosetests to fail to recognize it as a test
+# module. Instead, it is executed by test_build.TestEnvironment.test_env(), by
+# specifying it as the build command in the configuration.
+
 if __name__ == '__main__':
     # Verify that we can execute whatever the AUTOBUILD env var points to.
     # This is not the same as os.access($AUTOBUILD, os.X_OK): $AUTOBUILD
@@ -39,6 +45,10 @@ if __name__ == '__main__':
                                  shell=sys.platform.startswith("win"))
     stdout, stderr = autobuild.communicate()
     rc = autobuild.wait()
-    assert rc == 0, "%s => %s" % (' '.join(command), rc)
-    assert stdout.startswith("autobuild "), \
-           "does not look like autobuild --version output:\n" + stdout
+    try:
+        assert rc == 0, "%s => %s" % (' '.join(command), rc)
+        assert stdout.startswith("autobuild "), \
+               "does not look like autobuild --version output:\n" + stdout
+    except AssertionError, err:
+        print >>sys.stderr, "***Failed command: %s" % command
+        raise
