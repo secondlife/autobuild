@@ -708,7 +708,7 @@ def uninstall(package_name, installed_config):
         logger.debug("%s not installed, no uninstall needed" % package_name)
         return
 
-    logger.warning("uninstalling previous '%s' package" % package_name)
+    logger.warning("uninstalling %s version %s" % (package_name, package.package_description.version))
     clean_files(os.path.join(common.get_current_build_dir(),package.install_dir), package.manifest)
     installed_config.save()
 
