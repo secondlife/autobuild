@@ -378,7 +378,11 @@ def do_source_environment(args):
             logger.warning("USE_INCREDIBUILD environment variable contained garbage %r (expected 0 or 1)" % os.environ['USE_INCREDIBUILD'])
             use_ib = 0
         except KeyError:
-            use_ib = int(bool(common.find_executable('BuildConsole')))
+            # We no longer require Incredibuild for Windows builds. Therefore,
+            # if you want to engage Incredibuild, you must explicitly set
+            # USE_INCREDIBUILD=1. We no longer implicitly set that if
+            # BuildConsole.exe is on the PATH.
+            use_ib = 0
 
         var_mapping.update(USE_INCREDIBUILD=use_ib)
 
