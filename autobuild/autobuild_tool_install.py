@@ -663,7 +663,7 @@ def package_in_installed(new_package, installed):
                     used_conflict += "                vs  %s\n" % new_package['package_description']['version']
                 if new_package['build_id'] != previous[used]['build_id']:
                     used_conflict += "  installed build_id %s\n" % previous[used]['build_id']
-                    used_conflict += "                 vs  %s\n" % new_package[used]['build_id']
+                    used_conflict += "                 vs  %s\n" % new_package['build_id']
                 if used_conflict:
                     conflict += used + "\n" + used_conflict
             else:
