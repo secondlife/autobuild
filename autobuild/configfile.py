@@ -222,7 +222,8 @@ class ConfigurationDescription(common.Serialized):
                 if saved_data['version'] in update.updaters:
                     update.updaters[saved_data['version']](saved_data, self)
                 else:
-                    raise ConfigurationError("cannot update version %s file %s" %
+                    raise ConfigurationError("cannot update version %s file %s\n"
+                                             "This file requires at least autobuild version 1.0." %
                                              (saved_data['version'], self.path))
         elif not os.path.exists(self.path):
             logger.warn("Configuration file '%s' not found" % self.path)
