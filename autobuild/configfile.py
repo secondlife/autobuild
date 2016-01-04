@@ -223,7 +223,7 @@ class ConfigurationDescription(common.Serialized):
                     update.updaters[saved_data['version']](saved_data, self)
                 else:
                     raise ConfigurationError("cannot update version %s file %s" %
-                                             (saved_data.version, self.path))
+                                             (saved_data['version'], self.path))
         elif not os.path.exists(self.path):
             logger.warn("Configuration file '%s' not found" % self.path)
         else:
