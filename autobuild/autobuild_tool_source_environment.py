@@ -76,22 +76,73 @@ def load_vsvars(vsver):
         raise SourceEnvError("No env variable %s, is Visual Studio %s installed?%s" %
                              (key, vsver, explain))
 
-    vsvars_path = os.path.join(VSxxxCOMNTOOLS, "vsvars32.bat")
+    # VSxxxCOMNTOOLS will be something like:
+    # C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\Tools\
+    # We want to find vcvarsall.bat, which will be somewhere like
+    # C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat
+    # Assuming that we can just find %VSxxxCOMNTOOLS%..\..\VC seems a little
+    # fragile across installs or (importantly) across future VS versions.
+    # Instead, use %VSxxxCOMNTOOLS%VCVarsQueryRegistry.bat to populate
+    # VCINSTALLDIR.
+    VCVarsQueryRegistry_base = "VCVarsQueryRegistry.bat"
+    VCVarsQueryRegistry = os.path.join(VSxxxCOMNTOOLS, VCVarsQueryRegistry_base)
+    # Failure to find any of these .bat files could produce really obscure
+    # execution errors. Make the error messages as explicit as we can.
+    if not os.path.exists(VCVarsQueryRegistry):
+        raise SourceEnvError("%s not found at %s: %s" %
+                             (VCVarsQueryRegistry_base, key, VSxxxCOMNTOOLS))
+
+    # Found VCVarsQueryRegistry.bat, run it.
+    vcvars = get_vars_from_bat(VCVarsQueryRegistry)
+
+    # Then we can find %VCINSTALLDIR%vcvarsall.bat.
+    try:
+        VCINSTALLDIR = vcvars["VCINSTALLDIR"]
+    except KeyError:
+        raise SourceEnvError("%s did not populate VCINSTALLDIR" % VCVarsQueryRegistry)
+
+    vcvarsall_base = "vcvarsall.bat"
+    vcvarsall = os.path.join(VCINSTALLDIR, vcvarsall_base)
+    if not os.path.exists(vcvarsall):
+        raise SourceEnvError("%s not found at VCINSTALLDIR: %s" %
+                             (vcvarsall_base, VCINSTALLDIR))
+
+    # vcvarsall.bat accepts a single argument: the target architecture, e.g.
+    # "x86" or "x64". How convenient that we have that in an environment
+    # variable.
+    vcvars = get_vars_from_bat(vcvarsall, os.environ.get("AUTOBUILD_ARCH", ""))
+
+    # Now weed out of vcvars anything identical to OUR environment. Retain
+    # only environment variables actually modified by vcvarsall.bat.
+    # Use items() rather than iteritems(): capture the list of items up front
+    # instead of trying to traverse vcvars while modifying it.
+    for var, value in vcvars.items():
+        # Bear in mind that some variables were introduced by vcvarsall.bat and
+        # are therefore NOT in our os.environ.
+        if os.environ.get(var) == value:
+            # Any environment variable from our batch script that's identical
+            # to our own os.environ was simply inherited. Discard it.
+            del vcvars[var]
+    logger.debug("set by %s:\n%s" % (vcvarsall, pformat(vcvars)))
+
+    return vcvars
+
+def get_vars_from_bat(batpath, *args):
     # Invent a temp filename into which to capture our script output. Some
     # versions of vsvars32.bat emit stdout, some don't; we've been bitten both
     # ways. Bypass that by not commingling our desired output into stdout.
     temp_output = tempfile.NamedTemporaryFile(suffix=".pydata", delete=False)
     temp_output.close()
     try:
-        # Write a little temp batch file to suck in vsvars32.bat and regurgitate
-        # its contents in a form we can parse.
-        # First call vsvars32.bat to update the cmd shell's environment. Then
+        # Write a little temp batch file to set variables from batpath and
+        # regurgitate them in a form we can parse.
+        # First call batpath to update the cmd shell's environment. Then
         # use Python itself -- not just any Python interpreter, but THIS one
         # -- to format the ENTIRE environment into temp_output.name.
         temp_script_content = """\
-call "%s"
+call "%s"%s
 "%s" -c "import os, pprint; pprint.pprint(os.environ)" > "%s"
-""" % (vsvars_path, sys.executable, temp_output.name)
+""" % (batpath, ''.join(' '+arg for arg in args), sys.executable, temp_output.name)
         # Specify mode="w" for text mode ("\r\n" newlines); default is binary.
         with tempfile.NamedTemporaryFile(suffix=".cmd", delete=False, mode="w") as temp_script:
             temp_script.write(temp_script_content)
@@ -115,7 +166,7 @@ call "%s"
             os.remove(temp_script_name)
 
         # Read our temporary output file, knowing that it cannot contain any
-        # output produced by vsvars32.bat itself.
+        # output produced by batpath itself.
         with open(temp_output.name) as tf:
             raw_environ = tf.read()
 
@@ -128,24 +179,10 @@ call "%s"
         vsvars = literal_eval(raw_environ)
     except Exception:
         # but in case of a glitch, report raw string data for debugging
-        logger.debug("pprint output of vsvars32:\n" + raw_environ)
+        logger.debug("pprint output of %s:\n%s" % (batpath, raw_environ))
         raise
 
-    logger.debug("environment from vsvars32:\n" + pformat(vsvars))
-
-    # Now weed out of vsvars anything identical to OUR environment. Retain
-    # only environment variables actually modified by vsvars32.bat.
-    # Use items() rather than iteritems(): capture the list of items up front
-    # instead of trying to traverse vsvars while modifying it.
-    for var, value in vsvars.items():
-        # Bear in mind that some variables were introduced by vsvars32.bat and
-        # are therefore NOT in our os.environ.
-        if os.environ.get(var) == value:
-            # Any environment variable from our batch script that's identical
-            # to our own os.environ was simply inherited. Discard it.
-            del vsvars[var]
-    logger.debug("set by vsvars32:\n" + pformat(vsvars))
-
+    logger.debug("environment from %s:\n%s" % (batpath, pformat(vsvars)))
     return vsvars
 
 
