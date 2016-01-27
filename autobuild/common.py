@@ -41,6 +41,7 @@ import time
 import glob
 import itertools
 import logging
+import platform
 import pprint
 import shutil
 import tempfile
@@ -55,14 +56,15 @@ class AutobuildError(RuntimeError):
     pass
 
 # define the supported platforms
-PLATFORM_DARWIN  = 'darwin'
+PLATFORM_DARWIN    = 'darwin'
 PLATFORM_DARWIN64  = 'darwin64'
-PLATFORM_WINDOWS = 'windows'
+PLATFORM_WINDOWS   = 'windows'
 PLATFORM_WINDOWS64 = 'windows64'
-PLATFORM_LINUX   = 'linux'
+PLATFORM_LINUX     = 'linux'
 PLATFORM_LINUX64   = 'linux64'
 
-DEFAULT_ADDRSIZE = 32
+# If AUTOBUILD_ADDRSIZE is already set in the current environment, honor it.
+DEFAULT_ADDRSIZE = int(os.environ.get("AUTOBUILD_ADDRSIZE", 32))
 
 Platform=None
 def get_current_platform():
@@ -74,6 +76,15 @@ def get_current_platform():
         logger.debug("platform recurse")
         establish_platform(None) # uses the default for where we are running to set Platform
     return Platform
+
+def is_darwin(platform):
+    return platform in (PLATFORM_DARWIN, PLATFORM_DARWIN64)
+
+def is_windows(platform):
+    return platform in (PLATFORM_WINDOWS, PLATFORM_WINDOWS64)
+
+def is_linux(platform):
+    return platform in (PLATFORM_LINUX, PLATFORM_LINUX64)
 
 _build_dir=None
 def establish_build_dir(directory):
@@ -110,7 +121,7 @@ def is_system_64bit():
     """
     Returns True if the build system is 64-bit compatible.
     """
-    return sys.maxsize > 2**32
+    return platform.machine().lower() in ("x86_64", "amd64")
 
 def establish_platform(specified_platform=None, addrsize=DEFAULT_ADDRSIZE):
     """
@@ -173,7 +184,6 @@ def get_current_user():
         import getpass
         return getpass.getuser()
     except ImportError:
-        import getpass
         import ctypes
         MAX_PATH = 260                  # according to a recent WinDef.h
         name = ctypes.create_unicode_buffer(MAX_PATH)

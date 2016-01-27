@@ -250,7 +250,7 @@ environment_template = """
         if ! [ -r "$archive" ] ; then
             curl -L -o "$archive" "$url"                    || return 1
         fi
-        if [ "$AUTOBUILD_PLATFORM" = "darwin" ] ; then
+        if [ "${AUTOBUILD_PLATFORM#darwin}" != "$AUTOBUILD_PLATFORM" ] ; then
             test "$md5 $archive" = "$(md5 -r "$archive")"
         else
             echo "$md5 *$archive" | md5sum -c
@@ -283,7 +283,7 @@ environment_template = """
     calc_md5() {
         local archive=$1
         local md5_cmd=md5sum
-        if [ "$AUTOBUILD_PLATFORM" = "darwin" ] ; then
+        if [ "${AUTOBUILD_PLATFORM#darwin}" != "$AUTOBUILD_PLATFORM" ] ; then
             md5_cmd="md5 -r"
         fi
         $md5_cmd "$archive" | cut -d ' ' -f 1
@@ -308,7 +308,7 @@ environment_template = """
     $restore_xtrace
 """
 
-if common.get_current_platform() == "windows":
+if common.is_windows(common.get_current_platform()):
     windows_template = """
     # disable verbose debugging output
     set +o xtrace
@@ -372,7 +372,7 @@ def do_source_environment(args):
                    'DISTCC_HOSTS': "",
                    }
 
-    if common.get_current_platform() == "windows":
+    if common.is_windows(common.get_current_platform()):
         try:
             # reset stdout in binary mode so sh doesn't get confused by '\r'
             import msvcrt
