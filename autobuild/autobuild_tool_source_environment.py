@@ -62,6 +62,24 @@ class SourceEnvError(common.AutobuildError):
     pass
 
 def load_vsvars(vsver):
+    """
+    Return a dict of environment variables set by the applicable Visual Studio
+    vcvars*.bat file. Note: any variable identical to the corresponding
+    current os.environ entry is assumed to be inherited rather than set. The
+    returned dict contains only variables added or changed by vcvars*.bat.
+
+    The relevant Visual Studio version is specified by the vsver parameter,
+    according to Microsoft convention:
+
+    '100' selects Visual Studio 2010
+    '120' selects Visual Studio 2013 (version 12.0)
+    etc.
+
+    os.environ['AUTOBUILD_ADDRSIZE'] (set by common.establish_platform()) also
+    participates in the selection of the .bat file. When it's '32', the .bat
+    file will set variables appropriate for a 32-bit build, and similarly when
+    it's '64'.
+    """
     key = "VS%sCOMNTOOLS" % vsver
     logger.debug("vsver %s, key %s" % (vsver, key))
     try:
@@ -108,9 +126,15 @@ def load_vsvars(vsver):
                              (vcvarsall_base, VCINSTALLDIR))
 
     # vcvarsall.bat accepts a single argument: the target architecture, e.g.
-    # "x86" or "x64". How convenient that we have that in an environment
-    # variable.
-    vcvars = get_vars_from_bat(vcvarsall, os.environ.get("AUTOBUILD_ARCH", ""))
+    # "x86" or "x64".
+    # Let KeyError, if any, propagate: lack of AUTOBUILD_ADDRSIZE would be an
+    # autobuild coding error. So would any value for that variable other than
+    # what's stated below.
+    arch = {
+        '32': 'x86',
+        '64': 'x64',
+        }[os.environ["AUTOBUILD_ADDRSIZE"]]
+    vcvars = get_vars_from_bat(vcvarsall, arch)
 
     # Now weed out of vcvars anything identical to OUR environment. Retain
     # only environment variables actually modified by vcvarsall.bat.
@@ -123,7 +147,7 @@ def load_vsvars(vsver):
             # Any environment variable from our batch script that's identical
             # to our own os.environ was simply inherited. Discard it.
             del vcvars[var]
-    logger.debug("set by %s:\n%s" % (vcvarsall, pformat(vcvars)))
+    logger.debug("set by %s %s:\n%s" % (vcvarsall, arch, pformat(vcvars)))
 
     return vcvars
 
