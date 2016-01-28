@@ -433,6 +433,14 @@ def do_source_environment(args):
             ('        export %s="%s"' % varval for varval in exports)
         )
 
+        # Let KeyError, if any, propagate: lack of AUTOBUILD_ADDRSIZE would be
+        # an autobuild coding error. So would any value for that variable
+        # other than what's stated below.
+        var_mapping["AUTOBUILD_WIN_VSPLATFORM"] = {
+            '32': 'Win32',
+            '64': 'x64',
+            }[os.environ["AUTOBUILD_ADDRSIZE"]]
+
         try:
             use_ib = int(os.environ['USE_INCREDIBUILD'])
         except ValueError:
