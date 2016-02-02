@@ -835,15 +835,6 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             default=configfile.INSTALLED_CONFIG_FILE,
             dest='installed_filename',
             help='The file used to record what is installed.')
-        parser.add_argument('--address-size', choices=[32,64], type=int,
-                            default=int(os.environ.get('AUTOBUILD_ADDRSIZE',common.DEFAULT_ADDRSIZE)),
-                            dest='addrsize',
-                            help='specify address size (modifies platform)')
-        parser.add_argument(
-            '-p', '--platform',
-            default=None,
-            dest='platform',
-            help='Override the automatically determined platform.')
         parser.add_argument(
             '--install-dir',
             default=None,
@@ -930,7 +921,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         UTF8Writer = codecs.getwriter('utf8')
         sys.stdout = UTF8Writer(sys.stdout)
 
-        platform=common.establish_platform(args.platform,addrsize=args.addrsize)
+        platform=common.get_current_platform()
         logger.debug("installing platform "+platform)
 
         # load the list of packages to install

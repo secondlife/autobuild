@@ -250,11 +250,12 @@ environment_template = """
         if ! [ -r "$archive" ] ; then
             curl -L -o "$archive" "$url"                    || return 1
         fi
-        if [ "${AUTOBUILD_PLATFORM#darwin}" != "$AUTOBUILD_PLATFORM" ] ; then
+        case "$AUTOBUILD_PLATFORM" in
+        darwin*)
             test "$md5 $archive" = "$(md5 -r "$archive")"
-        else
+        *)
             echo "$md5 *$archive" | md5sum -c
-        fi
+        esac
     }
     extract() {
         # Use a tar command appropriate to the extension of the filename passed as
@@ -283,9 +284,10 @@ environment_template = """
     calc_md5() {
         local archive=$1
         local md5_cmd=md5sum
-        if [ "${AUTOBUILD_PLATFORM#darwin}" != "$AUTOBUILD_PLATFORM" ] ; then
+        case "$AUTOBUILD_PLATFORM" in
+        darwin*)
             md5_cmd="md5 -r"
-        fi
+        esac
         $md5_cmd "$archive" | cut -d ' ' -f 1
     }
     fix_dylib_id() {
@@ -308,7 +310,7 @@ environment_template = """
     $restore_xtrace
 """
 
-if common.is_windows(common.get_current_platform()):
+if common.is_platform_windows():
     windows_template = """
     # disable verbose debugging output
     set +o xtrace
@@ -372,7 +374,7 @@ def do_source_environment(args):
                    'DISTCC_HOSTS': "",
                    }
 
-    if common.is_windows(common.get_current_platform()):
+    if common.is_system_Windows():
         try:
             # reset stdout in binary mode so sh doesn't get confused by '\r'
             import msvcrt

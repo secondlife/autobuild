@@ -80,8 +80,8 @@ def get_current_platform():
 def is_darwin(platform):
     return platform in (PLATFORM_DARWIN, PLATFORM_DARWIN64)
 
-def is_windows(platform):
-    return platform in (PLATFORM_WINDOWS, PLATFORM_WINDOWS64)
+def is_platform_windows():
+    return get_current_platform() in (PLATFORM_WINDOWS, PLATFORM_WINDOWS64)
 
 def is_linux(platform):
     return platform in (PLATFORM_LINUX, PLATFORM_LINUX64)
@@ -122,6 +122,9 @@ def is_system_64bit():
     Returns True if the build system is 64-bit compatible.
     """
     return platform.machine().lower() in ("x86_64", "amd64")
+
+def is_system_Windows():
+    return sys.platform == 'win32' or sys.platform == 'cygwin'
 
 def establish_platform(specified_platform=None, addrsize=DEFAULT_ADDRSIZE):
     """
@@ -222,7 +225,7 @@ def get_temp_dir(basename):
     directory exists.
     """
     user = get_current_user()
-    if get_current_platform() == PLATFORM_WINDOWS:
+    if is_system_Windows():
         installdir = '%s.%s' % (basename, user)
         tmpdir = os.path.join(tempfile.gettempdir(), installdir)
     else:
@@ -233,7 +236,7 @@ def get_temp_dir(basename):
 
 
 def get_autobuild_executable_path():
-    if not get_current_platform().startswith(PLATFORM_WINDOWS):
+    if not is_system_Windows():
         # Anywhere but Windows, the AUTOBUILD executable should be the first
         # item on our command line.
         path = sys.argv[0]
