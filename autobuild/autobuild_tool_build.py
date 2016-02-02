@@ -78,6 +78,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
         parser.add_argument('--id', '-i', dest='build_id', help='unique build identifier')
+
         parser.add_argument('--clean-only',
                             action="store_true",
                             default=True if 'AUTOBUILD_CLEAN_ONLY' in os.environ and boolopt.match(os.environ['AUTOBUILD_CLEAN_ONLY']) else False,
@@ -97,6 +98,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
     def run(self, args):
         platform = common.get_current_platform()
         build_id = common.establish_build_id(args.build_id)  # sets id (even if not specified),
+                                                             # and stores in the AUTOBUILD_BUILD_ID environment variable
         config = configfile.ConfigurationDescription(args.config_file)
         package_errors = \
             configfile.check_package_attributes(config,

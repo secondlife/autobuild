@@ -240,8 +240,8 @@ class Autobuild(object):
 
         self.set_recursive_loglevel(logger, args.logging_level)
 
+        # establish platform and address options and related environment variables
         platform = common.establish_platform(args.platform, addrsize=args.addrsize)
-                                                             # and stores in the AUTOBUILD_BUILD_ID environment variable
 
         if tool_to_run != -1:
             tool_to_run.run(args)

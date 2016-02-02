@@ -253,8 +253,10 @@ environment_template = """
         case "$AUTOBUILD_PLATFORM" in
         darwin*)
             test "$md5 $archive" = "$(md5 -r "$archive")"
+            ;;
         *)
             echo "$md5 *$archive" | md5sum -c
+            ;;
         esac
     }
     extract() {
@@ -287,6 +289,7 @@ environment_template = """
         case "$AUTOBUILD_PLATFORM" in
         darwin*)
             md5_cmd="md5 -r"
+            ;;
         esac
         $md5_cmd "$archive" | cut -d ' ' -f 1
     }
@@ -310,7 +313,7 @@ environment_template = """
     $restore_xtrace
 """
 
-if common.is_platform_windows():
+if common.is_system_windows():
     windows_template = """
     # disable verbose debugging output
     set +o xtrace
@@ -374,7 +377,7 @@ def do_source_environment(args):
                    'DISTCC_HOSTS': "",
                    }
 
-    if common.is_system_Windows():
+    if common.is_system_windows():
         try:
             # reset stdout in binary mode so sh doesn't get confused by '\r'
             import msvcrt

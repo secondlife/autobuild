@@ -77,15 +77,6 @@ def get_current_platform():
         establish_platform(None) # uses the default for where we are running to set Platform
     return Platform
 
-def is_darwin(platform):
-    return platform in (PLATFORM_DARWIN, PLATFORM_DARWIN64)
-
-def is_platform_windows():
-    return get_current_platform() in (PLATFORM_WINDOWS, PLATFORM_WINDOWS64)
-
-def is_linux(platform):
-    return platform in (PLATFORM_LINUX, PLATFORM_LINUX64)
-
 _build_dir=None
 def establish_build_dir(directory):
     global _build_dir
@@ -123,8 +114,24 @@ def is_system_64bit():
     """
     return platform.machine().lower() in ("x86_64", "amd64")
 
-def is_system_Windows():
+def is_system_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
+
+def check_platform_system_match(platform):
+    """
+    Confirm that the selected platform is compatibile with the system we're on
+    """
+    if platform in (PLATFORM_WINDOWS, PLATFORM_WINDOWS64) and not is_system_windows():
+        platform_should_be="Windows"
+    elif platform in (PLATFORM_LINUX, PLATFORM_LINUX64) and sys.platform != 'linux2':
+        platform_should_be="Linux"
+    elif platform in (PLATFORM_DARWIN, PLATFORM_DARWIN64) and sys.platform != 'darwin':
+        platform_should_be="Mac OS X"
+    else:
+        platform_should_be=None
+
+    if platform_should_be:
+        sys.exit("Platform '%s' is only supported running on %s" % (platform, platform_should_be))
 
 def establish_platform(specified_platform=None, addrsize=DEFAULT_ADDRSIZE):
     """
@@ -151,13 +158,15 @@ def establish_platform(specified_platform=None, addrsize=DEFAULT_ADDRSIZE):
             Platform = PLATFORM_LINUX64
         else:
             Platform = PLATFORM_LINUX
-    elif sys.platform == 'win32' or sys.platform == 'cygwin':  
+    elif is_system_windows():  
         if addrsize == 64:
             Platform = PLATFORM_WINDOWS64
         else:
             Platform = PLATFORM_WINDOWS
     else:
         AutobuildError("unrecognized platform '%s'" % sys.platform)
+
+    check_platform_system_match(Platform)
 
     os.environ['AUTOBUILD_ADDRSIZE'] = str(addrsize) # for spawned commands
     os.environ['AUTOBUILD_PLATFORM'] = Platform # for spawned commands
@@ -225,7 +234,7 @@ def get_temp_dir(basename):
     directory exists.
     """
     user = get_current_user()
-    if is_system_Windows():
+    if is_system_windows():
         installdir = '%s.%s' % (basename, user)
         tmpdir = os.path.join(tempfile.gettempdir(), installdir)
     else:
@@ -236,7 +245,7 @@ def get_temp_dir(basename):
 
 
 def get_autobuild_executable_path():
-    if not is_system_Windows():
+    if not is_system_windows():
         # Anywhere but Windows, the AUTOBUILD executable should be the first
         # item on our command line.
         path = sys.argv[0]

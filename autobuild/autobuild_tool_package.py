@@ -309,7 +309,7 @@ def _create_tarfile(tarfilename, build_directory, filelist, results):
         for file in filelist:
             try:
                 # Make sure permissions are set on Windows.
-                if common.is_system_Windows():
+                if common.is_system_windows():
                     command = ["CACLS", file, "/T", "/G", getpass.getuser() + ":F"]
                     CACLS = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                     output = CACLS.communicate("Y")[0]
