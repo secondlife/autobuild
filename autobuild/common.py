@@ -66,6 +66,18 @@ PLATFORM_LINUX64   = 'linux64'
 # If AUTOBUILD_ADDRSIZE is already set in the current environment, honor it.
 DEFAULT_ADDRSIZE = int(os.environ.get("AUTOBUILD_ADDRSIZE", 32))
 
+# Similarly, if we have an explicit platform in the environment, keep it. We
+# used to query os.environ in establish_platform(), instead of up here. The
+# trouble was that establish_platform() *sets* these os.environ entries -- so
+# if the code made two different calls to establish_platform(), even if the
+# second call had better information (from command-specific switches), the
+# second call would notice the AUTOBUILD_PLATFORM[_OVERRIDE] variables already
+# set by the first call and set the wrong thing. Capturing those variables
+# here at load time lets each establish_platform() call make its decisions
+# independently of any previous calls.
+_AUTOBUILD_PLATFORM_OVERRIDE = os.environ.get('AUTOBUILD_PLATFORM_OVERRIDE')
+_AUTOBUILD_PLATFORM          = os.environ.get('AUTOBUILD_PLATFORM')
+
 Platform=None
 def get_current_platform():
     """
@@ -144,10 +156,10 @@ def establish_platform(specified_platform=None, addrsize=DEFAULT_ADDRSIZE):
         addrsize = 32
     if specified_platform is not None:
         Platform=specified_platform
-    elif os.environ.get('AUTOBUILD_PLATFORM_OVERRIDE'):
-        Platform=os.environ.get('AUTOBUILD_PLATFORM_OVERRIDE')
-    elif os.environ.get('AUTOBUILD_PLATFORM'):
-        Platform=os.environ.get('AUTOBUILD_PLATFORM')
+    elif _AUTOBUILD_PLATFORM_OVERRIDE:
+        Platform=_AUTOBUILD_PLATFORM_OVERRIDE
+    elif _AUTOBUILD_PLATFORM:
+        Platform=_AUTOBUILD_PLATFORM
     elif sys.platform == 'darwin':
         if addrsize == 64:
             Platform = PLATFORM_DARWIN64
