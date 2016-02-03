@@ -131,7 +131,7 @@ def check_platform_system_match(platform):
         platform_should_be=None
 
     if platform_should_be:
-        sys.exit("Platform '%s' is only supported running on %s" % (platform, platform_should_be))
+        raise AutobuildError("Platform '%s' is only supported running on %s" % (platform, platform_should_be))
 
 def establish_platform(specified_platform=None, addrsize=DEFAULT_ADDRSIZE):
     """
