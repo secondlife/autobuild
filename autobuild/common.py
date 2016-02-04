@@ -62,6 +62,7 @@ PLATFORM_WINDOWS   = 'windows'
 PLATFORM_WINDOWS64 = 'windows64'
 PLATFORM_LINUX     = 'linux'
 PLATFORM_LINUX64   = 'linux64'
+PLATFORM_COMMON    = 'common'
 
 # If AUTOBUILD_ADDRSIZE is already set in the current environment, honor it.
 DEFAULT_ADDRSIZE = int(os.environ.get("AUTOBUILD_ADDRSIZE", 32))
@@ -133,14 +134,18 @@ def check_platform_system_match(platform):
     """
     Confirm that the selected platform is compatibile with the system we're on
     """
-    if platform in (PLATFORM_WINDOWS, PLATFORM_WINDOWS64) and not is_system_windows():
-        platform_should_be="Windows"
-    elif platform in (PLATFORM_LINUX, PLATFORM_LINUX64) and sys.platform != 'linux2':
-        platform_should_be="Linux"
-    elif platform in (PLATFORM_DARWIN, PLATFORM_DARWIN64) and sys.platform != 'darwin':
-        platform_should_be="Mac OS X"
-    else:
-        platform_should_be=None
+    platform_should_be=None
+    if platform in (PLATFORM_WINDOWS, PLATFORM_WINDOWS64):
+        if not is_system_windows():
+            platform_should_be="Windows"
+    elif platform in (PLATFORM_LINUX, PLATFORM_LINUX64):
+        if sys.platform != 'linux2':
+            platform_should_be="Linux"
+    elif platform in (PLATFORM_DARWIN, PLATFORM_DARWIN64):
+        if sys.platform != 'darwin':
+            platform_should_be="Mac OS X"
+    elif platform != PLATFORM_COMMON:
+        raise AutobuildError("Unsupported platform '%s'" % platform)
 
     if platform_should_be:
         raise AutobuildError("Platform '%s' is only supported running on %s" % (platform, platform_should_be))

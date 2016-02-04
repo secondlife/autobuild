@@ -160,11 +160,9 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
         raise PackageError("no package name specified in configuration")
     if not package_description.license:
         raise PackageError("no license specified in configuration")
-##  autobuild.xml's version_file is validated by build subcommand.
-##  By this time we should only have to validate metadata package version;
-##  this happens a few lines down, after reading metadata_file.
-##  if not package_description.version_file:
-##      raise PackageError("no version file specified in configuration")
+    ##  autobuild.xml's version_file is validated by build subcommand.
+    ##  By this time we should only have to validate metadata package version;
+    ##  this happens a few lines down, after reading metadata_file.
     if not os.path.isdir(build_directory):
         raise PackageError("build directory %s is not a directory" % build_directory)
     logger.info("packaging from %s" % build_directory)
@@ -172,9 +170,9 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     files = set()
     missing = []
     files, missing = _get_file_list(platform_description, build_directory)
-    if platform_name != 'common':
+    if platform_name != common.PLATFORM_COMMON:
         try:
-            common_files, common_missing = _get_file_list(config.get_platform('common'), build_directory)
+            common_files, common_missing = _get_file_list(config.get_platform(common.PLATFORM_COMMON), build_directory)
             files |= common_files
             missing.extend(common_missing)
         except configfile.ConfigurationError:

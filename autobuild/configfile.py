@@ -114,7 +114,7 @@ class ConfigurationDescription(common.Serialized):
         """
         build_directory=None
         platform_description = self.get_platform(platform_name)
-        common_platform_description = self.package_description.platforms.get('common', None)
+        common_platform_description = self.package_description.platforms.get(common.PLATFORM_COMMON, None)
         config_directory = os.path.dirname(self.path)
         # Try specific configuration build_directory first.
         if hasattr(configuration, 'build_directory') and configuration.build_directory is not None:
@@ -514,7 +514,7 @@ class PackageDescription(common.Serialized):
                     logger.warning("No %s configuration found; inheriting %s" % (platform, base_platform))
                     package_selected_platform = base_platform
         if target_platform is None:
-            target_platform = self.platforms.get("common")
+            target_platform = self.platforms.get(common.PLATFORM_COMMON)
         return target_platform
 
     def read_version_file(self, build_directory):

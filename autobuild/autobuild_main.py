@@ -212,7 +212,7 @@ class Autobuild(object):
             (('-p', '--platform',),
                 dict(default=None,
                      dest='platform',
-                     help='may only be the current platform or "common" (useful for source packages)')),
+                     help='may only be the current platform or "%s" (useful for source packages)' % common.PLATFORM_COMMON)),
             (('-A', '--address-size',),
                 dict(choices=[32,64], type=int,
                             default=int(os.environ.get('AUTOBUILD_ADDRSIZE',common.DEFAULT_ADDRSIZE)),

@@ -183,7 +183,7 @@ def _get_new_metadata(config, args_name, args_archive, arguments):
         if 'platform' in metadata \
           and metadata['platform'] is not None \
           and key_values['platform'] != metadata['platform'] \
-          and metadata['platform'] != 'common':
+          and metadata['platform'] != common.PLATFORM_COMMON:
           raise InstallablesError("specified platform '%s' does not match archive platform '%s'" \
                                   % ( key_values['platform'], metadata['platform']))
         else:

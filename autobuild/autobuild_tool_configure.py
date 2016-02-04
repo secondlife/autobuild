@@ -92,7 +92,7 @@ def configure(config, build_configuration_name, extra_arguments=[]):
     """
     Execute the platform configure command for the named build configuration.
 
-    A special 'common' platform may be defined which can provide parent commands for the configure 
+    The special 'common' platform may be defined which can provide parent commands for the configure 
     command using the inheritence mechanism described in the 'executable' package.  The working
     platform's build configuration will be matched to the build configuration in common with the
     same name if it exists.  To be configured, a build configuration must be defined in the working
@@ -107,7 +107,7 @@ def configure(config, build_configuration_name, extra_arguments=[]):
 def _configure_a_configuration(config, build_configuration, extra_arguments, dry_run=False):
     try:
         common_build_configuration = \
-            config.get_build_configuration(build_configuration.name, platform_name='common')
+            config.get_build_configuration(build_configuration.name, platform_name=common.PLATFORM_COMMON)
         parent_configure = common_build_configuration.configure
     except Exception, e:
         if logger.getEffectiveLevel() <= logging.DEBUG:
