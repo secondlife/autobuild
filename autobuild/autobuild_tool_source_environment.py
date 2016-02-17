@@ -343,9 +343,9 @@ if common.is_system_windows():
             fi
         else
             if [ -z "$proj" ] ; then
-                devenv.com "$(cygpath -m "$solution")" /build "$config"
+                devenv.com "$(cygpath -w "$solution")" /build "$config"
             else
-                devenv.com "$(cygpath -m "$solution")" /build "$config" /project "$proj"
+                devenv.com "$(cygpath -w "$solution")" /build "$config" /project "$proj"
             fi
         fi
     }
@@ -421,6 +421,14 @@ def do_source_environment(args):
         # syntax probably differs.
         vsvars.pop("PROMPT", None)
 
+        # Let KeyError, if any, propagate: lack of AUTOBUILD_ADDRSIZE would be
+        # an autobuild coding error. So would any value for that variable
+        # other than what's stated below.
+        vsvars["AUTOBUILD_WIN_VSPLATFORM"] = {
+            '32': 'Win32',
+            '64': 'x64',
+            }[os.environ["AUTOBUILD_ADDRSIZE"]]
+
         # A pathname ending with a backslash (as many do on Windows), when
         # embedded in quotes in a bash script, might inadvertently escape the
         # close quote. Remove all trailing backslashes.
@@ -437,14 +445,6 @@ def do_source_environment(args):
         var_mapping["vsvars"] = '\n'.join(
             ('        export %s="%s"' % varval for varval in exports)
         )
-
-        # Let KeyError, if any, propagate: lack of AUTOBUILD_ADDRSIZE would be
-        # an autobuild coding error. So would any value for that variable
-        # other than what's stated below.
-        var_mapping["AUTOBUILD_WIN_VSPLATFORM"] = {
-            '32': 'Win32',
-            '64': 'x64',
-            }[os.environ["AUTOBUILD_ADDRSIZE"]]
 
         try:
             use_ib = int(os.environ['USE_INCREDIBUILD'])
