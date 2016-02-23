@@ -429,6 +429,33 @@ def do_source_environment(args):
             '64': 'x64',
             }[os.environ["AUTOBUILD_ADDRSIZE"]]
 
+        # When one of our build-cmd.sh scripts invokes CMake on Windows, it's
+        # probably prudent to use a -G switch for the specific Visual Studio
+        # version we want to target. It's not that uncommon for a Windows
+        # build host to have multiple VS versions installed, and it can
+        # sometimes take a while for us to switch to the newest release. Yet
+        # we do NOT want to hard-code the version-specific CMake generator
+        # name into each 3p source repo: we know from experience that
+        # sprinkling version specificity throughout a large collection of 3p
+        # repos is part of what makes it so hard to upgrade the compiler. The
+        # problem is that the mapping from vs_ver to (e.g.) "Visual Studio 12"
+        # isn't necessarily straightforward -- we may have to maintain a
+        # lookup dict. That dict should not be replicated into each 3p repo,
+        # it should be central. It should be here.
+        try:
+            AUTOBUILD_WIN_CMAKE_GEN = {
+                '120': "Visual Studio 12",
+                }[vs_ver]
+        except KeyError:
+            # We don't have a specific mapping for this value of vs_ver. Take
+            # a wild guess. If we guess wrong, CMake will complain, and the
+            # user will have to update autobuild -- which is no worse than
+            # what s/he'd have to do anyway if we immediately produced an
+            # error here. Plus this way, we defer the error until we hit a
+            # build that actually consumes AUTOBUILD_WIN_CMAKE_GEN.
+            AUTOBUILD_WIN_CMAKE_GEN = "Visual Studio %s" % (vs_ver[:2])
+        vsvars["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
+
         # A pathname ending with a backslash (as many do on Windows), when
         # embedded in quotes in a bash script, might inadvertently escape the
         # close quote. Remove all trailing backslashes.
