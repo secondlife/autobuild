@@ -453,7 +453,10 @@ def do_source_environment(args):
             # what s/he'd have to do anyway if we immediately produced an
             # error here. Plus this way, we defer the error until we hit a
             # build that actually consumes AUTOBUILD_WIN_CMAKE_GEN.
-            AUTOBUILD_WIN_CMAKE_GEN = "Visual Studio %s" % (vs_ver[:2])
+            AUTOBUILD_WIN_CMAKE_GEN = "Visual Studio %s" % (vs_ver[:-1])
+        # Of course CMake also needs to know bit width :-P
+        if os.environ["AUTOBUILD_ADDRSIZE"] == "64":
+            AUTOBUILD_WIN_CMAKE_GEN += " Win64"
         vsvars["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
 
         # A pathname ending with a backslash (as many do on Windows), when
