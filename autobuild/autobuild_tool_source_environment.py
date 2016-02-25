@@ -23,6 +23,7 @@
 import os
 import sys
 from ast import literal_eval
+import itertools
 import logging
 from pprint import pformat
 import re
@@ -224,9 +225,7 @@ environment_template = """
     restore_xtrace="$(set +o | grep xtrace)"
     set +o xtrace
 
-    export AUTOBUILD="%(AUTOBUILD_EXECUTABLE_PATH)s"
-    export AUTOBUILD_VERSION_STRING="%(AUTOBUILD_VERSION_STRING)s"
-    export AUTOBUILD_PLATFORM="%(AUTOBUILD_PLATFORM)s"
+%(vars)s
 
     fail() {
         echo "BUILD FAILED"
@@ -307,9 +306,6 @@ environment_template = """
         fi
     }
 
-    MAKEFLAGS="%(MAKEFLAGS)s"
-    #DISTCC_HOSTS="%(DISTCC_HOSTS)s"
-
     $restore_xtrace
 """
 
@@ -370,12 +366,24 @@ def do_source_environment(args):
     # existing value. Otherwise just use our own executable path.
     autobuild_path = common.get_autobuild_executable_path()
     AUTOBUILD = os.environ.get("AUTOBUILD", autobuild_path)
-    var_mapping = {'AUTOBUILD_EXECUTABLE_PATH': AUTOBUILD,
-                   'AUTOBUILD_VERSION_STRING': common.AUTOBUILD_VERSION_STRING,
-                   'AUTOBUILD_PLATFORM': common.get_current_platform(),
-                   'MAKEFLAGS': "",
-                   'DISTCC_HOSTS': "",
-                   }
+    var_mapping = {}
+    # The cross-platform environment_template contains a generic 'vars' slot
+    # where we can insert lines defining environment variables. Putting a
+    # variable definition into this 'exports' dict causes it to be listed
+    # there with an 'export' statement; putting a variable definition into the
+    # 'vars' dict lists it there as local to that bash process. Logic just
+    # before expanding environment_template populates 'exports' and 'vars'
+    # into var_mapping["vars"]. We defer it that long so that conditional
+    # logic below can, if desired, add to either 'exports' or 'vars' first.
+    exports = dict(
+        AUTOBUILD=AUTOBUILD,
+        AUTOBUILD_VERSION_STRING=common.AUTOBUILD_VERSION_STRING,
+        AUTOBUILD_PLATFORM=common.get_current_platform(),
+        )
+    vars = dict(
+        MAKEFLAGS="",
+##      DISTCC_HOSTS="",
+        )
 
     if common.is_system_windows():
         try:
@@ -390,7 +398,7 @@ def do_source_environment(args):
         # *TODO - find a way to configure this instead of hardcoding default
         vs_ver = os.environ.get('AUTOBUILD_VSVER', '120')
         vsvars = load_vsvars(vs_ver)
-        exports = []
+        vsvarslist = []
         # We don't know which environment variables might be modified by
         # vsvars32.bat, but one of them is likely to be PATH. Treat PATH
         # specially: when a bash script invokes our load_vsvars() shell
@@ -415,7 +423,7 @@ def do_source_environment(args):
                 dedup(cygpath("-u", percents.sub(r"${\1}", p.strip('"')))
                       for p in PATH.split(';'))
             )
-            exports.append(("PATH", PATH + ":$PATH"))
+            vsvarslist.append(("PATH", PATH + ":$PATH"))
 
         # Resetting our PROMPT is a bit heavy-handed. Plus the substitution
         # syntax probably differs.
@@ -424,7 +432,7 @@ def do_source_environment(args):
         # Let KeyError, if any, propagate: lack of AUTOBUILD_ADDRSIZE would be
         # an autobuild coding error. So would any value for that variable
         # other than what's stated below.
-        vsvars["AUTOBUILD_WIN_VSPLATFORM"] = {
+        exports["AUTOBUILD_WIN_VSPLATFORM"] = {
             '32': 'Win32',
             '64': 'x64',
             }[os.environ["AUTOBUILD_ADDRSIZE"]]
@@ -457,23 +465,23 @@ def do_source_environment(args):
         # Of course CMake also needs to know bit width :-P
         if os.environ["AUTOBUILD_ADDRSIZE"] == "64":
             AUTOBUILD_WIN_CMAKE_GEN += " Win64"
-        vsvars["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
+        exports["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
 
         # A pathname ending with a backslash (as many do on Windows), when
         # embedded in quotes in a bash script, might inadvertently escape the
         # close quote. Remove all trailing backslashes.
         for (k, v) in vsvars.iteritems():
-            exports.append((k, v.rstrip('\\')))
+            vsvarslist.append((k, v.rstrip('\\')))
 
         # may as well sort by keys
-        exports.sort()
+        vsvarslist.sort()
 
         # Since at coding time we don't know the set of all modified
         # environment variables, don't try to name them individually in the
         # template. Instead, bundle all relevant export statements into a
         # single substitution.
         var_mapping["vsvars"] = '\n'.join(
-            ('        export %s="%s"' % varval for varval in exports)
+            ('        export %s="%s"' % varval for varval in vsvarslist)
         )
 
         try:
@@ -489,6 +497,13 @@ def do_source_environment(args):
             use_ib = 0
 
         var_mapping.update(USE_INCREDIBUILD=use_ib)
+
+    # Before expanding environment_template with var_mapping, finalize the
+    # 'exports' and 'vars' dicts into var_mapping["vars"] as promised above.
+    var_mapping["vars"] = '\n'.join(itertools.chain(
+        (("    export %s='%s'" % (k, v)) for k, v in exports.iteritems()),
+        (("    %s='%s'" % (k, v)) for k, v in vars.iteritems()),
+        ))
 
     sys.stdout.write(environment_template % var_mapping)
 
