@@ -385,6 +385,14 @@ def do_source_environment(args):
 ##      DISTCC_HOSTS="",
         )
 
+    # Let KeyError, if any, propagate: lack of AUTOBUILD_ADDRSIZE would be
+    # an autobuild coding error. So would any value for that variable
+    # other than what's stated below.
+    exports["AUTOBUILD_CONFIGURE_ARCH"] = {
+        '32': 'i386',
+        '64': 'x86_64',
+        }[os.environ["AUTOBUILD_ADDRSIZE"]]
+
     if common.is_system_windows():
         try:
             # reset stdout in binary mode so sh doesn't get confused by '\r'
