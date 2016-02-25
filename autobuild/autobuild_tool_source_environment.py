@@ -241,6 +241,31 @@ environment_template = """
         succeeded=true
     }
 
+    set_build_variables() {
+        # $1 should be convenience or variables: a build-variables script
+        local script="$1"
+        shift
+        # Even though the generic buildscripts build.sh sets environment
+        # variable build_variables_checkout, evidently someone thought it
+        # would be a good idea to uppercase all environment variables before
+        # passing them down to an autobuild build command. Perhaps that
+        # "someone" is the Windows runtime? In any case, check
+        # $build_variables_checkout AND $BUILD_VARIABLES_CHECKOUT before
+        # guessing a sibling checkout at ../build-variables.
+        # A typical build-cmd.sh script may do one or more pushd commands
+        # before invoking this function. We must look for build-variables
+        # relative to the root of the current repo, and we have no
+        # conventional variable for the base of the checkout. ($top, $TOP,
+        # nothing...) Use $(hg root).
+        local build_variables="${build_variables_checkout:-${BUILD_VARIABLES_CHECKOUT:-$(hg root)/../build-variables}}"
+        [ -d "$build_variables" ] || \
+        fail "Please clone https://bitbucket.org/lindenlab/build-variables beside this repo."
+        [ -r "$build_variables/$script" ] || \
+        fail "No $build_variables/$script script"
+        # Passing "$@" lets caller use (e.g.) 'convenience Release'
+        source "$build_variables/$script" "$@"
+    }
+
     # imported build-lindenlib functions
     fetch_archive() {
         local url=$1
