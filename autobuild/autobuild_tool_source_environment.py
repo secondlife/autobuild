@@ -262,8 +262,11 @@ environment_template = """
         fail "Please clone https://bitbucket.org/lindenlab/build-variables beside this repo."
         [ -r "$build_variables/$script" ] || \
         fail "No $build_variables/$script script"
+        local restore_xtrace="$(set +o | grep xtrace)"
+        set +o xtrace
         # Passing "$@" lets caller use (e.g.) 'convenience Release'
         source "$build_variables/$script" "$@"
+        $restore_xtrace
     }
 
     # imported build-lindenlib functions
