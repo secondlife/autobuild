@@ -496,7 +496,7 @@ def get_metadata_from_package(package_file, package=None):
         metadata = configfile.MetadataDescription(stream=metadata_file)
     return metadata
 
-def need_new_install(package, metadata, installed):
+def install_new_if_needed(package, metadata, installed, dry_run):
     """
     Uninstall any installed different version
     Returns a boolean value for whether or not a new install is needed
@@ -515,7 +515,11 @@ def need_new_install(package, metadata, installed):
                                                                metadata.build_id))
             do_install = True
         if do_install:
-            uninstall(package.name, installed)            
+            if not dry_run:
+                uninstall(package.name, installed)
+            else:
+                logger.info("would have uninstalled %s %s" % (package.name,
+                                                              installed_pkg['package_description']['version']))
     else:
         # If the package has never yet been installed, we're good.
         logger.debug("%s not installed" % package.name)
@@ -535,18 +539,14 @@ def _install_common(configured_name, platform, package, package_file, install_di
     if configured_name != package.name:
         raise InstallError("Configured package name '%s' does not match name in package '%s'" % (configured_name, package.name))
 
-    # dry run mode = download but don't install packages
-    if dry_run:
-        logger.info("would have attempted to install %s" % package.name)
-        return None, None
     # this checks for a different version and uninstalls it if needed
-    if not need_new_install(package, metadata, installed):
+    if not install_new_if_needed(package, metadata, installed, dry_run):
         logger.info("%s is already installed" % package.name)
         return None, None
     # Check for transitive dependency conflicts
     dependancy_conflicts = transitive_search(metadata, installed)
     if dependancy_conflicts:
-        raise InstallError("""Package not installed due to conflicts
+        raise InstallError("""Package not installable due to conflicts
 %s
   configuration %s
   version       %s
@@ -563,10 +563,18 @@ Conflict: %s
 
     # check that the install dir exists...
     if not os.path.exists(install_dir):
-        logger.debug("creating " + install_dir)
-        os.makedirs(install_dir)
+        if not dry_run:
+            logger.debug("creating " + install_dir)
+            os.makedirs(install_dir)
+        else:
+            logger.debug("would have created " + install_dir)
 
-    logger.warning("installing %s" % package.name)
+    if not dry_run:
+        logger.warning("installing %s" % package.name)
+    else:
+        logger.info("would have attempted install of %s" % package.name)
+        return None,None
+
     # extract the files from the package
     try:
         files = _install_package(package_file, install_dir, exclude=[configfile.PACKAGE_METADATA_FILE])

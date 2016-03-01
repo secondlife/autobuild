@@ -55,16 +55,20 @@ installed by that archive.
 """
 
 
-def uninstall_packages(options, installed_filename, args):
+def uninstall_packages(options, installed_filename, args, dry_run):
     # load the list of already installed packages
     logger.debug("loading " + installed_filename)
     installed_file = configfile.Dependencies(installed_filename)
 
     for package in args:
-        uninstall(package, installed_file)
+        if not dry_run:
+            uninstall(package, installed_file)
+        else:
+            logger.info("would have uninstalled %s" % package)
 
     # update the installed-packages.xml file
-    installed_file.save()
+    if not dry_run:
+        installed_file.save()
     return 0
 
 
@@ -144,7 +148,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
         logger.debug("installed filenames: %s" % installed_filenames)
         for installed_filename in installed_filenames:
-            uninstall_packages(args, installed_filename, args.package)
+            uninstall_packages(args, installed_filename, args.package, args.dry_run)
 
 if __name__ == '__main__':
     sys.exit("Please invoke this script using 'autobuild %s'" %
