@@ -52,11 +52,6 @@ import autobuild_base
 import hash_algorithms
 
 logger = logging.getLogger('autobuild.install')
-# Emitting --dry-run messages at warning() level means they're displayed in a
-# default run (no log-level switches specified), but can still be suppressed
-# with --quiet if need be.
-dry_run_msg = logger.warning
-
 
 class InstallError(common.AutobuildError):
     pass
@@ -542,7 +537,7 @@ def _install_common(configured_name, platform, package, package_file, install_di
 
     # dry run mode = download but don't install packages
     if dry_run:
-        dry_run_msg("Dry run mode: not installing %s" % package.name)
+        logger.info("would have attempted to install %s" % package.name)
         return None, None
     # this checks for a different version and uninstalls it if needed
     if not need_new_install(package, metadata, installed):

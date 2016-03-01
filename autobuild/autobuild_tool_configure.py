@@ -85,9 +85,11 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             build_configurations = common.select_configurations(args, config, "configuring for")
             for build_configuration in build_configurations:
                 build_directory = config.make_build_directory(build_configuration, platform=platform, dry_run=args.dry_run)
-                logger.debug("configuring in %s" % build_directory)
                 if not args.dry_run:
+                    logger.debug("configuring in %s" % build_directory)
                     os.chdir(build_directory)
+                else:
+                    logger.info("configuring in %s" % build_directory)
                 result = _configure_a_configuration(config, build_configuration,
                                                     args.additional_options, args.dry_run)
                 if result != 0:
@@ -129,7 +131,7 @@ def _configure_a_configuration(config, build_configuration, extra_arguments, dry
     else:
         logger.info('no configure executable defined; doing nothing')
         return 0
-    logger.info('executing configure command %s', configure_executable.__str__(extra_arguments))
+    logger.info('configure command:\n  %s', configure_executable.__str__(extra_arguments))
     if not dry_run:
         return configure_executable(extra_arguments, common.get_autobuild_environment())
     else:

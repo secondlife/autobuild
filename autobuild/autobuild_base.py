@@ -72,7 +72,7 @@ class AutobuildBase:
         self.register(self.parser)
         
         #need some way to get the global options building up in autobuild_main - maybe split them into another .py
-        self.parser.add_argument('--dry-run', action='store_true', help='Dry run only')
+        self.parser.add_argument(('-n', '--dry-run'), action='store_true', help='Dry run only')
     
     def main(self, args_in):
         if len(args_in) < 1:

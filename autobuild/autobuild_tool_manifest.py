@@ -70,7 +70,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             print_manifest(config, platform)
         else:
             raise ManifestError('unknown command %s' % args.command)
-        if args.dry_run is not None and not args.dry_run:
+        if not args.dry_run:
             config.save()
 
 

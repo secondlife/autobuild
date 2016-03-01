@@ -229,7 +229,10 @@ class Autobuild(object):
 
         args = self.parser.parse_args(args_in)
 
-        self.set_recursive_loglevel(logger, args.logging_level)
+        if args.dry_run and args.logging_level != logging.DEBUG:
+            self.set_recursive_loglevel(logger, logging.INFO)
+        else:
+            self.set_recursive_loglevel(logger, args.logging_level)
 
         if tool_to_run != -1:
             tool_to_run.run(args)

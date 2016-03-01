@@ -160,9 +160,12 @@ only by 'autobuild build' to create package metadata.
 
             for build_configuration in build_configurations:
                 build_directory = config.make_build_directory(build_configuration, platform=platform, dry_run=args.dry_run)
-                logger.debug("building in %s" % build_directory)
                 if not args.dry_run:
+                    logger.debug("building in %s" % build_directory)
                     os.chdir(build_directory)
+                else:
+                    logger.info("building in %s" % build_directory)
+
                 if configure_first:
                     result = _configure_a_configuration(config, build_configuration,
                                                         args.build_extra_arguments, args.dry_run)
@@ -173,8 +176,11 @@ only by 'autobuild build' to create package metadata.
                 # always make clean copy of the build metadata regardless of result
                 metadata_file_name = configfile.PACKAGE_METADATA_FILE
                 logger.debug("metadata file name: %s" % metadata_file_name)
-                if not args.dry_run and os.path.exists(metadata_file_name):
-                    os.unlink(metadata_file_name)
+                if os.path.exists(metadata_file_name):
+                    if not args.dry_run:
+                        os.unlink(metadata_file_name)
+                    else:
+                        logger.info("would have replaced %s" % metadata_file_name)
                 if result != 0:
                     raise BuildError("building configuration %s returned %d" %
                                      (build_configuration, result))
@@ -234,7 +240,7 @@ def _build_a_configuration(config, build_configuration, platform_name=common.get
     else:
         logger.info('no build executable defined; doing nothing')
         return 0
-    logger.info('executing build command %s', build_executable.__str__(extra_arguments))
+    logger.info('executing build command:\n  %s', build_executable.__str__(extra_arguments))
     if not dry_run:
         return build_executable(extra_arguments, common.get_autobuild_environment())
     else:

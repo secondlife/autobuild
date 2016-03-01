@@ -135,9 +135,12 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             logger.info("packaging with --clean-only required")
         if args.check_license:
             logger.warning("The --skip-license-check option is deprecated; it now has no effect")
-        if not args.dry_run and args.results_file and os.path.exists(args.results_file):
-            logger.debug("clearing previous results: %s" % args.results_file)
-            os.remove(args.results_file)
+        if args.results_file and os.path.exists(args.results_file):
+            if args.dry_run:
+                logger.info("would have removed previous results: %s" % args.results_file)
+            else:
+                logger.debug("clearing previous results: %s" % args.results_file)
+                os.remove(args.results_file)
         config = configfile.ConfigurationDescription(args.autobuild_filename)
 
         build_dirs = common.select_directories(args, config, "build", "packaging",
@@ -253,7 +256,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     logger.debug(tarfilename)
     if dry_run:
         for f in files:
-            logger.info('added ' + f)
+            logger.info('would have added: ' + f)
     else:
         archive_description = platform_description.archive
         format = _determine_archive_format(archive_format, archive_description)
