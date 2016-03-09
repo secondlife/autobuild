@@ -229,7 +229,7 @@ environment_template = """
 
     fail() {
         echo "BUILD FAILED"
-        if [ -n "$PARABUILD_BUILD_NAME" ] ; then
+        if [ -n "${PARABUILD_BUILD_NAME:-}" ] ; then
             # if we're running under parabuild then we have to clean up its stuff
             finalize false "$@"
         else
@@ -357,20 +357,12 @@ if common.is_system_windows():
     build_sln() {
         local solution=$1
         local config=$2
-        local proj=$3
+        local proj="${3:-}"
 
         if (($USE_INCREDIBUILD)) ; then
-            if [ -z "$proj" ] ; then
-                BuildConsole "$solution" /CFG="$config"
-            else
-                BuildConsole "$solution" /PRJ="$proj" /CFG="$config"
-            fi
+            BuildConsole "$solution" ${proj:+/PRJ="$proj"} /CFG="$config"
         else
-            if [ -z "$proj" ] ; then
-                devenv.com "$(cygpath -w "$solution")" /build "$config"
-            else
-                devenv.com "$(cygpath -w "$solution")" /build "$config" /project "$proj"
-            fi
+            devenv.com "$(cygpath -w "$solution")" /build "$config" ${proj:+/project "$proj"}
         fi
     }
 
