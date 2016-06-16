@@ -238,7 +238,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
             except IOError, err:
                 raise PackageError("Unable to open results file %s:\n%s" % (results_file, err))
             results.write('autobuild_package_name="%s"\n' % package_description.name)
-            results.write('autobuild_package_clean=%s\n' % ("false" if metadata_file.dirty else "true"))
+            results.write('autobuild_package_clean="%s"\n' % ("false" if metadata_file.dirty else "true"))
         metadata_file.save()
 
     # add the metadata file name to the list of files _after_ putting that list in the metadata
