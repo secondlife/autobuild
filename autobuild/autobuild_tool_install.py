@@ -237,8 +237,7 @@ def get_package_file(package_name, package_url, hash_algorithm='md5', expected_h
             download_timeout_seconds = 120
             
             # Attempt to download the remote file
-            logger.warning("downloading %s" % package_name)
-            logger.info("  get %s\n     to %s" % (package_url, cache_file))
+            logger.info("downloading %s:\n  %s\n     to %s" % (package_name, package_url, cache_file))
             try:
                 package_response = urllib2.urlopen(package_url, None, download_timeout_seconds)
             except urllib2.URLError as err:
@@ -300,7 +299,7 @@ def _install_package(archive_path, install_dir, exclude=[]):
     if not os.path.exists(archive_path):
         logger.error("cannot extract non-existing package: %s" % archive_path)
         return False
-    logger.warning("extracting from %s" % os.path.basename(archive_path))
+    logger.info("extracting from %s" % os.path.basename(archive_path))
     sys.stdout.flush() # so that the above will appear during uncompressing very large archives
     if tarfile.is_tarfile(archive_path):
         return __extract_tar_file(archive_path, install_dir, exclude=exclude)
@@ -379,7 +378,7 @@ def do_install(packages, config_file, installed, platform, install_dir, dry_run,
             # raise error if named package doesn't exist in autobuild.xml
             raise InstallError('unknown package: %s' % pname)
 
-        logger.warning("checking %s" % pname)
+        logger.info("checking %s" % pname)
         
         # Existing tarball install, or new package install of either kind
         if pname in local_archives:
@@ -392,7 +391,7 @@ def do_install(packages, config_file, installed, platform, install_dir, dry_run,
 
 
 def _install_local(configured_name, platform, package, package_path, install_dir, installed, dry_run):
-    logger.warning("installing %s from local archive" % package.name)
+    logger.info("installing %s from local archive" % package.name)
     metadata, files = _install_common(configured_name, platform, package, package_path, install_dir, installed, dry_run)
 
     if metadata:
@@ -570,7 +569,7 @@ Conflict: %s
             logger.debug("would have created " + install_dir)
 
     if not dry_run:
-        logger.warning("installing %s" % package.name)
+        logger.info("installing %s" % package.name)
     else:
         logger.info("would have attempted install of %s" % package.name)
         return None,None
@@ -711,7 +710,7 @@ def uninstall(package_name, installed_config):
         logger.debug("%s not installed, no uninstall needed" % package_name)
         return
 
-    logger.warning("uninstalling %s version %s" % (package_name, package.package_description.version))
+    logger.info("uninstalling %s version %s" % (package_name, package.package_description.version))
     clean_files(os.path.join(common.get_current_build_dir(),package.install_dir), package.manifest)
     installed_config.save()
 
@@ -788,7 +787,7 @@ def install_packages(args, config_file, install_dir, platform, packages):
     # examine any local archives to match then with package names.
     local_archives = {}
     for archive_path in args.local_archives:
-        logger.warning("Checking local archive '%s'" % archive_path)
+        logger.info("Checking local archive '%s'" % archive_path)
         local_metadata = get_metadata_from_package(archive_path)
         if local_metadata.package_description.name in local_packages:
             packages.append(local_metadata.package_description.name)
