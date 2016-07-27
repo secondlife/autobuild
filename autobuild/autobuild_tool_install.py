@@ -227,7 +227,7 @@ def get_package_file(package_name, package_url, hash_algorithm='md5', expected_h
                 cache_file = None
             elif hash_algorithm is not None \
               and not hash_algorithms.verify_hash(hash_algorithm, cache_file, expected_hash):
-                logger.warning("corrupt cached file removed: %s mismatch" % (hash_algorithm or "md5"))
+                logger.error("corrupt cached file removed: %s mismatch" % (hash_algorithm or "md5"))
                 os.remove(cache_file)
                 cache_file = None
             else:
@@ -241,7 +241,7 @@ def get_package_file(package_name, package_url, hash_algorithm='md5', expected_h
             try:
                 package_response = urllib2.urlopen(package_url, None, download_timeout_seconds)
             except urllib2.URLError as err:
-                logger.warning("error: %s\n  downloading package %s" % (err, package_url))
+                logger.error("error: %s\n  downloading package %s" % (err, package_url))
                 package_response = None
                 cache_file = None
 
@@ -272,7 +272,7 @@ def get_package_file(package_name, package_url, hash_algorithm='md5', expected_h
                     sys.stdout.flush()
                 # some failures seem to leave empty cache files... delete and retry
                 if os.path.exists(cache_file) and os.path.getsize(cache_file) == 0:
-                    logger.warning("download failed to write cache file")
+                    logger.error("failed to write cache file: %s" % cache_file)
                     os.remove(cache_file)
                     cache_file = None
 
@@ -281,7 +281,7 @@ def get_package_file(package_name, package_url, hash_algorithm='md5', expected_h
           and hash_algorithm is not None:
             logger.info("verifying %s" % package_name)
             if not hash_algorithms.verify_hash(hash_algorithm, cache_file, expected_hash):
-                logger.warning("download error: %s mismatch for %s" % ((hash_algorithm or "md5"), cache_file))
+                logger.error("download error: %s mismatch for %s" % ((hash_algorithm or "md5"), cache_file))
                 os.remove(cache_file)
                 cache_file = None
         if cache_file is None:
