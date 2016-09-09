@@ -28,16 +28,6 @@ import os.path
 
 # most of this is shamelessly cloned from llbase's setup.py
 
-# Version twiddling
-# Each time we rebuild an autobuild package, manually increment the "build
-# number" here, e.g. 0.8.1, 0.8.2, etc.
-BUILD = 3
-# But suppose we update our repository with new source and the version number
-# embedded in the package itself changes, e.g. from 0.8 to 0.9 -- but we don't
-# notice, simply incrementing the build number? The package build we expected
-# to become 0.8.5 should really be 0.9.1 instead -- NOT 0.9.5.
-VERSION_WHEN_LAST_PACKAGED = "1.0"
-
 # from http://stackoverflow.com/questions/2058802/how-can-i-get-the-version-defined-in-setup-py-setuptools-in-my-package :
 # "make a version.py in your package with a __version__ line, then read it
 # from setup.py using execfile('mypackage/version.py'), so that it sets
@@ -49,12 +39,9 @@ VERSION_WHEN_LAST_PACKAGED = "1.0"
 # you (because you already have your package's dependencies installed), but it
 # will wreak havoc upon new users of your package, as they will not be able to
 # install your package without manually installing the dependencies first."
-# from autobuild.common import AUTOBUILD_VERSION_STRING
 execfile(os.path.join("autobuild", "version.py"))
-# The previous execfile better have defined AUTOBUILD_VERSION_STRING...
-if AUTOBUILD_VERSION_STRING != VERSION_WHEN_LAST_PACKAGED:
-    BUILD = 1
-
+# The previous execfile better have defined AUTOBUILD_VERSION_STRING!
+AUTOBUILD_VERSION_STRING                # NameError here means it didn't
 
 PACKAGE_NAME = 'autobuild'
 LLAUTOBUILD_SOURCE = 'autobuild'
@@ -73,7 +60,7 @@ ext_modules = []
 
 setup(
     name=PACKAGE_NAME,
-    version="%s.%s" % (AUTOBUILD_VERSION_STRING, BUILD),
+    version=AUTOBUILD_VERSION_STRING,
     author='Oz Linden',
     author_email='oz@lindenlab.com',
     url="http://wiki.secondlife.com/wiki/Autobuild",
