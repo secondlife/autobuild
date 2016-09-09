@@ -58,13 +58,6 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="build a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
-        parser.add_argument('--address-size', type=int, choices=[32,64], 
-                            default=int(os.environ.get('AUTOBUILD_ADDRSIZE',common.DEFAULT_ADDRSIZE)),
-                            dest='addrsize',
-                            help='specify address size (modifies platform)')
-        parser.add_argument('-p', '--platform',
-                            dest='platform',
-                            help='may only be the current platform or "common" (useful for source packages)')
         parser.add_argument('--all', '-a', dest='all', default=False, action="store_true",
                             help="build all configurations")
         parser.add_argument('--id', '-i', dest='build_id', help='unique build identifier')
@@ -72,7 +65,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="an option to pass to the configuration command")
 
     def run(self, args):
-        platform=common.establish_platform(args.platform, addrsize=args.addrsize)
+        platform=common.get_current_platform()
         common.establish_build_id(args.build_id)  # sets id (even if not specified),
                                                   # and stores in the AUTOBUILD_BUILD_ID environment variable
         config = configfile.ConfigurationDescription(args.config_file)
@@ -101,7 +94,7 @@ def configure(config, build_configuration_name, extra_arguments=[]):
     """
     Execute the platform configure command for the named build configuration.
 
-    A special 'common' platform may be defined which can provide parent commands for the configure 
+    The special 'common' platform may be defined which can provide parent commands for the configure 
     command using the inheritence mechanism described in the 'executable' package.  The working
     platform's build configuration will be matched to the build configuration in common with the
     same name if it exists.  To be configured, a build configuration must be defined in the working
@@ -116,7 +109,7 @@ def configure(config, build_configuration_name, extra_arguments=[]):
 def _configure_a_configuration(config, build_configuration, extra_arguments, dry_run=False):
     try:
         common_build_configuration = \
-            config.get_build_configuration(build_configuration.name, platform_name='common')
+            config.get_build_configuration(build_configuration.name, platform_name=common.PLATFORM_COMMON)
         parent_configure = common_build_configuration.configure
     except Exception, e:
         if logger.getEffectiveLevel() <= logging.DEBUG:

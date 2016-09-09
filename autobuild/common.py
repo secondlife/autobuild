@@ -41,6 +41,7 @@ import time
 import glob
 import itertools
 import logging
+import platform
 import pprint
 import shutil
 import tempfile
@@ -55,14 +56,28 @@ class AutobuildError(RuntimeError):
     pass
 
 # define the supported platforms
-PLATFORM_DARWIN  = 'darwin'
+PLATFORM_DARWIN    = 'darwin'
 PLATFORM_DARWIN64  = 'darwin64'
-PLATFORM_WINDOWS = 'windows'
+PLATFORM_WINDOWS   = 'windows'
 PLATFORM_WINDOWS64 = 'windows64'
-PLATFORM_LINUX   = 'linux'
+PLATFORM_LINUX     = 'linux'
 PLATFORM_LINUX64   = 'linux64'
+PLATFORM_COMMON    = 'common'
 
-DEFAULT_ADDRSIZE = 32
+# If AUTOBUILD_ADDRSIZE is already set in the current environment, honor it.
+DEFAULT_ADDRSIZE = int(os.environ.get("AUTOBUILD_ADDRSIZE", 32))
+
+# Similarly, if we have an explicit platform in the environment, keep it. We
+# used to query os.environ in establish_platform(), instead of up here. The
+# trouble was that establish_platform() *sets* these os.environ entries -- so
+# if the code made two different calls to establish_platform(), even if the
+# second call had better information (from command-specific switches), the
+# second call would notice the AUTOBUILD_PLATFORM[_OVERRIDE] variables already
+# set by the first call and set the wrong thing. Capturing those variables
+# here at load time lets each establish_platform() call make its decisions
+# independently of any previous calls.
+_AUTOBUILD_PLATFORM_OVERRIDE = os.environ.get('AUTOBUILD_PLATFORM_OVERRIDE')
+_AUTOBUILD_PLATFORM          = os.environ.get('AUTOBUILD_PLATFORM')
 
 Platform=None
 def get_current_platform():
@@ -110,7 +125,30 @@ def is_system_64bit():
     """
     Returns True if the build system is 64-bit compatible.
     """
-    return sys.maxsize > 2**32
+    return platform.machine().lower() in ("x86_64", "amd64")
+
+def is_system_windows():
+    return sys.platform == 'win32' or sys.platform == 'cygwin'
+
+def check_platform_system_match(platform):
+    """
+    Confirm that the selected platform is compatibile with the system we're on
+    """
+    platform_should_be=None
+    if platform in (PLATFORM_WINDOWS, PLATFORM_WINDOWS64):
+        if not is_system_windows():
+            platform_should_be="Windows"
+    elif platform in (PLATFORM_LINUX, PLATFORM_LINUX64):
+        if sys.platform != 'linux2':
+            platform_should_be="Linux"
+    elif platform in (PLATFORM_DARWIN, PLATFORM_DARWIN64):
+        if sys.platform != 'darwin':
+            platform_should_be="Mac OS X"
+    elif platform != PLATFORM_COMMON:
+        raise AutobuildError("Unsupported platform '%s'" % platform)
+
+    if platform_should_be:
+        raise AutobuildError("Platform '%s' is only supported running on %s" % (platform, platform_should_be))
 
 def establish_platform(specified_platform=None, addrsize=DEFAULT_ADDRSIZE):
     """
@@ -123,10 +161,10 @@ def establish_platform(specified_platform=None, addrsize=DEFAULT_ADDRSIZE):
         addrsize = 32
     if specified_platform is not None:
         Platform=specified_platform
-    elif os.environ.get('AUTOBUILD_PLATFORM_OVERRIDE'):
-        Platform=os.environ.get('AUTOBUILD_PLATFORM_OVERRIDE')
-    elif os.environ.get('AUTOBUILD_PLATFORM'):
-        Platform=os.environ.get('AUTOBUILD_PLATFORM')
+    elif _AUTOBUILD_PLATFORM_OVERRIDE:
+        Platform=_AUTOBUILD_PLATFORM_OVERRIDE
+    elif _AUTOBUILD_PLATFORM:
+        Platform=_AUTOBUILD_PLATFORM
     elif sys.platform == 'darwin':
         if addrsize == 64:
             Platform = PLATFORM_DARWIN64
@@ -137,13 +175,15 @@ def establish_platform(specified_platform=None, addrsize=DEFAULT_ADDRSIZE):
             Platform = PLATFORM_LINUX64
         else:
             Platform = PLATFORM_LINUX
-    elif sys.platform == 'win32' or sys.platform == 'cygwin':  
+    elif is_system_windows():  
         if addrsize == 64:
             Platform = PLATFORM_WINDOWS64
         else:
             Platform = PLATFORM_WINDOWS
     else:
         AutobuildError("unrecognized platform '%s'" % sys.platform)
+
+    check_platform_system_match(Platform)
 
     os.environ['AUTOBUILD_ADDRSIZE'] = str(addrsize) # for spawned commands
     os.environ['AUTOBUILD_PLATFORM'] = Platform # for spawned commands
@@ -173,7 +213,6 @@ def get_current_user():
         import getpass
         return getpass.getuser()
     except ImportError:
-        import getpass
         import ctypes
         MAX_PATH = 260                  # according to a recent WinDef.h
         name = ctypes.create_unicode_buffer(MAX_PATH)
@@ -212,7 +251,7 @@ def get_temp_dir(basename):
     directory exists.
     """
     user = get_current_user()
-    if get_current_platform() == PLATFORM_WINDOWS:
+    if is_system_windows():
         installdir = '%s.%s' % (basename, user)
         tmpdir = os.path.join(tempfile.gettempdir(), installdir)
     else:
@@ -223,7 +262,7 @@ def get_temp_dir(basename):
 
 
 def get_autobuild_executable_path():
-    if not get_current_platform().startswith(PLATFORM_WINDOWS):
+    if not is_system_windows():
         # Anywhere but Windows, the AUTOBUILD executable should be the first
         # item on our command line.
         path = sys.argv[0]

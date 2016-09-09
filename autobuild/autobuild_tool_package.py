@@ -81,14 +81,6 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             default=None,
                             dest='archive_filename',
                             help='the filename of the archive that autobuild will create')
-        parser.add_argument('--address-size', choices=[32,64], type=int,
-                            default=int(os.environ.get('AUTOBUILD_ADDRSIZE',common.DEFAULT_ADDRSIZE)),
-                            dest='addrsize',
-                            help='specify address size (modifies platform)')
-        parser.add_argument('-p', '--platform',
-                            default=None,
-                            dest='platform',
-                            help='override the working platform')
         parser.add_argument('--skip-license-check',
                             action='store_false',
                             default=False,
@@ -130,7 +122,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
     def run(self, args):
         logger.debug("loading " + args.autobuild_filename)
-        platform=common.establish_platform(args.platform, addrsize=args.addrsize)
+        platform=common.get_current_platform()
         if args.clean_only:
             logger.info("packaging with --clean-only required")
         if args.check_license:
@@ -171,11 +163,9 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
         raise PackageError("no package name specified in configuration")
     if not package_description.license:
         raise PackageError("no license specified in configuration")
-##  autobuild.xml's version_file is validated by build subcommand.
-##  By this time we should only have to validate metadata package version;
-##  this happens a few lines down, after reading metadata_file.
-##  if not package_description.version_file:
-##      raise PackageError("no version file specified in configuration")
+    ##  autobuild.xml's version_file is validated by build subcommand.
+    ##  By this time we should only have to validate metadata package version;
+    ##  this happens a few lines down, after reading metadata_file.
     if not os.path.isdir(build_directory):
         raise PackageError("build directory %s is not a directory" % build_directory)
     logger.info("packaging from %s" % build_directory)
@@ -183,9 +173,9 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     files = set()
     missing = []
     files, missing = _get_file_list(platform_description, build_directory)
-    if platform_name != 'common':
+    if platform_name != common.PLATFORM_COMMON:
         try:
-            common_files, common_missing = _get_file_list(config.get_platform('common'), build_directory)
+            common_files, common_missing = _get_file_list(config.get_platform(common.PLATFORM_COMMON), build_directory)
             files |= common_files
             missing.extend(common_missing)
         except configfile.ConfigurationError:
@@ -320,7 +310,7 @@ def _create_tarfile(tarfilename, build_directory, filelist, results):
         for file in filelist:
             try:
                 # Make sure permissions are set on Windows.
-                if "windows" in common.get_current_platform():
+                if common.is_system_windows():
                     command = ["CACLS", file, "/T", "/G", getpass.getuser() + ":F"]
                     CACLS = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                     output = CACLS.communicate("Y")[0]

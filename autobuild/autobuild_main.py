@@ -209,6 +209,15 @@ class Autobuild(object):
              dict(help='verbose output', action='store_const', const=logging.INFO, dest='logging_level')),
             (('-d', '--debug',),
              dict(help='debug output', action='store_const', const=logging.DEBUG, dest='logging_level')),
+            (('-p', '--platform',),
+                dict(default=None,
+                     dest='platform',
+                     help='may only be the current platform or "%s" (useful for source packages)' % common.PLATFORM_COMMON)),
+            (('-A', '--address-size',),
+                dict(choices=[32,64], type=int,
+                            default=int(os.environ.get('AUTOBUILD_ADDRSIZE',common.DEFAULT_ADDRSIZE)),
+                            dest='addrsize',
+                            help='specify address size (modifies platform)')),
         )
         for args, kwds in argdefs:
             self.parser.add_argument(*args, **kwds)
@@ -233,6 +242,9 @@ class Autobuild(object):
             self.set_recursive_loglevel(logger, logging.INFO)
         else:
             self.set_recursive_loglevel(logger, args.logging_level)
+
+        # establish platform and address options and related environment variables
+        platform = common.establish_platform(args.platform, addrsize=args.addrsize)
 
         if tool_to_run != -1:
             tool_to_run.run(args)

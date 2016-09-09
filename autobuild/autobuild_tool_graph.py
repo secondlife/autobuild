@@ -102,14 +102,6 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="specify build configuration\n(may be specified in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
-        parser.add_argument('--address-size', choices=[32,64], type=int,
-                            default=int(os.environ.get('AUTOBUILD_ADDRSIZE',common.DEFAULT_ADDRSIZE)),
-                            dest='addrsize',
-                            help='specify address size (modifies platform)')
-        parser.add_argument('-p', '--platform',
-                            dest='platform',
-                            default=None,
-                            help='override the working platform')
         parser.add_argument('-t', '--type',
                             dest='graph_type',
                             choices=["dot", "circo", "neato", "twopi", "fdp", "sfdp"],
@@ -133,7 +125,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             dest='dot_file', default=None,
                             help='save the dot input file in the specified file')
     def run(self, args):
-        platform=common.establish_platform(args.platform, addrsize=args.addrsize)
+        platform=common.get_current_platform()
         metadata = None
         incomplete = ''
         if not args.source_file:
@@ -203,7 +195,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                     pkg_version = pkg['package_description']['version'] if pkg['package_description']['version'] else "";
                     pkg_build_id = pkg['build_id'] if pkg['build_id'] else "";
                     # create the new node with name, version, and build id
-                    pkg_node = pydot.Node(name, label="%s\n%s\n%s" % (name, pkg_version, pkg_build_id))
+                    pkg_node = pydot.Node(name, label="%s\\n%s\\n%s" % (name, pkg_version, pkg_build_id))
                     if 'dirty' in pkg and (pkg['dirty'] == 'True' or pkg['dirty'] is True):
                         logger.debug(" setting %s dirty: %s" % (name, ("missing" if 'dirty' not in pkg else "explicit")))
                         pkg_node.set_shape('ellipse')

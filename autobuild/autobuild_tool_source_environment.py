@@ -23,6 +23,7 @@
 import os
 import sys
 from ast import literal_eval
+import itertools
 import logging
 from pprint import pformat
 import re
@@ -62,6 +63,24 @@ class SourceEnvError(common.AutobuildError):
     pass
 
 def load_vsvars(vsver):
+    """
+    Return a dict of environment variables set by the applicable Visual Studio
+    vcvars*.bat file. Note: any variable identical to the corresponding
+    current os.environ entry is assumed to be inherited rather than set. The
+    returned dict contains only variables added or changed by vcvars*.bat.
+
+    The relevant Visual Studio version is specified by the vsver parameter,
+    according to Microsoft convention:
+
+    '100' selects Visual Studio 2010
+    '120' selects Visual Studio 2013 (version 12.0)
+    etc.
+
+    os.environ['AUTOBUILD_ADDRSIZE'] (set by common.establish_platform()) also
+    participates in the selection of the .bat file. When it's '32', the .bat
+    file will set variables appropriate for a 32-bit build, and similarly when
+    it's '64'.
+    """
     key = "VS%sCOMNTOOLS" % vsver
     logger.debug("vsver %s, key %s" % (vsver, key))
     try:
@@ -76,22 +95,79 @@ def load_vsvars(vsver):
         raise SourceEnvError("No env variable %s, is Visual Studio %s installed?%s" %
                              (key, vsver, explain))
 
-    vsvars_path = os.path.join(VSxxxCOMNTOOLS, "vsvars32.bat")
+    # VSxxxCOMNTOOLS will be something like:
+    # C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\Tools\
+    # We want to find vcvarsall.bat, which will be somewhere like
+    # C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat
+    # Assuming that we can just find %VSxxxCOMNTOOLS%..\..\VC seems a little
+    # fragile across installs or (importantly) across future VS versions.
+    # Instead, use %VSxxxCOMNTOOLS%VCVarsQueryRegistry.bat to populate
+    # VCINSTALLDIR.
+    VCVarsQueryRegistry_base = "VCVarsQueryRegistry.bat"
+    VCVarsQueryRegistry = os.path.join(VSxxxCOMNTOOLS, VCVarsQueryRegistry_base)
+    # Failure to find any of these .bat files could produce really obscure
+    # execution errors. Make the error messages as explicit as we can.
+    if not os.path.exists(VCVarsQueryRegistry):
+        raise SourceEnvError("%s not found at %s: %s" %
+                             (VCVarsQueryRegistry_base, key, VSxxxCOMNTOOLS))
+
+    # Found VCVarsQueryRegistry.bat, run it.
+    vcvars = get_vars_from_bat(VCVarsQueryRegistry)
+
+    # Then we can find %VCINSTALLDIR%vcvarsall.bat.
+    try:
+        VCINSTALLDIR = vcvars["VCINSTALLDIR"]
+    except KeyError:
+        raise SourceEnvError("%s did not populate VCINSTALLDIR" % VCVarsQueryRegistry)
+
+    vcvarsall_base = "vcvarsall.bat"
+    vcvarsall = os.path.join(VCINSTALLDIR, vcvarsall_base)
+    if not os.path.exists(vcvarsall):
+        raise SourceEnvError("%s not found at VCINSTALLDIR: %s" %
+                             (vcvarsall_base, VCINSTALLDIR))
+
+    # vcvarsall.bat accepts a single argument: the target architecture, e.g.
+    # "x86" or "x64".
+    # Let KeyError, if any, propagate: lack of AUTOBUILD_ADDRSIZE would be an
+    # autobuild coding error. So would any value for that variable other than
+    # what's stated below.
+    arch = {
+        '32': 'x86',
+        '64': 'x64',
+        }[os.environ["AUTOBUILD_ADDRSIZE"]]
+    vcvars = get_vars_from_bat(vcvarsall, arch)
+
+    # Now weed out of vcvars anything identical to OUR environment. Retain
+    # only environment variables actually modified by vcvarsall.bat.
+    # Use items() rather than iteritems(): capture the list of items up front
+    # instead of trying to traverse vcvars while modifying it.
+    for var, value in vcvars.items():
+        # Bear in mind that some variables were introduced by vcvarsall.bat and
+        # are therefore NOT in our os.environ.
+        if os.environ.get(var) == value:
+            # Any environment variable from our batch script that's identical
+            # to our own os.environ was simply inherited. Discard it.
+            del vcvars[var]
+    logger.debug("set by %s %s:\n%s" % (vcvarsall, arch, pformat(vcvars)))
+
+    return vcvars
+
+def get_vars_from_bat(batpath, *args):
     # Invent a temp filename into which to capture our script output. Some
     # versions of vsvars32.bat emit stdout, some don't; we've been bitten both
     # ways. Bypass that by not commingling our desired output into stdout.
     temp_output = tempfile.NamedTemporaryFile(suffix=".pydata", delete=False)
     temp_output.close()
     try:
-        # Write a little temp batch file to suck in vsvars32.bat and regurgitate
-        # its contents in a form we can parse.
-        # First call vsvars32.bat to update the cmd shell's environment. Then
+        # Write a little temp batch file to set variables from batpath and
+        # regurgitate them in a form we can parse.
+        # First call batpath to update the cmd shell's environment. Then
         # use Python itself -- not just any Python interpreter, but THIS one
         # -- to format the ENTIRE environment into temp_output.name.
         temp_script_content = """\
-call "%s"
+call "%s"%s
 "%s" -c "import os, pprint; pprint.pprint(os.environ)" > "%s"
-""" % (vsvars_path, sys.executable, temp_output.name)
+""" % (batpath, ''.join(' '+arg for arg in args), sys.executable, temp_output.name)
         # Specify mode="w" for text mode ("\r\n" newlines); default is binary.
         with tempfile.NamedTemporaryFile(suffix=".cmd", delete=False, mode="w") as temp_script:
             temp_script.write(temp_script_content)
@@ -115,7 +191,7 @@ call "%s"
             os.remove(temp_script_name)
 
         # Read our temporary output file, knowing that it cannot contain any
-        # output produced by vsvars32.bat itself.
+        # output produced by batpath itself.
         with open(temp_output.name) as tf:
             raw_environ = tf.read()
 
@@ -128,24 +204,10 @@ call "%s"
         vsvars = literal_eval(raw_environ)
     except Exception:
         # but in case of a glitch, report raw string data for debugging
-        logger.debug("pprint output of vsvars32:\n" + raw_environ)
+        logger.debug("pprint output of %s:\n%s" % (batpath, raw_environ))
         raise
 
-    logger.debug("environment from vsvars32:\n" + pformat(vsvars))
-
-    # Now weed out of vsvars anything identical to OUR environment. Retain
-    # only environment variables actually modified by vsvars32.bat.
-    # Use items() rather than iteritems(): capture the list of items up front
-    # instead of trying to traverse vsvars while modifying it.
-    for var, value in vsvars.items():
-        # Bear in mind that some variables were introduced by vsvars32.bat and
-        # are therefore NOT in our os.environ.
-        if os.environ.get(var) == value:
-            # Any environment variable from our batch script that's identical
-            # to our own os.environ was simply inherited. Discard it.
-            del vsvars[var]
-    logger.debug("set by vsvars32:\n" + pformat(vsvars))
-
+    logger.debug("environment from %s:\n%s" % (batpath, pformat(vsvars)))
     return vsvars
 
 
@@ -163,13 +225,11 @@ environment_template = """
     restore_xtrace="$(set +o | grep xtrace)"
     set +o xtrace
 
-    export AUTOBUILD="%(AUTOBUILD_EXECUTABLE_PATH)s"
-    export AUTOBUILD_VERSION_STRING="%(AUTOBUILD_VERSION_STRING)s"
-    export AUTOBUILD_PLATFORM="%(AUTOBUILD_PLATFORM)s"
+%(vars)s
 
     fail() {
         echo "BUILD FAILED"
-        if [ -n "$PARABUILD_BUILD_NAME" ] ; then
+        if [ -n "${PARABUILD_BUILD_NAME:-}" ] ; then
             # if we're running under parabuild then we have to clean up its stuff
             finalize false "$@"
         else
@@ -181,6 +241,34 @@ environment_template = """
         succeeded=true
     }
 
+    set_build_variables() {
+        # $1 should be convenience or variables: a build-variables script
+        local script="$1"
+        shift
+        # Even though the generic buildscripts build.sh sets environment
+        # variable build_variables_checkout, evidently someone thought it
+        # would be a good idea to uppercase all environment variables before
+        # passing them down to an autobuild build command. Perhaps that
+        # "someone" is the Windows runtime? In any case, check
+        # $build_variables_checkout AND $BUILD_VARIABLES_CHECKOUT before
+        # guessing a sibling checkout at ../build-variables.
+        # A typical build-cmd.sh script may do one or more pushd commands
+        # before invoking this function. We must look for build-variables
+        # relative to the root of the current repo, and we have no
+        # conventional variable for the base of the checkout. ($top, $TOP,
+        # nothing...) Use $(hg root).
+        local build_variables="${build_variables_checkout:-${BUILD_VARIABLES_CHECKOUT:-$(hg root)/../build-variables}}"
+        [ -d "$build_variables" ] || \
+        fail "Please clone https://bitbucket.org/lindenlab/build-variables beside this repo."
+        [ -r "$build_variables/$script" ] || \
+        fail "No $build_variables/$script script"
+        local restore_xtrace="$(set +o | grep xtrace)"
+        set +o xtrace
+        # Passing "$@" lets caller use (e.g.) 'convenience Release'
+        source "$build_variables/$script" "$@"
+        $restore_xtrace
+    }
+
     # imported build-lindenlib functions
     fetch_archive() {
         local url=$1
@@ -189,11 +277,14 @@ environment_template = """
         if ! [ -r "$archive" ] ; then
             curl -L -o "$archive" "$url"                    || return 1
         fi
-        if [ "$AUTOBUILD_PLATFORM" = "darwin" ] ; then
+        case "$AUTOBUILD_PLATFORM" in
+        darwin*)
             test "$md5 $archive" = "$(md5 -r "$archive")"
-        else
+            ;;
+        *)
             echo "$md5 *$archive" | md5sum -c
-        fi
+            ;;
+        esac
     }
     extract() {
         # Use a tar command appropriate to the extension of the filename passed as
@@ -222,9 +313,11 @@ environment_template = """
     calc_md5() {
         local archive=$1
         local md5_cmd=md5sum
-        if [ "$AUTOBUILD_PLATFORM" = "darwin" ] ; then
+        case "$AUTOBUILD_PLATFORM" in
+        darwin*)
             md5_cmd="md5 -r"
-        fi
+            ;;
+        esac
         $md5_cmd "$archive" | cut -d ' ' -f 1
     }
     fix_dylib_id() {
@@ -241,13 +334,10 @@ environment_template = """
         fi
     }
 
-    MAKEFLAGS="%(MAKEFLAGS)s"
-    #DISTCC_HOSTS="%(DISTCC_HOSTS)s"
-
     $restore_xtrace
 """
 
-if common.get_current_platform() == "windows":
+if common.is_system_windows():
     windows_template = """
     # disable verbose debugging output
     set +o xtrace
@@ -267,20 +357,12 @@ if common.get_current_platform() == "windows":
     build_sln() {
         local solution=$1
         local config=$2
-        local proj=$3
+        local proj="${3:-}"
 
         if (($USE_INCREDIBUILD)) ; then
-            if [ -z "$proj" ] ; then
-                BuildConsole "$solution" /CFG="$config"
-            else
-                BuildConsole "$solution" /PRJ="$proj" /CFG="$config"
-            fi
+            BuildConsole "$solution" ${proj:+/PRJ="$proj"} /CFG="$config"
         else
-            if [ -z "$proj" ] ; then
-                devenv.com "$(cygpath -m "$solution")" /build "$config"
-            else
-                devenv.com "$(cygpath -m "$solution")" /build "$config" /project "$proj"
-            fi
+            devenv.com "$(cygpath -w "$solution")" /build "$config" ${proj:+/project "$proj"}
         fi
     }
 
@@ -304,14 +386,34 @@ def do_source_environment(args):
     # existing value. Otherwise just use our own executable path.
     autobuild_path = common.get_autobuild_executable_path()
     AUTOBUILD = os.environ.get("AUTOBUILD", autobuild_path)
-    var_mapping = {'AUTOBUILD_EXECUTABLE_PATH': AUTOBUILD,
-                   'AUTOBUILD_VERSION_STRING': common.AUTOBUILD_VERSION_STRING,
-                   'AUTOBUILD_PLATFORM': common.get_current_platform(),
-                   'MAKEFLAGS': "",
-                   'DISTCC_HOSTS': "",
-                   }
+    var_mapping = {}
+    # The cross-platform environment_template contains a generic 'vars' slot
+    # where we can insert lines defining environment variables. Putting a
+    # variable definition into this 'exports' dict causes it to be listed
+    # there with an 'export' statement; putting a variable definition into the
+    # 'vars' dict lists it there as local to that bash process. Logic just
+    # before expanding environment_template populates 'exports' and 'vars'
+    # into var_mapping["vars"]. We defer it that long so that conditional
+    # logic below can, if desired, add to either 'exports' or 'vars' first.
+    exports = dict(
+        AUTOBUILD=AUTOBUILD,
+        AUTOBUILD_VERSION_STRING=common.AUTOBUILD_VERSION_STRING,
+        AUTOBUILD_PLATFORM=common.get_current_platform(),
+        )
+    vars = dict(
+        MAKEFLAGS="",
+##      DISTCC_HOSTS="",
+        )
 
-    if common.get_current_platform() == "windows":
+    # Let KeyError, if any, propagate: lack of AUTOBUILD_ADDRSIZE would be
+    # an autobuild coding error. So would any value for that variable
+    # other than what's stated below.
+    exports["AUTOBUILD_CONFIGURE_ARCH"] = {
+        '32': 'i386',
+        '64': 'x86_64',
+        }[os.environ["AUTOBUILD_ADDRSIZE"]]
+
+    if common.is_system_windows():
         try:
             # reset stdout in binary mode so sh doesn't get confused by '\r'
             import msvcrt
@@ -324,7 +426,7 @@ def do_source_environment(args):
         # *TODO - find a way to configure this instead of hardcoding default
         vs_ver = os.environ.get('AUTOBUILD_VSVER', '120')
         vsvars = load_vsvars(vs_ver)
-        exports = []
+        vsvarslist = []
         # We don't know which environment variables might be modified by
         # vsvars32.bat, but one of them is likely to be PATH. Treat PATH
         # specially: when a bash script invokes our load_vsvars() shell
@@ -349,27 +451,65 @@ def do_source_environment(args):
                 dedup(cygpath("-u", percents.sub(r"${\1}", p.strip('"')))
                       for p in PATH.split(';'))
             )
-            exports.append(("PATH", PATH + ":$PATH"))
+            vsvarslist.append(("PATH", PATH + ":$PATH"))
 
         # Resetting our PROMPT is a bit heavy-handed. Plus the substitution
         # syntax probably differs.
         vsvars.pop("PROMPT", None)
 
+        # Let KeyError, if any, propagate: lack of AUTOBUILD_ADDRSIZE would be
+        # an autobuild coding error. So would any value for that variable
+        # other than what's stated below.
+        exports["AUTOBUILD_WIN_VSPLATFORM"] = {
+            '32': 'Win32',
+            '64': 'x64',
+            }[os.environ["AUTOBUILD_ADDRSIZE"]]
+
+        # When one of our build-cmd.sh scripts invokes CMake on Windows, it's
+        # probably prudent to use a -G switch for the specific Visual Studio
+        # version we want to target. It's not that uncommon for a Windows
+        # build host to have multiple VS versions installed, and it can
+        # sometimes take a while for us to switch to the newest release. Yet
+        # we do NOT want to hard-code the version-specific CMake generator
+        # name into each 3p source repo: we know from experience that
+        # sprinkling version specificity throughout a large collection of 3p
+        # repos is part of what makes it so hard to upgrade the compiler. The
+        # problem is that the mapping from vs_ver to (e.g.) "Visual Studio 12"
+        # isn't necessarily straightforward -- we may have to maintain a
+        # lookup dict. That dict should not be replicated into each 3p repo,
+        # it should be central. It should be here.
+        try:
+            AUTOBUILD_WIN_CMAKE_GEN = {
+                '120': "Visual Studio 12",
+                }[vs_ver]
+        except KeyError:
+            # We don't have a specific mapping for this value of vs_ver. Take
+            # a wild guess. If we guess wrong, CMake will complain, and the
+            # user will have to update autobuild -- which is no worse than
+            # what s/he'd have to do anyway if we immediately produced an
+            # error here. Plus this way, we defer the error until we hit a
+            # build that actually consumes AUTOBUILD_WIN_CMAKE_GEN.
+            AUTOBUILD_WIN_CMAKE_GEN = "Visual Studio %s" % (vs_ver[:-1])
+        # Of course CMake also needs to know bit width :-P
+        if os.environ["AUTOBUILD_ADDRSIZE"] == "64":
+            AUTOBUILD_WIN_CMAKE_GEN += " Win64"
+        exports["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
+
         # A pathname ending with a backslash (as many do on Windows), when
         # embedded in quotes in a bash script, might inadvertently escape the
         # close quote. Remove all trailing backslashes.
         for (k, v) in vsvars.iteritems():
-            exports.append((k, v.rstrip('\\')))
+            vsvarslist.append((k, v.rstrip('\\')))
 
         # may as well sort by keys
-        exports.sort()
+        vsvarslist.sort()
 
         # Since at coding time we don't know the set of all modified
         # environment variables, don't try to name them individually in the
         # template. Instead, bundle all relevant export statements into a
         # single substitution.
         var_mapping["vsvars"] = '\n'.join(
-            ('        export %s="%s"' % varval for varval in exports)
+            ('        export %s="%s"' % varval for varval in vsvarslist)
         )
 
         try:
@@ -385,6 +525,13 @@ def do_source_environment(args):
             use_ib = 0
 
         var_mapping.update(USE_INCREDIBUILD=use_ib)
+
+    # Before expanding environment_template with var_mapping, finalize the
+    # 'exports' and 'vars' dicts into var_mapping["vars"] as promised above.
+    var_mapping["vars"] = '\n'.join(itertools.chain(
+        (("    export %s='%s'" % (k, v)) for k, v in exports.iteritems()),
+        (("    %s='%s'" % (k, v)) for k, v in vars.iteritems()),
+        ))
 
     sys.stdout.write(environment_template % var_mapping)
 
