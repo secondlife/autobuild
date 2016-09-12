@@ -221,105 +221,26 @@ def cygpath(*args):
 
 
 environment_template = """
-    # disable verbose debugging output (maybe someday we'll want to make this configurable with -v ?)
-    restore_xtrace="$(set +o | grep xtrace)"
-    set +o xtrace
-
 %(vars)s
 
-    fail() {
-        echo "BUILD FAILED"
-        if [ -n "${PARABUILD_BUILD_NAME:-}" ] ; then
-            # if we're running under parabuild then we have to clean up its stuff
-            finalize false "$@"
-        else
-            exit 1
-        fi
-    }
-    pass() {
-        echo "BUILD SUCCEEDED"
-        succeeded=true
-    }
-
     set_build_variables() {
-        # $1 should be convenience or variables: a build-variables script
-        local script="$1"
-        shift
-        # Even though the generic buildscripts build.sh sets environment
-        # variable build_variables_checkout, evidently someone thought it
-        # would be a good idea to uppercase all environment variables before
-        # passing them down to an autobuild build command. Perhaps that
-        # "someone" is the Windows runtime? In any case, check
-        # $build_variables_checkout AND $BUILD_VARIABLES_CHECKOUT before
-        # guessing a sibling checkout at ../build-variables.
-        # A typical build-cmd.sh script may do one or more pushd commands
-        # before invoking this function. We must look for build-variables
-        # relative to the root of the current repo, and we have no
-        # conventional variable for the base of the checkout. ($top, $TOP,
-        # nothing...) Use $(hg root).
-        local build_variables="${build_variables_checkout:-${BUILD_VARIABLES_CHECKOUT:-$(hg root)/../build-variables}}"
-        [ -d "$build_variables" ] || \
-        fail "Please clone https://bitbucket.org/lindenlab/build-variables beside this repo."
-        [ -r "$build_variables/$script" ] || \
-        fail "No $build_variables/$script script"
-        local restore_xtrace="$(set +o | grep xtrace)"
-        set +o xtrace
-        # Passing "$@" lets caller use (e.g.) 'convenience Release'
-        source "$build_variables/$script" "$@"
-        $restore_xtrace
+        # set_build_variables is a dead branch of the evolutionary tree. The
+        # functionality formerly engaged by the command:
+        # set_build_variables convenience Release
+        # has now been subsumed into autobuild source_environment itself. But
+        # since a number of build-cmd.sh scripts have been tweaked to call
+        # set_build_variables, make it produce an explanatory error. While it
+        # would be simpler to remove the shell function and produce an error
+        # that way, that could leave a developer scrambling to figure out:
+        # okay, this line broke, why? Did set_build_variables go away? Did its
+        # name change? What replaces it?
+        echo "set_build_variables is no longer needed. Pass to autobuild source_environment
+the pathname of your local clone of the build-variables/variables file, or set
+AUTOBUILD_VARIABLES_FILE to that pathname before autobuild source_environment,
+and remove the set_build_variables command. All the same variables will be set." 1>&2
+        exit 1
     }
 
-    # imported build-lindenlib functions
-    fetch_archive() {
-        local url=$1
-        local archive=$2
-        local md5=$3
-        if ! [ -r "$archive" ] ; then
-            curl -L -o "$archive" "$url"                    || return 1
-        fi
-        case "$AUTOBUILD_PLATFORM" in
-        darwin*)
-            test "$md5 $archive" = "$(md5 -r "$archive")"
-            ;;
-        *)
-            echo "$md5 *$archive" | md5sum -c
-            ;;
-        esac
-    }
-    extract() {
-        # Use a tar command appropriate to the extension of the filename passed as
-        # $1. If a subsequent update of a given tarball changes compression types,
-        # this should hopefully avoid having to go through this script to update
-        # the tar switches to correspond to the new file type.
-        switch="-x"
-        # Decide whether to specify -xzvf or -xjvf based on whether the archive
-        # name ends in .tar.gz or .tar.bz2.
-        case "$1" in
-        *.tar.gz|*.tgz)
-            gzip -dc "$1" | tar -xf -
-            ;;
-        *.tar.bz2|*.tbz2)
-            bzip2 -dc "$1" | tar -xf -
-            ;;
-        *.zip)
-            unzip -q "$1"
-            ;;
-        *)
-            echo "Do not know how to extract $1" 1>&2
-            return 1
-            ;;
-        esac
-    }
-    calc_md5() {
-        local archive=$1
-        local md5_cmd=md5sum
-        case "$AUTOBUILD_PLATFORM" in
-        darwin*)
-            md5_cmd="md5 -r"
-            ;;
-        esac
-        $md5_cmd "$archive" | cut -d ' ' -f 1
-    }
     fix_dylib_id() {
         local dylib=$1
         local dylink="$dylib"
@@ -333,26 +254,11 @@ environment_template = """
             fi
         fi
     }
-
-    $restore_xtrace
 """
 
 if common.is_system_windows():
     windows_template = """
-    # disable verbose debugging output
-    set +o xtrace
-
     USE_INCREDIBUILD=%(USE_INCREDIBUILD)d
-    build_vcproj() {
-        local vcproj=$1
-        local config=$2
-
-        if (($USE_INCREDIBUILD)) ; then
-            BuildConsole "$vcproj" /CFG="$config"
-        else
-            devenv "$vcproj" /build "$config"
-        fi
-    }
 
     build_sln() {
         local solution=$1
@@ -374,8 +280,6 @@ if common.is_system_windows():
     if ! (($USE_INCREDIBUILD)) ; then
         load_vsvars
     fi
-
-    $restore_xtrace
     """
     environment_template = '\n'.join((environment_template, windows_template))
 
