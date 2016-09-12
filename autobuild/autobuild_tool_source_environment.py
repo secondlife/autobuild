@@ -29,6 +29,7 @@ from pprint import pformat
 import re
 import shutil
 import stat
+import string
 import subprocess
 import tempfile
 
@@ -241,6 +242,39 @@ and remove the set_build_variables command. All the same variables will be set."
         exit 1
     }
 
+    # Usage:
+    # switches="$(remove_switch -DPIC $LL_BUILD)"
+    # It's important NOT to quote whichever compiler-arguments string you pass to
+    # remove_switch (LL_BUILD in the example above), just as it's important not to
+    # quote it when passing it to the compiler itself: bash must parse into
+    # separate tokens.
+    remove_switch() {
+        local todel="$1"
+        shift
+        local out=()
+        for sw
+        do if [ "$sw" != "$todel" ]
+           then # append $sw to out
+                out[${#out[*]}]="$sw"
+           fi
+        done
+        echo "${out[@]}"
+    }
+
+    # Usage:
+    # switches="$(replace_switch -DPIC -DPOC $LL_BUILD)"
+    # It's important NOT to quote whichever compiler-arguments string you pass to
+    # replace_switch (LL_BUILD in the example above), just as it's important not to
+    # quote it when passing it to the compiler itself: bash must parse into
+    # separate tokens.
+    replace_switch() {
+        local todel="$1"
+        local toins="$2"
+        shift
+        shift
+        echo "$toins $(remove_switch "$todel" "$@")"
+    }
+
     fix_dylib_id() {
         local dylib=$1
         local dylink="$dylib"
@@ -285,6 +319,24 @@ if common.is_system_windows():
 
 
 def do_source_environment(args):
+    # SL-452: autobuild source_environment now takes a positional argument
+    # 'varsfile' indicating the script in which we'll find essential
+    # environment variable settings. This isn't a required argument to ease
+    # transitioning from autobuild 1.0 and earlier -- instead, if omitted,
+    # check AUTOBUILD_VARIABLES_FILE. (Easier for a developer to set that one
+    # environment variable than to fix every autobuild source_environment
+    # command in every build script s/he must run.)
+    if args.varsfile is None:
+        try:
+            args.varsfile = os.environ["AUTOBUILD_VARIABLES_FILE"]
+        except KeyError:
+            logger.warning("""\
+No source_environment argument and no AUTOBUILD_VARIABLES_FILE variable set:
+no build variables (e.g.
+https://bitbucket.org/lindenlab/build-variables/src/tip/variables)
+will be emitted. This could cause your build to fail for lack of LL_BUILD or
+similar.""")
+
     # OPEN-259: it turns out to be important that if AUTOBUILD is already set
     # in the environment, we should LEAVE IT ALONE. So if it exists, use the
     # existing value. Otherwise just use our own executable path.
@@ -305,9 +357,104 @@ def do_source_environment(args):
         AUTOBUILD_PLATFORM=common.get_current_platform(),
         )
     vars = dict(
-        MAKEFLAGS="",
+##      MAKEFLAGS="",
 ##      DISTCC_HOSTS="",
         )
+
+    # varsfile could have been set either of two ways above, check again
+    if args.varsfile is not None:
+        # Read variable definitions from varsfile. Syntax restrictions are
+        # documented in the build-variables/variables file itself, but
+        # essentially it's the common subset of bash and string.Template
+        # expansion functionality.
+        # This is what we expect every substantive line in the input file to
+        # look like: a valid variable name (starting with letter or
+        # underscore, containing only letters, underscores or digits) = a
+        # double-quoted value. We do not presently tolerate extra whitespace.
+        assign_line = re.compile(r'^([A-Za-z_][A-Za-z0-9_]+)="(.*)"$')
+        vfvars = {}
+        try:
+            with open(args.varsfile) as vf:
+                for linen0, line in enumerate(vf):
+                    # skip empty lines and comment lines
+                    if line == '\n' or line.startswith('#'):
+                        continue
+                    match = assign_line.match(line.rstrip())
+                    if not match:
+                        # Fatal error is the only sure way to get a developer
+                        # to fix a bad assignment in the variables file. If we
+                        # just skip it with a warning, it could be weeks
+                        # before we figure out why some large subset of
+                        # third-party packages was built without essential
+                        # compiler switches.
+                        raise SourceEnvError(
+                            "%s(%s): malformed variable assignment:\n%s" %
+                            (args.varsfile, linen0+1, line.rstrip()))
+                    var, value = match.group(1,2)
+                    try:
+                        # Rely on the similarity between string.Template
+                        # subtitution syntax and bash substitution syntax.
+                        vfvars[var] = string.Template(value).substitute(vfvars)
+                    except ValueError as err:
+                        raise SourceEnvError(
+                            "%s(%s): bad substitution syntax: %s\n%s" %
+                            (args.varsfile, linen0+1, err, line.rstrip()))
+                    except KeyError as err:
+                        raise SourceEnvError(
+                            "%s(%s): undefined variable %s:\n%s" %
+                            (args.varsfile, linen0+1, err, line.rstrip()))
+        except (IOError, OSError) as err:
+            # Even though it's only a warning to fail to specify varsfile,
+            # it's a fatal error to specify one that doesn't exist or can't be
+            # read.
+            raise SourceEnvError(
+                "%s: can't read '%s': %s" %
+                (err.__class__.__name__, args.varsfile, err))
+
+        # Here vfvars contains all the variables set in varsfile. Before
+        # passing them along to the 'vars' dict, make a convenience pass over
+        # them to extract simpler variable names specific to the platform and
+        # build type.
+
+        # If we recognize the current platform, provide shorthand vars for it.
+        try:
+            # Base this on sys.platform rather than
+            # common.get_current_platform() because we don't want to have to
+            # enumerate common.PLATFORM_WINDOWS, common.PLATFORM_WINDOWS64,
+            # etc. just to blur the distinction between them again.
+            platform = dict(
+                win32 ="WINDOWS",
+                cygwin="WINDOWS",
+                darwin="DARWIN",
+                linux2="LINUX",
+                )[sys.platform]
+        except KeyError:
+            logger.warning("Unsupported platform %s: no short names provided" %
+                           sys.platform)
+        else:
+            platform_re = re.compile(r'(.*_BUILD)_%s(.*)$' % platform)
+            # use items() rather than iteritems(): we're modifying as we iterate
+            for var, value in vfvars.items():
+                match = platform_re.match(var)
+                if match:
+                    # add a shorthand variable that excludes _PLATFORM
+                    vfvars[''.join(match.group(1,2))] = value
+
+        # If caller specified buildtype, provide shorthand vars for it.
+        if args.buildtype is not None:
+            buildtype = args.buildtype.upper()
+            buildtype_re = re.compile(r'(.*_BUILD)_%s(.*)$' % buildtype)
+            # use items() because we're modifying as we iterate
+            for var, value in vfvars.items():
+                match = buildtype_re.match(var)
+                if match:
+                    # add a shorthand variable that excludes _BUILDTYPE
+                    vfvars[''.join(match.group(1,2))] = value
+
+        # We've been keeping varsfile variables separate so we can make the
+        # above convenience passes through them without accidentally matching
+        # pre-existing entries in 'vars'. Now dump everything into 'vars'.
+        vars.update(vfvars)
 
     # Let KeyError, if any, propagate: lack of AUTOBUILD_ADDRSIZE would be
     # an autobuild coding error. So would any value for that variable
@@ -460,9 +607,22 @@ class AutobuildTool(autobuild_base.AutobuildBase):
     # called by autobuild to add help and options to the autobuild parser, and
     # by standalone code to set up argparse
     def register(self, parser):
-        parser.description='prints out the shell environment Autobuild-based buildscripts to use (by calling \'eval\' i.e. eval "$(autobuild source_environment)").'
+        parser.description='prints out the shell environment for Autobuild-based ' \
+                           'buildscripts to use ' \
+                           '(by calling \'eval\' i.e. eval "$(autobuild source_environment)").'
         parser.add_argument('-V', '--version', action='version',
-                            version='source_environment tool module %s' % common.AUTOBUILD_VERSION_STRING)
+                            version='source_environment tool module %s' %
+                            common.AUTOBUILD_VERSION_STRING)
+        parser.add_argument("varsfile", nargs="?", default=None,
+                            help="Local sh script in which to find essential environment "
+                            "variable settings (default from $AUTOBUILD_VARIABLES_FILE), "
+                            "e.g. a checkout of "
+                            "https://bitbucket.org/lindenlab/viewer-build-variables/"
+                            "src/tip/variables")
+        parser.add_argument("buildtype", nargs="?", default=None, metavar="BUILDTYPE",
+                            help="Release, RelWithDebInfo or Debug [no default]: "
+                            "if specified, requests shortened names for LL_BUILD "
+                            "environment variables specific to this BUILDTYPE")
 
     def run(self, args):
         do_source_environment(args)
