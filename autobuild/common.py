@@ -128,6 +128,8 @@ def is_system_64bit():
     return platform.machine().lower() in ("x86_64", "amd64")
 
 def is_system_windows():
+    # Note that Python has a commitment to the value "win32" even for 64-bit
+    # Windows: http://stackoverflow.com/a/2145582/5533635
     return sys.platform == 'win32' or sys.platform == 'cygwin'
 
 def check_platform_system_match(platform):
