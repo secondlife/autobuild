@@ -199,11 +199,11 @@ def ExpectError(errfrag, expectation, exception=common.AutobuildError):
     """
     return exc(exception, pattern=errfrag, message=expectation)
 
-class CaptureStdout(object):
+class CaptureStd(object):
     """
     Usage:
 
-    with CaptureStdout() as stream:
+    with CaptureStd("stdout") as stream:
         print "something"
         print "something else"
     assert stream.getvalue() == "something\n" "something else\n"
@@ -212,11 +212,22 @@ class CaptureStdout(object):
     Note that this does NOT capture output emitted by a child process -- only
     data written to sys.stdout.
     """
+    def __init__(self, attr):
+        self.attr = attr
+
     def __enter__(self):
-        self.stdout = sys.stdout
-        sys.stdout = StringIO()
-        return sys.stdout
+        self.save = getattr(sys, self.attr)
+        stream = StringIO()
+        setattr(sys, self.attr, stream)
+        return stream
 
     def __exit__(self, *exc_info):
-        sys.stdout = self.stdout
+        setattr(sys, self.attr, self.save)
 
+class CaptureStdout(CaptureStd):
+    def __init__(self):
+        super(CaptureStdout, self).__init__("stdout")
+
+class CaptureStderr(CaptureStd):
+    def __init__(self):
+        super(CaptureStderr, self).__init__("stderr")
