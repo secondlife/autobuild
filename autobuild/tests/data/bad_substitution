@@ -1,0 +1,3 @@
+# too-fancy bash substitution syntax
+
+abc="${def:-default}"

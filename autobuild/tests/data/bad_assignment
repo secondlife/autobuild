@@ -1,0 +1,5 @@
+# Stick a couple comments
+# before the bad syntax
+# to verify line number reporting.
+
+ xyz = abc
