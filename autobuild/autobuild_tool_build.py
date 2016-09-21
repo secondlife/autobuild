@@ -235,6 +235,6 @@ def _build_a_configuration(config, build_configuration, platform_name=common.get
         return 0
     logger.info('executing build command:\n  %s', build_executable.__str__(extra_arguments))
     if not dry_run:
-        return build_executable(extra_arguments, common.get_autobuild_environment())
+        return build_executable(extra_arguments, environment=common.get_autobuild_environment())
     else:
         return 0
