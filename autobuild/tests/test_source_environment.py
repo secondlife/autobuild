@@ -72,9 +72,11 @@ def assert_found_assignment(key, value, output):
 # for direct calls into do_source_environment(), simulate what's produced by
 # argparse
 class Args(object):
-    def __init__(self, varsfile=None, buildtype=None):
+    def __init__(self, varsfile=None, config=None):
         self.varsfile = varsfile
-        self.buildtype = buildtype
+        # -c argument is specified as action="append", which means
+        # configurations attribute comes in as a possibly-empty list
+        self.configurations = [config] if config is not None else []
 
 class TestSourceEnvironment(BaseTest):
     def setUp(self):
@@ -276,7 +278,7 @@ replace_switch def xyz $switches""").split()),
         assert_in("platform", stderr)
         assert_in("strange", stderr)
 
-    def test_buildtype_shorthand(self):
+    def test_config_shorthand(self):
         with patch(sys, "platform", "darwin"), CaptureStdout() as stdout:
             self.autobuild_call(self.find_data("darwin"), "RelWithDebInfo")
         stdout = stdout.getvalue()

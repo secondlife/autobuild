@@ -440,15 +440,20 @@ similar.""")
                     # add a shorthand variable that excludes _PLATFORM
                     vfvars[''.join(match.group(1,2))] = value
 
-        # If caller specified buildtype, provide shorthand vars for it.
-        if args.buildtype is not None:
-            buildtype = args.buildtype.upper()
-            buildtype_re = re.compile(r'(.*_BUILD)_%s(.*)$' % buildtype)
+        # If caller specified configuration, provide shorthand vars for it.
+        # If nothing was specified, configurations will be empty; if something
+        # was, take only the first specified configuration.
+        if args.configurations:
+            configuration = args.configurations[0].upper()
+            if args.configurations[1:]:
+                logger.warning("Ignoring extra configurations %s" %
+                               ", ".join(args.configurations[1:]))
+            configuration_re = re.compile(r'(.*_BUILD)_%s(.*)$' % configuration)
             # use items() because we're modifying as we iterate
             for var, value in vfvars.items():
-                match = buildtype_re.match(var)
+                match = configuration_re.match(var)
                 if match:
-                    # add a shorthand variable that excludes _BUILDTYPE
+                    # add a shorthand variable that excludes _CONFIGURATION
                     vfvars[''.join(match.group(1,2))] = value
 
         # We've been keeping varsfile variables separate so we can make the
@@ -613,16 +618,22 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         parser.add_argument('-V', '--version', action='version',
                             version='source_environment tool module %s' %
                             common.AUTOBUILD_VERSION_STRING)
+        # we use action="append" not because we want to support multiple -c
+        # arguments, but to unify the processing between supplied -c and
+        # configurations_from_environment(), which produces a list.
+        parser.add_argument('--configuration', '-c', nargs='?',
+                            action="append", dest='configurations', 
+                            help="emit shorthand variables for a specific build configuration\n"
+                            "(may be specified in $AUTOBUILD_CONFIGURATION; "
+                            "multiple values make no sense here)",
+                            metavar='CONFIGURATION',
+                            default=self.configurations_from_environment())
         parser.add_argument("varsfile", nargs="?", default=None,
                             help="Local sh script in which to find essential environment "
                             "variable settings (default from $AUTOBUILD_VARIABLES_FILE), "
                             "e.g. a checkout of "
                             "https://bitbucket.org/lindenlab/viewer-build-variables/"
                             "src/tip/variables")
-        parser.add_argument("buildtype", nargs="?", default=None, metavar="BUILDTYPE",
-                            help="Release, RelWithDebInfo or Debug [no default]: "
-                            "if specified, requests shortened names for LL_BUILD "
-                            "environment variables specific to this BUILDTYPE")
 
     def run(self, args):
         do_source_environment(args)
