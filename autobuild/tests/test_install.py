@@ -127,28 +127,18 @@ def setup():
     INSTALL_DIR = os.path.join(BASE_DIR, "packages")
     # We expect autobuild_tool_install to create INSTALL_DIR.
 
+    # For development purposes, we often have an http_proxy environment
+    # variable set to proxy through a remote server. But for trying to
+    # connect to a localhost server, that's the OPPOSITE of what we want.
+    os.environ.pop("http_proxy", None) # no error if missing
+
     # For the duration of this script, run a server thread from which to
     # direct autobuild to "download" test archives. Various tests will
     # populate SERVER_DIR with files whose URLs they will then request. But
-    # first, claim a localhost port on which to run this temp server -- it
-    # would be a shame to bomb the test because something else (e.g. another
-    # test instance) was already using the port.
+    # first, claim a localhost port on which to run this temp server.
     global PORT
-    max_port = PORT + 4
-    while True:
-        try:
-            httpd = HTTPServer((HOST, PORT), DownloadServer)
-            # if that worked, break loop!
-            break
-        except socket.error, err:
-            # Anything other than 'Address already in use', propagate
-            if err.args[0] != 48:       # symbolic name somewhere??
-                raise
-            # Have we already tried as many ports as we intend?
-            if PORT >= max_port:
-                raise
-            # 'Address already in use': increment and retry
-            PORT += 1
+    httpd = HTTPServer((HOST, 0), DownloadServer)
+    PORT = httpd.server_port
     # Here httpd is an HTTPServer instance waiting for a serve_forever() call.
     thread = MyHTTPServer(httpd, name="httpd")
     # Start server thread. Make it a daemon thread: we'll let it run
@@ -263,7 +253,7 @@ class DownloadServer(SimpleHTTPRequestHandler):
         # For present purposes, we don't want the request splattered onto
         # stderr, as it would upset devs watching the test run
         pass
-
+  
     def log_error(self, format, *args):
         # Suppress error output as well
         pass
