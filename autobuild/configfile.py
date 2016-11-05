@@ -58,6 +58,8 @@ AUTOBUILD_METADATA_VERSION = "1"
 AUTOBUILD_METADATA_TYPE = "metadata"
 PACKAGE_METADATA_FILE = "autobuild-package.xml"
 
+# cache for internal_source_environment() results
+_internal_environment = None
 
 class ConfigurationError(common.AutobuildError):
     pass
@@ -196,8 +198,9 @@ class ConfigurationDescription(common.Serialized):
         file(self.path, 'wb').write(llsd.format_pretty_xml(_compact_to_dict(self)))
             
     def __load(self, path):
-        # circular imports, sorry, must import update locally
+        # circular imports, sorry, must import locally
         import update
+        from autobuild_tool_source_environment import internal_source_environment
 
         if os.path.isabs(path):
             self.path = path
@@ -233,9 +236,38 @@ class ConfigurationDescription(common.Serialized):
                 except KeyError:
                     pass # shrug
                 else:
-                    package_description["platforms"] = expand_vars(platforms)
-                # Now capture as a PackageDescription instance.
+                    global _internal_environment
+                    if _internal_environment is None:
+                        # Don't select a configuration: we don't know it, and
+                        # even if we did, making users code the full explicit
+                        # variable name in autobuild.xml is probably better.
+                        # Use variables from AUTOBUILD_VARIABLES_FILE if that
+                        # was specified.
+                        # On Windows, don't load any Visual Studio variables.
+                        # Even if that were a good idea, it would impose
+                        # nontrivial overhead every time autobuild loads any
+                        # autobuild.xml file for any reason.
+                        exports, vars, vsvars = \
+                            internal_source_environment(configurations=[],
+                                                        varsfile=None,
+                                                        vsver=None)
+                        # merge all returned dicts into a copy of os.environ
+                        _internal_environment = os.environ.copy()
+                        _internal_environment.update(exports)
+                        _internal_environment.update(vars)
+                        _internal_environment.update(vsvars)
+
+                    # Whether or not we had to create _internal_environment,
+                    # use it to expand the new platforms subdict.
+                    logger.debug("substitution variables:\n" + 
+                                 pprint.pformat(_internal_environment))
+                    package_description["platforms"] = \
+                        expand_vars(platforms, _internal_environment)
+
+                # Whether or not we found a platforms subdict, capture
+                # package_description dict as a PackageDescription instance.
                 self.package_description = PackageDescription(package_description)
+
             installables = saved_data.pop('installables', {})
             for (name, package) in installables.iteritems():
                 self.installables[name] = PackageDescription(package)
@@ -433,7 +465,8 @@ class MetadataDescription(common.Serialized):
     def __load(self, parsed_llsd):
         if (not 'version' in parsed_llsd) or (parsed_llsd['version'] != self.version) \
                 or (not 'type' in parsed_llsd) or (parsed_llsd['type'] != 'metadata'):
-            raise ConfigurationError("missing or incompatible metadata %s" % pprint.pprint(parsed_llsd))
+            raise ConfigurationError("missing or incompatible metadata %s" % 
+                                     pprint.pformat(parsed_llsd))
         else:
             package_description = parsed_llsd.pop('package_description', None)
             if package_description:
@@ -797,4 +830,4 @@ def _expand_vars_string(value, vars):
     except KeyError as err:
         # undefined required variable
         raise ConfigurationError("configuration string %r references "
-                                 "undefined variable $%s" % (value, err))
+                                 "undefined variable $%s" % (value, str(err).strip("'")))
