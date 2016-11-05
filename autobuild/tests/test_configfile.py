@@ -89,7 +89,82 @@ class TestConfigFile(BaseTest, AutobuildBaselineCompare):
         self.cleanup_tmp_file()
         BaseTest.tearDown(self)
 
+class TestExpandVars(BaseTest):
+    def setUp(self):
+        self.vars = dict(one="1", two="2", three="3")
+
+    def test_expand_vars_string(self):
+        # no substitutions should return string unchanged
+        self.assertEquals(configfile._expand_vars_string("no subs", self.vars), "no subs")
+        # simple substitutions handled by string.Template
+        self.assertEquals(configfile._expand_vars_string("'$one', '${two}'", self.vars),
+                          "'1', '2'")
+
+        # string.Template bad syntax
+        with self.assertRaises(configfile.ConfigurationError) as ctx:
+            configfile._expand_vars_string("$-", self.vars)
+        assert "$-" in str(ctx.exception)
+
+        # string.Template undefined variable
+        with self.assertRaises(configfile.ConfigurationError) as ctx:
+            configfile._expand_vars_string("$four", self.vars)
+        assert "undefined" in str(ctx.exception)
+        assert "four" in str(ctx.exception)
+
+        # extended ${var|fallback} syntax
+
+        # bad syntax isn't recognized by our regexp, falls through to Template
+        # error
+        with self.assertRaises(configfile.ConfigurationError) as ctx:
+            configfile._expand_vars_string("abc ${jjfjfj|xxxx", self.vars)
+        assert "${jjfjfj" in str(ctx.exception)
+
+        # defined variable expands to variable's value
+        self.assertEquals(configfile._expand_vars_string("abc${one|fallback}def", self.vars),
+                          "abc1def")
+
+        # undefined expands to fallback
+        self.assertEquals(configfile._expand_vars_string("abc${four|fallback}def", self.vars),
+                          "abcfallbackdef")
+
+        # multiple instances
+        self.assertEquals(
+            configfile._expand_vars_string(
+                "abc_${one|nope}_def_${four|nofour}_ghi_${five|}_jkl",
+                self.vars),
+            "abc_1_def_nofour_ghi__jkl")
+
+    def test_expand_vars(self):
+        testdict = dict(
+            f=1.0,
+            i=17,
+            t=(0, "$one", 2),
+            l=["$three", 4, 5],
+            d={"$one": "$one",
+               "four" : {"four": "${four|4}"},
+              },
+            )
+
+        expanded = configfile.expand_vars(testdict, self.vars)
+
+        # should not have messed with testdict
+        self.assertEquals(testdict["t"][1], "$one")
+        self.assertEquals(testdict["l"][0], "$three")
+        self.assertEquals(testdict["d"]["$one"], "$one")
+        self.assertEquals(testdict["d"]["four"]["four"], "${four|4}")
+
+        # expanded should have embedded strings expanded
+        self.assertEquals(
+            expanded,
+            dict(
+                f=1.0,
+                i=17,
+                t=(0, "1", 2),
+                l=["3", 4, 5],
+                d={"$one": "1",
+                   "four" : {"four": "4"},
+                  },
+            ))
 
 if __name__ == '__main__':
     unittest.main()
-

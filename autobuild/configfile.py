@@ -30,6 +30,8 @@ Author : Alain Linden
 import os
 import itertools
 import pprint
+import re
+import string
 import sys
 import StringIO
 try:
@@ -223,6 +225,16 @@ class ConfigurationDescription(common.Serialized):
                 raise common.AutobuildError(self.path + ' not an autobuild configuration file')
             package_description = saved_data.pop('package_description', None)
             if package_description is not None:
+                # SL-525: Before we capture package_description as a
+                # PackageDescription instance, translate any embedded
+                # $variable references in the platforms section.
+                try:
+                    platforms = package_description["platforms"]
+                except KeyError:
+                    pass # shrug
+                else:
+                    package_description["platforms"] = expand_vars(platforms)
+                # Now capture as a PackageDescription instance.
                 self.package_description = PackageDescription(package_description)
             installables = saved_data.pop('installables', {})
             for (name, package) in installables.iteritems():
@@ -702,3 +714,87 @@ def _compact_to_dict(obj):
         return [_compact_to_dict(o) for o in obj if o]
     else:
         return obj
+
+def expand_vars(data, vars=os.environ):
+    """
+    In the dict passed as data, recursively visit each leaf string value,
+    replacing variable references. Keys at any level remain untouched.
+    Variables are found in the dict passed as vars.
+
+    The following substitution syntax is recognized:
+
+    $var
+    ${var}
+    ${var|fallback}
+
+    In the first two cases, if the variable 'var' is undefined, expand_vars()
+    raises ConfigurationError. In the third case, if 'var' is undefined, the
+    construct is replaced by 'fallback'. In all three cases, of course, if
+    'var' is defined, the construct is replaced by the value of 'var'.
+
+    Return a copy of data with variable references expanded. The original data
+    dict is unchanged.
+    """
+    if isinstance(data, basestring):
+        # str or unicode: expand
+        return _expand_vars_string(data, vars)
+
+    if hasattr(data, 'items'):
+        # dict: copy it
+        newdata = data.copy()
+        # and update the new copy
+        for key, value in data.iteritems():
+            newdata[key] = expand_vars(value, vars)
+        return newdata
+
+    try:
+        iter(data)
+    except TypeError:
+        # non-string scalar: just return
+        return data
+
+    # data is a list or tuple
+    # make another such whose entries are expanded
+    return data.__class__(expand_vars(value, vars) for value in data)
+
+# It Would Be Nice if we could cheaply support nested expansions:
+# ${first|${second}} Unfortunately that would require actual parsing rather
+# than a simple regexp -- regexps don't handle nesting. If we just went for
+# the maximum match between | and }, rather than the minimum, then something
+# like ${a|fallback} and ${c} would break: the fallback string for missing 'a'
+# would be "fallback} and ${c". So nested variable expansions will be a future
+# enhancement, if ever.
+_placeholder = re.compile(r"\$\{(.*?)\|(.*?)\}")
+
+def _expand_vars_string(value, vars):
+    """
+    value is a string.
+
+    Return a corresponding string in which any variable references (as
+    described in the docstring for expand_vars()) found in that string have
+    been expanded.
+    """
+    # First check for fallback syntax: the extended syntax NOT already
+    # supported by string.Template.
+
+    # sub()'s first argument can be a function taking a match object:
+    # https://docs.python.org/2/library/re.html#re.sub
+    # sub() calls the passed function for every match within the second
+    # argument 'value'.
+    # That function returns the string you want to substitute.
+    # Since we know the _placeholder regexp matched, we know it has both group
+    # 1 (the variable name) and 2 (the fallback value). group(1, 2) returns
+    # both. Call vars.get(variable, fallback).
+    nvalue = _placeholder.sub(lambda match: vars.get(*match.group(1, 2)),
+                              value)
+
+    # But wait, we're not done yet! Let string.Template do the rest.
+    try:
+        return string.Template(nvalue).substitute(vars)
+    except ValueError as err:
+        # invalid substitution syntax
+        raise ConfigurationError("in configuration string %r: %s" % (value, err))
+    except KeyError as err:
+        # undefined required variable
+        raise ConfigurationError("configuration string %r references "
+                                 "undefined variable $%s" % (value, err))
