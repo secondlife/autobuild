@@ -482,11 +482,11 @@ class TestInstallArchive(BaseTest):
         autobuild_tool_install.AutobuildTool().run(self.options)
         # then try to install the 'bongo' package (should fail)
         self.options.package=["bongo"]
-        with ExpectError("not installed due to conflicts", "Expected InstallError for dependency conflicts"):
+        with ExpectError("not installable due to conflicts", "Expected InstallError for dependency conflicts"):
             autobuild_tool_install.AutobuildTool().run(self.options)
         # then try to install the 'bongo' package locally (should fail)
         self.options.local_archives = [os.path.join(mydir, "data", "bongo-0.1-common-111.tar.bz2")]
-        with ExpectError("not installed due to conflicts", "Expected InstallError for dependency conflicts"):
+        with ExpectError("not installable due to conflicts", "Expected InstallError for dependency conflicts"):
             autobuild_tool_install.AutobuildTool().run(self.options)
 
     def test_conflicting_indirect_depends(self):
@@ -501,11 +501,11 @@ class TestInstallArchive(BaseTest):
         autobuild_tool_install.AutobuildTool().run(self.options)
         # then try to install the 'bongo' package (should fail)
         self.options.package=["bingo"]
-        with ExpectError("not installed due to conflicts", "Expected InstallError for dependency conflicts"):
+        with ExpectError("not installable due to conflicts", "Expected InstallError for dependency conflicts"):
             autobuild_tool_install.AutobuildTool().run(self.options)
         # then try to install the 'bongo' package locally (should fail)
         self.options.local_archives = [os.path.join(mydir, "data", "bingo-0.1-common-111.tar.bz2")]
-        with ExpectError("not installed due to conflicts", "Expected InstallError for dependency conflicts"):
+        with ExpectError("not installable due to conflicts", "Expected InstallError for dependency conflicts"):
             autobuild_tool_install.AutobuildTool().run(self.options)
 
 
