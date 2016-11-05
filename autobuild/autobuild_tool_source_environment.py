@@ -292,7 +292,6 @@ and remove the set_build_variables command. All the same variables will be set."
 
 if common.is_system_windows():
     windows_template = """
-    USE_INCREDIBUILD=%(USE_INCREDIBUILD)d
 
     build_sln() {
         local solution=$1
@@ -337,12 +336,111 @@ https://bitbucket.org/lindenlab/build-variables/src/tip/variables)
 will be emitted. This could cause your build to fail for lack of LL_BUILD or
 similar.""")
 
+    # *TODO - find a way to configure this instead of hardcoding default
+    vsver = os.environ.get('AUTOBUILD_VSVER', '120')
+    exports, vars, vsvars = \
+        internal_source_environment(args.configurations, args.varsfile, vsver)
+
+    var_mapping = {}
+
+    if common.is_system_windows():
+        try:
+            # reset stdout in binary mode so sh doesn't get confused by '\r'
+            import msvcrt
+            msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
+        except ImportError:
+            # cygwin gets a pass
+            pass
+
+        # We don't know which environment variables might be modified by
+        # vsvars32.bat, but one of them is likely to be PATH. Treat PATH
+        # specially: when a bash script invokes our load_vsvars() shell
+        # function, we want to prepend to its existing PATH rather than
+        # replacing it with whatever's visible to Python right now.
+        try:
+            PATH = vsvars.pop("PATH")
+        except KeyError:
+            pass
+        else:
+            # Translate paths from windows to cygwin format.
+            # Match patterns of the form %SomeVar%. Match the SHORTEST such
+            # string so that %var1% ... %var2% are two distinct matches.
+            percents = re.compile(r"%(.*?)%")
+            PATH = ":".join(
+                # Some pathnames in the PATH var may be individually quoted --
+                # strip quotes from those.
+                # Moreover, some may have %SomeVar% substitutions; replace
+                # with ${SomeVar} substitutions for bash. (Use curly braces
+                # because we don't want to have to care what follows.)
+                # may as well de-dup while we're at it
+                dedup(cygpath("-u", percents.sub(r"${\1}", p.strip('"')))
+                      for p in PATH.split(';'))
+            )
+            vsvars["PATH"] = PATH + ":$PATH"
+
+        # Now make a list of the items from vsvars.
+        # A pathname ending with a backslash (as many do on Windows), when
+        # embedded in quotes in a bash script, might inadvertently escape the
+        # close quote. Remove all trailing backslashes.
+        vsvarslist = [(k, v.rstrip('\\')) for (k, v) in vsvars.iteritems()]
+
+        # may as well sort by keys
+        vsvarslist.sort()
+
+        # Since at coding time we don't know the set of all modified
+        # environment variables, don't try to name them individually in the
+        # template. Instead, bundle all relevant export statements into a
+        # single substitution.
+        var_mapping["vsvars"] = '\n'.join(
+            ('        export %s="%s"' % varval for varval in vsvarslist)
+        )
+
+    # Before expanding environment_template with var_mapping, finalize the
+    # 'exports' and 'vars' dicts into var_mapping["vars"] as promised above.
+    var_mapping["vars"] = '\n'.join(itertools.chain(
+        (("    export %s='%s'" % (k, v)) for k, v in exports.iteritems()),
+        (("    %s='%s'" % (k, v)) for k, v in vars.iteritems()),
+        ))
+
+    sys.stdout.write(environment_template % var_mapping)
+
+    if get_params:
+        # *TODO - run get_params.generate_bash_script()
+        pass
+
+
+def internal_source_environment(configurations, varsfile, vsver):
+    """
+    configurations is a list of requested configurations (e.g. 'Release'). If
+    the list isn't empty, the first entry will be used; any additional entries
+    will be ignored with a warning.
+
+    varsfile, if not None, is the name of a local variables file as in
+    https://bitbucket.org/lindenlab/build-variables/src/tip/variables.
+
+    vsver, if not None, indirectly indicates a Visual Studio vcvarsall.bat
+    script from which to load variables. Its values are e.g. '100' for Visual
+    Studio 2010 (VS 10), '120' for Visual Studio 2013 (VS 12) and so on. A
+    correct value nnn for the running system will identify a corresponding
+    VSnnnCOMNTOOLS environment variable.
+
+    Returns a triple of dicts (exports, vars, vsvars):
+
+    exports is intended to propagate down to child processes, hence should be
+    exported by the consuming bash shell.
+
+    vars is intended for use by the consuming bash shell, hence need not be
+    exported.
+
+    vsvars contains variables set by the relevant Visual Studio vcvarsall.bat
+    script. It is an empty dict on any platform but Windows; it is an empty
+    dict if you pass vsver=None.
+    """
     # OPEN-259: it turns out to be important that if AUTOBUILD is already set
     # in the environment, we should LEAVE IT ALONE. So if it exists, use the
     # existing value. Otherwise just use our own executable path.
     autobuild_path = common.get_autobuild_executable_path()
     AUTOBUILD = os.environ.get("AUTOBUILD", autobuild_path)
-    var_mapping = {}
     # The cross-platform environment_template contains a generic 'vars' slot
     # where we can insert lines defining environment variables. Putting a
     # variable definition into this 'exports' dict causes it to be listed
@@ -360,9 +458,10 @@ similar.""")
 ##      MAKEFLAGS="",
 ##      DISTCC_HOSTS="",
         )
+    vsvars = {}
 
     # varsfile could have been set either of two ways above, check again
-    if args.varsfile is not None:
+    if varsfile is not None:
         # Read variable definitions from varsfile. Syntax restrictions are
         # documented in the build-variables/variables file itself, but
         # essentially it's the common subset of bash and string.Template
@@ -374,7 +473,7 @@ similar.""")
         assign_line = re.compile(r'^([A-Za-z_][A-Za-z0-9_]+)="(.*)"$')
         vfvars = {}
         try:
-            with open(args.varsfile) as vf:
+            with open(varsfile) as vf:
                 for linen0, line in enumerate(vf):
                     # skip empty lines and comment lines
                     if line == '\n' or line.startswith('#'):
@@ -389,7 +488,7 @@ similar.""")
                         # compiler switches.
                         raise SourceEnvError(
                             "%s(%s): malformed variable assignment:\n%s" %
-                            (args.varsfile, linen0+1, line.rstrip()))
+                            (varsfile, linen0+1, line.rstrip()))
                     var, value = match.group(1,2)
                     try:
                         # Rely on the similarity between string.Template
@@ -398,18 +497,18 @@ similar.""")
                     except ValueError as err:
                         raise SourceEnvError(
                             "%s(%s): bad substitution syntax: %s\n%s" %
-                            (args.varsfile, linen0+1, err, line.rstrip()))
+                            (varsfile, linen0+1, err, line.rstrip()))
                     except KeyError as err:
                         raise SourceEnvError(
                             "%s(%s): undefined variable %s:\n%s" %
-                            (args.varsfile, linen0+1, err, line.rstrip()))
+                            (varsfile, linen0+1, err, line.rstrip()))
         except (IOError, OSError) as err:
             # Even though it's only a warning to fail to specify varsfile,
             # it's a fatal error to specify one that doesn't exist or can't be
             # read.
             raise SourceEnvError(
                 "%s: can't read '%s': %s" %
-                (err.__class__.__name__, args.varsfile, err))
+                (err.__class__.__name__, varsfile, err))
 
         # Here vfvars contains all the variables set in varsfile. Before
         # passing them along to the 'vars' dict, make a convenience pass over
@@ -443,11 +542,11 @@ similar.""")
         # If caller specified configuration, provide shorthand vars for it.
         # If nothing was specified, configurations will be empty; if something
         # was, take only the first specified configuration.
-        if args.configurations:
-            configuration = args.configurations[0].upper()
-            if args.configurations[1:]:
+        if configurations:
+            configuration = configurations[0].upper()
+            if configurations[1:]:
                 logger.warning("Ignoring extra configurations %s" %
-                               ", ".join(args.configurations[1:]))
+                               ", ".join(configurations[1:]))
             configuration_re = re.compile(r'(.*_BUILD)_%s(.*)$' % configuration)
             # use items() because we're modifying as we iterate
             for var, value in vfvars.items():
@@ -471,47 +570,19 @@ similar.""")
 
     if common.is_system_windows():
         try:
-            # reset stdout in binary mode so sh doesn't get confused by '\r'
-            import msvcrt
-            msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
-        except ImportError:
-            # cygwin gets a pass
-            pass
-
-        # load vsvars32.bat variables
-        # *TODO - find a way to configure this instead of hardcoding default
-        vs_ver = os.environ.get('AUTOBUILD_VSVER', '120')
-        vsvars = load_vsvars(vs_ver)
-        vsvarslist = []
-        # We don't know which environment variables might be modified by
-        # vsvars32.bat, but one of them is likely to be PATH. Treat PATH
-        # specially: when a bash script invokes our load_vsvars() shell
-        # function, we want to prepend to its existing PATH rather than
-        # replacing it with whatever's visible to Python right now.
-        try:
-            PATH = vsvars.pop("PATH")
+            use_ib = int(os.environ['USE_INCREDIBUILD'])
+        except ValueError:
+            logger.warning("USE_INCREDIBUILD environment variable contained garbage %r "
+                           "(expected 0 or 1)" % os.environ['USE_INCREDIBUILD'])
+            use_ib = 0
         except KeyError:
-            pass
-        else:
-            # Translate paths from windows to cygwin format.
-            # Match patterns of the form %SomeVar%. Match the SHORTEST such
-            # string so that %var1% ... %var2% are two distinct matches.
-            percents = re.compile(r"%(.*?)%")
-            PATH = ":".join(
-                # Some pathnames in the PATH var may be individually quoted --
-                # strip quotes from those.
-                # Moreover, some may have %SomeVar% substitutions; replace
-                # with ${SomeVar} substitutions for bash. (Use curly braces
-                # because we don't want to have to care what follows.)
-                # may as well de-dup while we're at it
-                dedup(cygpath("-u", percents.sub(r"${\1}", p.strip('"')))
-                      for p in PATH.split(';'))
-            )
-            vsvarslist.append(("PATH", PATH + ":$PATH"))
+            # We no longer require Incredibuild for Windows builds. Therefore,
+            # if you want to engage Incredibuild, you must explicitly set
+            # USE_INCREDIBUILD=1. We no longer implicitly set that if
+            # BuildConsole.exe is on the PATH.
+            use_ib = 0
 
-        # Resetting our PROMPT is a bit heavy-handed. Plus the substitution
-        # syntax probably differs.
-        vsvars.pop("PROMPT", None)
+        vars["USE_INCREDIBUILD"] = str(use_ib)
 
         # Let KeyError, if any, propagate: lack of AUTOBUILD_ADDRSIZE would be
         # an autobuild coding error. So would any value for that variable
@@ -530,70 +601,36 @@ similar.""")
         # name into each 3p source repo: we know from experience that
         # sprinkling version specificity throughout a large collection of 3p
         # repos is part of what makes it so hard to upgrade the compiler. The
-        # problem is that the mapping from vs_ver to (e.g.) "Visual Studio 12"
+        # problem is that the mapping from vsver to (e.g.) "Visual Studio 12"
         # isn't necessarily straightforward -- we may have to maintain a
         # lookup dict. That dict should not be replicated into each 3p repo,
         # it should be central. It should be here.
         try:
             AUTOBUILD_WIN_CMAKE_GEN = {
                 '120': "Visual Studio 12",
-                }[vs_ver]
+                }[vsver]
         except KeyError:
-            # We don't have a specific mapping for this value of vs_ver. Take
+            # We don't have a specific mapping for this value of vsver. Take
             # a wild guess. If we guess wrong, CMake will complain, and the
             # user will have to update autobuild -- which is no worse than
             # what s/he'd have to do anyway if we immediately produced an
             # error here. Plus this way, we defer the error until we hit a
             # build that actually consumes AUTOBUILD_WIN_CMAKE_GEN.
-            AUTOBUILD_WIN_CMAKE_GEN = "Visual Studio %s" % (vs_ver[:-1])
+            AUTOBUILD_WIN_CMAKE_GEN = "Visual Studio %s" % (vsver[:-1])
         # Of course CMake also needs to know bit width :-P
         if os.environ["AUTOBUILD_ADDRSIZE"] == "64":
             AUTOBUILD_WIN_CMAKE_GEN += " Win64"
         exports["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
 
-        # A pathname ending with a backslash (as many do on Windows), when
-        # embedded in quotes in a bash script, might inadvertently escape the
-        # close quote. Remove all trailing backslashes.
-        for (k, v) in vsvars.iteritems():
-            vsvarslist.append((k, v.rstrip('\\')))
+        if vsver:
+            # load vsvars32.bat variables
+            vsvars = load_vsvars(vsver)
 
-        # may as well sort by keys
-        vsvarslist.sort()
+            # Resetting our PROMPT is a bit heavy-handed. Plus the substitution
+            # syntax probably differs.
+            vsvars.pop("PROMPT", None)
 
-        # Since at coding time we don't know the set of all modified
-        # environment variables, don't try to name them individually in the
-        # template. Instead, bundle all relevant export statements into a
-        # single substitution.
-        var_mapping["vsvars"] = '\n'.join(
-            ('        export %s="%s"' % varval for varval in vsvarslist)
-        )
-
-        try:
-            use_ib = int(os.environ['USE_INCREDIBUILD'])
-        except ValueError:
-            logger.warning("USE_INCREDIBUILD environment variable contained garbage %r (expected 0 or 1)" % os.environ['USE_INCREDIBUILD'])
-            use_ib = 0
-        except KeyError:
-            # We no longer require Incredibuild for Windows builds. Therefore,
-            # if you want to engage Incredibuild, you must explicitly set
-            # USE_INCREDIBUILD=1. We no longer implicitly set that if
-            # BuildConsole.exe is on the PATH.
-            use_ib = 0
-
-        var_mapping.update(USE_INCREDIBUILD=use_ib)
-
-    # Before expanding environment_template with var_mapping, finalize the
-    # 'exports' and 'vars' dicts into var_mapping["vars"] as promised above.
-    var_mapping["vars"] = '\n'.join(itertools.chain(
-        (("    export %s='%s'" % (k, v)) for k, v in exports.iteritems()),
-        (("    %s='%s'" % (k, v)) for k, v in vars.iteritems()),
-        ))
-
-    sys.stdout.write(environment_template % var_mapping)
-
-    if get_params:
-        # *TODO - run get_params.generate_bash_script()
-        pass
+    return exports, vars, vsvars
 
 
 def dedup(iterable):
@@ -608,7 +645,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
                     description='Prints out the shell environment Autobuild-based buildscripts to use (by calling \'eval\').')
-    
+
     # called by autobuild to add help and options to the autobuild parser, and
     # by standalone code to set up argparse
     def register(self, parser):
@@ -622,7 +659,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         # arguments, but to unify the processing between supplied -c and
         # configurations_from_environment(), which produces a list.
         parser.add_argument('--configuration', '-c', nargs='?',
-                            action="append", dest='configurations', 
+                            action="append", dest='configurations',
                             help="emit shorthand variables for a specific build configuration\n"
                             "(may be specified in $AUTOBUILD_CONFIGURATION; "
                             "multiple values make no sense here)",
