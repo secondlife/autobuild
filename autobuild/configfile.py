@@ -243,14 +243,9 @@ class ConfigurationDescription(common.Serialized):
                         # variable name in autobuild.xml is probably better.
                         # Use variables from AUTOBUILD_VARIABLES_FILE if that
                         # was specified.
-                        # On Windows, don't load any Visual Studio variables.
-                        # Even if that were a good idea, it would impose
-                        # nontrivial overhead every time autobuild loads any
-                        # autobuild.xml file for any reason.
                         exports, vars, vsvars = \
                             internal_source_environment(configurations=[],
-                                                        varsfile=None,
-                                                        vsver=None)
+                                                        varsfile=None)
                         # merge all returned dicts into a copy of os.environ
                         _internal_environment = os.environ.copy()
                         _internal_environment.update(exports)

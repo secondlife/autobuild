@@ -63,6 +63,17 @@ if os.path.exists(helper):
 class SourceEnvError(common.AutobuildError):
     pass
 
+_VSxxxCOMNTOOLS_re = re.compile(r"VS(.*)COMNTOOLS$")
+_VSxxxCOMNTOOLS_st = "VS%sCOMNTOOLS"
+
+def _available_vsvers():
+    candidates = [match.group(1)
+                  for match in (_VSxxxCOMNTOOLS_re.match(k)
+                                for k in os.environ.iterkeys())
+                  if match]
+    candidates.sort()
+    return candidates
+
 def load_vsvars(vsver):
     """
     Return a dict of environment variables set by the applicable Visual Studio
@@ -82,19 +93,18 @@ def load_vsvars(vsver):
     file will set variables appropriate for a 32-bit build, and similarly when
     it's '64'.
     """
-    key = "VS%sCOMNTOOLS" % vsver
+    key = _VSxxxCOMNTOOLS_st % vsver
     logger.debug("vsver %s, key %s" % (vsver, key))
     try:
         # We've seen traceback output from this if vsver doesn't match an
         # environment variable. Produce a reasonable error message instead.
         VSxxxCOMNTOOLS = os.environ[key]
     except KeyError:
-        candidates = [k for k in os.environ.iterkeys()
-                      if re.match(r"VS.*COMNTOOLS$", k)]
+        candidates = _available_vsvers()
         explain = " (candidates: %s)" % ", ".join(candidates) if candidates \
                   else ""
-        raise SourceEnvError("No env variable %s, is Visual Studio %s installed?%s" %
-                             (key, vsver, explain))
+        raise SourceEnvError('AUTOBUILD_VSVER=%s unsupported, is Visual Studio %s installed?%s' %
+                             (vsver, vsver, explain))
 
     # VSxxxCOMNTOOLS will be something like:
     # C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\Tools\
@@ -336,10 +346,8 @@ https://bitbucket.org/lindenlab/build-variables/src/tip/variables)
 will be emitted. This could cause your build to fail for lack of LL_BUILD or
 similar.""")
 
-    # *TODO - find a way to configure this instead of hardcoding default
-    vsver = os.environ.get('AUTOBUILD_VSVER', '120')
     exports, vars, vsvars = \
-        internal_source_environment(args.configurations, args.varsfile, vsver)
+        internal_source_environment(args.configurations, args.varsfile)
 
     var_mapping = {}
 
@@ -409,7 +417,7 @@ similar.""")
         pass
 
 
-def internal_source_environment(configurations, varsfile, vsver):
+def internal_source_environment(configurations, varsfile):
     """
     configurations is a list of requested configurations (e.g. 'Release'). If
     the list isn't empty, the first entry will be used; any additional entries
@@ -418,11 +426,11 @@ def internal_source_environment(configurations, varsfile, vsver):
     varsfile, if not None, is the name of a local variables file as in
     https://bitbucket.org/lindenlab/build-variables/src/tip/variables.
 
-    vsver, if not None, indirectly indicates a Visual Studio vcvarsall.bat
-    script from which to load variables. Its values are e.g. '100' for Visual
-    Studio 2010 (VS 10), '120' for Visual Studio 2013 (VS 12) and so on. A
-    correct value nnn for the running system will identify a corresponding
-    VSnnnCOMNTOOLS environment variable.
+    os.environ['AUTOBUILD_VSVER'] indirectly indicates a Visual Studio
+    vcvarsall.bat script from which to load variables. Its values are e.g.
+    '100' for Visual Studio 2010 (VS 10), '120' for Visual Studio 2013 (VS 12)
+    and so on. A correct value nnn for the running system will identify a
+    corresponding VSnnnCOMNTOOLS environment variable.
 
     Returns a triple of dicts (exports, vars, vsvars):
 
@@ -433,9 +441,22 @@ def internal_source_environment(configurations, varsfile, vsver):
     exported.
 
     vsvars contains variables set by the relevant Visual Studio vcvarsall.bat
-    script. It is an empty dict on any platform but Windows; it is an empty
-    dict if you pass vsver=None.
+    script. It is an empty dict on any platform but Windows.
     """
+    if not common.is_system_windows():
+        vsver = None                    # N/A
+    else:
+        try:
+            vsver = os.environ['AUTOBUILD_VSVER']
+        except KeyError:
+            # try to figure out most recent Visual Studio version
+            try:
+                vsver = _available_vsvers()[-1]
+            except IndexError:
+                logger.warning("No Visual Studio install detected -- "
+                               "certain configuration variables will not be available")
+                vsver = None
+
     # OPEN-259: it turns out to be important that if AUTOBUILD is already set
     # in the environment, we should LEAVE IT ALONE. So if it exists, use the
     # existing value. Otherwise just use our own executable path.
@@ -592,37 +613,37 @@ def internal_source_environment(configurations, varsfile, vsver):
             '64': 'x64',
             }[os.environ["AUTOBUILD_ADDRSIZE"]]
 
-        # When one of our build-cmd.sh scripts invokes CMake on Windows, it's
-        # probably prudent to use a -G switch for the specific Visual Studio
-        # version we want to target. It's not that uncommon for a Windows
-        # build host to have multiple VS versions installed, and it can
-        # sometimes take a while for us to switch to the newest release. Yet
-        # we do NOT want to hard-code the version-specific CMake generator
-        # name into each 3p source repo: we know from experience that
-        # sprinkling version specificity throughout a large collection of 3p
-        # repos is part of what makes it so hard to upgrade the compiler. The
-        # problem is that the mapping from vsver to (e.g.) "Visual Studio 12"
-        # isn't necessarily straightforward -- we may have to maintain a
-        # lookup dict. That dict should not be replicated into each 3p repo,
-        # it should be central. It should be here.
-        try:
-            AUTOBUILD_WIN_CMAKE_GEN = {
-                '120': "Visual Studio 12",
-                }[vsver]
-        except KeyError:
-            # We don't have a specific mapping for this value of vsver. Take
-            # a wild guess. If we guess wrong, CMake will complain, and the
-            # user will have to update autobuild -- which is no worse than
-            # what s/he'd have to do anyway if we immediately produced an
-            # error here. Plus this way, we defer the error until we hit a
-            # build that actually consumes AUTOBUILD_WIN_CMAKE_GEN.
-            AUTOBUILD_WIN_CMAKE_GEN = "Visual Studio %s" % (vsver[:-1])
-        # Of course CMake also needs to know bit width :-P
-        if os.environ["AUTOBUILD_ADDRSIZE"] == "64":
-            AUTOBUILD_WIN_CMAKE_GEN += " Win64"
-        exports["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
-
         if vsver:
+            # When one of our build-cmd.sh scripts invokes CMake on Windows, it's
+            # probably prudent to use a -G switch for the specific Visual Studio
+            # version we want to target. It's not that uncommon for a Windows
+            # build host to have multiple VS versions installed, and it can
+            # sometimes take a while for us to switch to the newest release. Yet
+            # we do NOT want to hard-code the version-specific CMake generator
+            # name into each 3p source repo: we know from experience that
+            # sprinkling version specificity throughout a large collection of 3p
+            # repos is part of what makes it so hard to upgrade the compiler. The
+            # problem is that the mapping from vsver to (e.g.) "Visual Studio 12"
+            # isn't necessarily straightforward -- we may have to maintain a
+            # lookup dict. That dict should not be replicated into each 3p repo,
+            # it should be central. It should be here.
+            try:
+                AUTOBUILD_WIN_CMAKE_GEN = {
+                    '120': "Visual Studio 12",
+                    }[vsver]
+            except KeyError:
+                # We don't have a specific mapping for this value of vsver. Take
+                # a wild guess. If we guess wrong, CMake will complain, and the
+                # user will have to update autobuild -- which is no worse than
+                # what s/he'd have to do anyway if we immediately produced an
+                # error here. Plus this way, we defer the error until we hit a
+                # build that actually consumes AUTOBUILD_WIN_CMAKE_GEN.
+                AUTOBUILD_WIN_CMAKE_GEN = "Visual Studio %s" % (vsver[:-1])
+            # Of course CMake also needs to know bit width :-P
+            if os.environ["AUTOBUILD_ADDRSIZE"] == "64":
+                AUTOBUILD_WIN_CMAKE_GEN += " Win64"
+            exports["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
+
             # load vsvars32.bat variables
             vsvars = load_vsvars(vsver)
 
