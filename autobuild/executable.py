@@ -71,10 +71,14 @@ class Executable(common.Serialized):
     
     def __call__(self, options=[], environment=os.environ):
         filters = self.get_filters()
-        if filters:
-            filters_re = [re.compile(filter, re.MULTILINE) for filter in filters]
+        if not filters:
+            # no filtering, dump child stdout directly to our own stdout
+            return subprocess.call(self._get_all_arguments(options), env=environment)
+        else:
+            # have to filter, so run stdout through a pipe
             process = subprocess.Popen(self._get_all_arguments(options),
                                        env=environment, stdout=subprocess.PIPE)
+            filters_re = [re.compile(filter, re.MULTILINE) for filter in filters]
             for line in process.stdout:
                 if any(regex.search(line) for regex in filters_re):
                     continue
@@ -82,8 +86,6 @@ class Executable(common.Serialized):
                 line = line.replace("\r", "\n")
                 print line,  # Trailing , prevents an extra newline
             return process.wait()
-        else:
-            return subprocess.call(' '.join(self._get_all_arguments(options)), shell=True, env=environment)
    
     def __str__(self, options=[]):
         try:
