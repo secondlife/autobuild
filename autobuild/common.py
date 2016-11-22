@@ -38,7 +38,6 @@ Date   : 2010-04-13
 import os
 import sys
 import time
-import glob
 import itertools
 import logging
 import platform
@@ -289,7 +288,7 @@ def get_autobuild_executable_path():
     return os.path.realpath(os.path.abspath(path))
 
 
-def find_executable(executables, exts=None):
+def find_executable(executables, exts=None, path=None):
     """
     Given an executable name, or a list of executable names, return the
     name of the executable that can be found in the path. The names can
@@ -308,11 +307,16 @@ def find_executable(executables, exts=None):
     platforms, the default is []. This allows us to place an extensionless
     script file 'foo' for most platforms, plus a 'foo.cmd' beside it for use
     on Windows.
+
+    path should either be None (search os.environ['PATH']) or a sequence of
+    directory names to be searched in order.
     """
     if isinstance(executables, basestring):
         executables = [executables]
     if exts is None:
         exts = sys.platform.startswith("win") and [".com", ".exe", ".bat", ".cmd"] or []
+    if path is None:
+        path=os.environ.get('PATH', '').split(os.pathsep)
     # The original implementation iterated over directories in PATH, checking
     # for each name in 'executables' in a given directory. This makes
     # intuitive sense -- but it's wrong. When 'executables' is (e.g.) ['foobar',
@@ -320,11 +324,11 @@ def find_executable(executables, exts=None):
     # prioritize that over plain 'foo' -- even if the directory containing
     # plain 'foo' comes first. So the outer loop should be over 'executables'.
     for e in executables:
-        for p in os.environ.get('PATH', "").split(os.pathsep):
+        for p in path:
             for ext in itertools.chain(exts, [""]):
-                path = glob.glob(os.path.join(p, e + ext))
-                if path:
-                    return path[0]
+                candidate = os.path.join(p, e + ext)
+                if os.path.isfile(candidate):
+                    return candidate
     return None
 
 

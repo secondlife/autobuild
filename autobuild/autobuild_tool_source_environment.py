@@ -654,6 +654,37 @@ def internal_source_environment(configurations, varsfile):
     return exports, vars, vsvars
 
 
+def get_enriched_environment(configuration):
+    """
+    Return a dict containing an 'enriched' environment in which to run
+    external commands under autobuild.
+
+    configuration is the requested configuration (e.g. 'Release'), or None.
+    This is used to provide abbreviations for certain variables set in
+    AUTOBUILD_VARIABLES_FILE.
+
+    os.environ['AUTOBUILD_VARIABLES_FILE'], if set, is the name of a local
+    variables file as in
+    https://bitbucket.org/lindenlab/build-variables/src/tip/variables.
+
+    On Windows, os.environ['AUTOBUILD_VSVER'] indirectly indicates a Visual
+    Studio vcvarsall.bat script from which to load variables. Its values are
+    e.g. '100' for Visual Studio 2010 (VS 10), '120' for Visual Studio 2013
+    (VS 12) and so on. A correct value nnn for the running system will
+    identify a corresponding VSnnnCOMNTOOLS environment variable.
+
+    On Windows, if AUTOBUILD_VSVER isn't set, a value will be inferred from
+    the available VSnnnCOMNTOOLS environment variables.
+    """
+    result = common.get_autobuild_environment()
+    exports, _, vsvars = internal_source_environment(
+        [configuration] if configuration else [],
+        os.environ.get("AUTOBUILD_VARIABLES_FILE"))
+    result.update(exports)
+    result.update(vsvars)
+    return result
+
+
 def dedup(iterable):
     seen = set()
     for item in iterable:

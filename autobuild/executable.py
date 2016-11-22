@@ -70,14 +70,38 @@ class Executable(common.Serialized):
         self.filters = filters
     
     def __call__(self, options=[], environment=os.environ):
+        # let the passed environment help us find self.command
+        commandlist = self._get_all_arguments(options)
+        prog = commandlist[0]
+        # If prog is already absolute, leave it alone.
+        if not os.path.dirname(prog):
+            # prog is relative
+            # Looking for PATH is a bit tricky: the capitalization of the name
+            # might vary by platform. While we believe os.environ is a
+            # case-insensitive dict, we can't be sure that the passed
+            # 'environment' is necessarily such a dict.
+            pathkey = [k for k in environment.iterkeys() if k.upper() == "PATH"]
+            # If we can't find any such key, don't blow up, just don't replace
+            # prog.
+            if pathkey:
+                # Remember pathkey is a list of matching keys -- pathkey[0]
+                # extracts the actual key. Boldly use environment[] because we
+                # already know pathkey[0] exists in environment!
+                path = environment[pathkey[0]].split(os.pathsep)
+                # Search for 'prog' on THAT path.
+                prog = common.find_executable(prog, path=path)
+                # find_executable() returns None if not found
+                if prog:
+                    commandlist[0] = prog
+        
         filters = self.get_filters()
         if not filters:
             # no filtering, dump child stdout directly to our own stdout
-            return subprocess.call(self._get_all_arguments(options), env=environment)
+            return subprocess.call(commandlist, env=environment)
         else:
             # have to filter, so run stdout through a pipe
-            process = subprocess.Popen(self._get_all_arguments(options),
-                                       env=environment, stdout=subprocess.PIPE)
+            process = subprocess.Popen(commandlist, env=environment,
+                                       stdout=subprocess.PIPE)
             filters_re = [re.compile(filter, re.MULTILINE) for filter in filters]
             for line in process.stdout:
                 if any(regex.search(line) for regex in filters_re):

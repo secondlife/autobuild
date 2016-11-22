@@ -36,6 +36,7 @@ import autobuild_base
 import configfile
 from common import AutobuildError
 from autobuild_tool_configure import _configure_a_configuration
+from autobuild_tool_source_environment import get_enriched_environment
 
 
 logger = logging.getLogger('autobuild.build')
@@ -235,6 +236,7 @@ def _build_a_configuration(config, build_configuration, platform_name=common.get
         return 0
     logger.info('executing build command:\n  %s', build_executable.__str__(extra_arguments))
     if not dry_run:
-        return build_executable(extra_arguments, environment=common.get_autobuild_environment())
+        return build_executable(extra_arguments,
+                                environment=get_enriched_environment(build_configuration.name))
     else:
         return 0
