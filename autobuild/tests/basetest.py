@@ -61,7 +61,7 @@ class BaseTest(unittest.TestCase):
         through.
         """
         command = (self.autobuild_bin,) + args
-        return subprocess.check_output(command, **kwds)
+        return subprocess.check_output(command, **kwds).rstrip()
 
     # On Windows, need some retry logic wrapped around removing files (SIGHH)
     if not sys.platform.startswith("win"):
