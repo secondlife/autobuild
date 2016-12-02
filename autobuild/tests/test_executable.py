@@ -36,7 +36,7 @@ class TestExecutable(BaseTest):
         assert result == 0
         
     def test_compound_executable(self):
-        parentExecutable = Executable(command='grep', arguments=['foobarbaz', '.', '>/dev/null'], options=['-l', '-r'])
+        parentExecutable = Executable(command='grep', arguments=['foobarbaz', '.'], options=['-l', '-r'])
         childExecutable = Executable(parent=parentExecutable, options=['-i'])
         otherChildExecutable = Executable(parent=parentExecutable, command='egrep', arguments=['foo','.'])
         assert childExecutable.get_options() == ['-l', '-r', '-i']
