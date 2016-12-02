@@ -61,8 +61,7 @@ class BaseTest(unittest.TestCase):
         through.
         """
         command = (self.autobuild_bin,) + args
-        rc = subprocess.call(command, **kwds)
-        assert rc == 0, "%s => %s" % (' '.join(command), rc)
+        return subprocess.check_output(command, **kwds)
 
     # On Windows, need some retry logic wrapped around removing files (SIGHH)
     if not sys.platform.startswith("win"):

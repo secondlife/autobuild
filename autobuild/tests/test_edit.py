@@ -110,8 +110,7 @@ class TestEditCmdLine(BaseTest, AutobuildBaselineCompare):
         self.tmp_file = self.get_tmp_file(0)
 
     def test_autobuild_edit(self):
-        self.autobuild('edit', '--config-file=' + self.tmp_file, '--help',
-                       stdout=open(os.devnull, "w"))
+        self.autobuild('edit', '--config-file=' + self.tmp_file, '--help')
         self.autobuild('edit', 'build', '--config-file=' + self.tmp_file,
                        'name=foo', 'command=buildme.py')
 
