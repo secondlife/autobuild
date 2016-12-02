@@ -52,7 +52,9 @@ class TestConfigure(BaseTest, AutobuildBaselineCompare):
         self.config.save()
 
     def test_configure(self):
-        result = configure.configure(self.config, 'Release')
+        # tests underlying API
+        build_configuration = self.config.get_build_configuration('Release')
+        result = configure._configure_a_configuration(self.config, build_configuration, [])
         assert result == 0
     
     def test_autobuild_configure(self):

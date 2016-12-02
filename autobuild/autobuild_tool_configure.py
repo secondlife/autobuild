@@ -91,20 +91,25 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         finally:
             os.chdir(current_directory)
 
-def configure(config, build_configuration_name, extra_arguments=[]):
-    """
-    Execute the platform configure command for the named build configuration.
+## nat 2016-12-01: As far as I can tell, this function is completely unused.
+## If I'm wrong, we'll uncomment it and life goes on. If I'm right, I'll get
+## rid of it next time I maintain this module for any reason.
+##def configure(config, build_configuration_name, extra_arguments=[], environment={}):
+##    """
+##    Execute the platform configure command for the named build configuration.
+##
+##    The special 'common' platform may be defined which can provide parent commands for the configure 
+##    command using the inheritence mechanism described in the 'executable' package.  The working
+##    platform's build configuration will be matched to the build configuration in common with the
+##    same name if it exists.  To be configured, a build configuration must be defined in the working
+##    platform though it does not need to contain any actual commands if it is desired that the common
+##    commands be used.  Build configurations defined in the common platform but not the working
+##    platform are not configured.
+##    """
+##    build_configuration = config.get_build_configuration(build_configuration_name)
+##    return _configure_a_configuration(config, build_configuration, extra_arguments,
+##                                      environment)
 
-    The special 'common' platform may be defined which can provide parent commands for the configure 
-    command using the inheritence mechanism described in the 'executable' package.  The working
-    platform's build configuration will be matched to the build configuration in common with the
-    same name if it exists.  To be configured, a build configuration must be defined in the working
-    platform though it does not need to contain any actual commands if it is desired that the common
-    commands be used.  Build configurations defined in the common platform but not the working
-    platform are not configured.
-    """
-    build_configuration = config.get_build_configuration(build_configuration_name)
-    return _configure_a_configuration(config, build_configuration, extra_arguments)
 
 
 def _configure_a_configuration(config, build_configuration, extra_arguments, dry_run=False):
