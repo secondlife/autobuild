@@ -42,7 +42,8 @@ class TestConfigure(BaseTest, AutobuildBaselineCompare):
         package.license_file="LICENSES/file"
         platform = configfile.PlatformDescription()
         build_configuration = configfile.BuildConfigurationDescription()
-        build_configuration.configure = Executable(command="noop.py")
+        build_configuration.configure = \
+            Executable(command=os.path.join(os.path.dirname(__file__), "noop.py"))
         build_configuration.default = True
         build_configuration.name = 'Release'
         platform.configurations['Release'] = build_configuration
