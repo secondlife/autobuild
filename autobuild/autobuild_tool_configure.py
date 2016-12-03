@@ -78,14 +78,25 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         try:
             build_configurations = common.select_configurations(args, config, "configuring for")
             for build_configuration in build_configurations:
-                build_directory = config.make_build_directory(build_configuration, platform=platform, dry_run=args.dry_run)
+                # Get enriched environment based on the current configuration
+                environment = get_enriched_environment(build_configuration.name)
+                # then get a copy of the config specific to this build
+                # configuration
+                bconfig = config.copy()
+                # and expand its $variables according to the environment.
+                bconfig.expand_platform_vars(environment)
+                # Re-fetch the build configuration so we have its expansions.
+                build_configuration = bconfig.get_build_configuration(build_configuration.name)
+                build_directory = bconfig.make_build_directory(
+                    build_configuration, platform=platform, dry_run=args.dry_run)
                 if not args.dry_run:
                     logger.debug("configuring in %s" % build_directory)
                     os.chdir(build_directory)
                 else:
                     logger.info("configuring in %s" % build_directory)
-                result = _configure_a_configuration(config, build_configuration,
-                                                    args.additional_options, args.dry_run)
+                result = _configure_a_configuration(bconfig, build_configuration,
+                                                    args.additional_options, args.dry_run,
+                                                    environment=environment)
                 if result != 0:
                     raise ConfigurationError("default configuration returned %d" % result)
         finally:
@@ -111,8 +122,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 ##                                      environment)
 
 
-
-def _configure_a_configuration(config, build_configuration, extra_arguments, dry_run=False):
+def _configure_a_configuration(config, build_configuration, extra_arguments, dry_run=False,
+                               environment={}):
     try:
         common_build_configuration = \
             config.get_build_configuration(build_configuration.name, platform_name=common.PLATFORM_COMMON)
@@ -132,7 +143,6 @@ def _configure_a_configuration(config, build_configuration, extra_arguments, dry
         return 0
     logger.info('configure command:\n  %s', configure_executable.__str__(extra_arguments))
     if not dry_run:
-        return configure_executable(extra_arguments,
-                                    environment=get_enriched_environment(build_configuration.name))
+        return configure_executable(extra_arguments, environment=environment)
     else:
         return 0

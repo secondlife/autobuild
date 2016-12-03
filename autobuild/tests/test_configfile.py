@@ -37,7 +37,7 @@ class TestConfigFile(BaseTest, AutobuildBaselineCompare):
     def setUp(self):
         BaseTest.setUp(self)
 
-    def test_configuration_simple(self):
+    def fake_config(self):
         tmp_file = self.get_tmp_file(4)
         config = configfile.ConfigurationDescription(tmp_file)
         package = configfile.PackageDescription('test')
@@ -49,9 +49,13 @@ class TestConfigFile(BaseTest, AutobuildBaselineCompare):
         build_configuration.build = build_cmd
         platform.configurations['common'] = build_configuration
         config.package_description.platforms['common'] = platform
+        return config
+
+    def test_configuration_simple(self):
+        config = self.fake_config()
         config.save()
         
-        reloaded = configfile.ConfigurationDescription(tmp_file)
+        reloaded = configfile.ConfigurationDescription(config.path)
         assert reloaded.package_description.platforms['common'].build_directory == '.'
         assert reloaded.package_description.platforms['common'].configurations['common'].build.get_command() == 'gcc'
 
@@ -78,12 +82,22 @@ class TestConfigFile(BaseTest, AutobuildBaselineCompare):
         config.package_description.platforms['darwin'] = darwin_platform
 
         config.save()
-        
+
         reloaded = configfile.ConfigurationDescription(tmp_file)
         assert reloaded.get_platform('common').build_directory == 'common_build'
         assert reloaded.get_platform('darwin').build_directory == 'darwin_build'
-        # check that we fall back to the 32 bit version if no 64 bit is found        
+        # check that we fall back to the 32 bit version if no 64 bit is found
         assert reloaded.get_platform('darwin64').build_directory == 'darwin_build'
+
+    def test_configuration_save_expanded(self):
+        config = self.fake_config()
+        # pretend to expand variables -- doesn't matter that there are no
+        # $variables in config, or that we don't pass any variables anyway
+        config.expand_platform_vars({})
+        with self.assertRaises(configfile.ConfigurationError):
+            # We definitely do NOT want to resave any ConfigurationDescription
+            # whose $variables have been expanded!
+            config.save()
 
     def tearDown(self):
         self.cleanup_tmp_file()

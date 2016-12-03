@@ -142,18 +142,30 @@ only by 'autobuild build' to create package metadata.
             configure_first = not args.do_not_configure
             build_configurations = common.select_configurations(args, config, "building for")
             if not build_configurations:
-                logger.warn("no applicable build configurations found, autobuild cowardly refuses to build nothing!")
-                logger.warn("did you remember to mark a build command as default? try passing 'default=true' to your 'autobuild edit build' command")
+                logger.warn("no applicable build configurations found, "
+                            "autobuild cowardly refuses to build nothing!")
+                logger.warn("did you remember to mark a build command as default? "
+                            "try passing 'default=true' to your 'autobuild edit build' command")
             # packages were written into 'packages' subdir of build directory by default
-            install_dirs = common.select_directories(args, config, "metadata", "getting installed packages",
-                                                     lambda cnf:
-                                                     os.path.join(config.get_build_directory(cnf, platform), "packages"))
+            install_dirs = common.select_directories(
+                args, config, "metadata", "getting installed packages",
+                lambda cnf: os.path.join(config.get_build_directory(cnf, platform), "packages"))
 
             # get the absolute paths to the install dir and installed-packages.xml file
             install_dir = os.path.realpath(install_dirs[0])
 
             for build_configuration in build_configurations:
-                build_directory = config.make_build_directory(build_configuration, platform=platform, dry_run=args.dry_run)
+                # Get enriched environment based on the current configuration
+                environment = get_enriched_environment(build_configuration.name)
+                # then get a copy of the config specific to this build
+                # configuration
+                bconfig = config.copy()
+                # and expand its $variables according to the environment.
+                bconfig.expand_platform_vars(environment)
+                # Re-fetch the build configuration so we have its expansions.
+                build_configuration = bconfig.get_build_configuration(build_configuration.name)
+                build_directory = bconfig.make_build_directory(
+                    build_configuration, platform=platform, dry_run=args.dry_run)
                 if not args.dry_run:
                     logger.debug("building in %s" % build_directory)
                     os.chdir(build_directory)
@@ -161,12 +173,16 @@ only by 'autobuild build' to create package metadata.
                     logger.info("building in %s" % build_directory)
 
                 if configure_first:
-                    result = _configure_a_configuration(config, build_configuration,
-                                                        args.build_extra_arguments, args.dry_run)
+                    result = _configure_a_configuration(bconfig, build_configuration,
+                                                        args.build_extra_arguments, args.dry_run,
+                                                        environment=environment)
                     if result != 0:
                         raise BuildError("configuring default configuration returned %d" % result)
-                result = _build_a_configuration(config, build_configuration, platform_name=platform,
-                                                extra_arguments=args.build_extra_arguments, dry_run=args.dry_run)
+                result = _build_a_configuration(bconfig, build_configuration,
+                                                platform_name=platform,
+                                                extra_arguments=args.build_extra_arguments,
+                                                dry_run=args.dry_run,
+                                                environment=environment)
                 # always make clean copy of the build metadata regardless of result
                 metadata_file_name = configfile.PACKAGE_METADATA_FILE
                 logger.debug("metadata file name: %s" % metadata_file_name)
@@ -184,7 +200,7 @@ only by 'autobuild build' to create package metadata.
                 # COPY the package description from the configuration: we're
                 # going to convert it to metadata format.
                 metadata_file.package_description = \
-                    configfile.PackageDescription(config.package_description)
+                    configfile.PackageDescription(bconfig.package_description)
                 # A metadata package_description has a version attribute
                 # instead of a version_file attribute.
                 metadata_file.package_description.version = \
@@ -215,7 +231,10 @@ only by 'autobuild build' to create package metadata.
             os.chdir(current_directory)
 
 
-def _build_a_configuration(config, build_configuration, platform_name=common.get_current_platform(), extra_arguments=[], dry_run=False):
+def _build_a_configuration(config, build_configuration,
+                           platform_name=common.get_current_platform(),
+                           extra_arguments=[], dry_run=False,
+                           environment={}):
     try:
         common_build_configuration = \
             config.get_build_configuration(build_configuration.name, platform_name=common.PLATFORM_COMMON)
@@ -236,7 +255,6 @@ def _build_a_configuration(config, build_configuration, platform_name=common.get
         return 0
     logger.info('executing build command:\n  %s', build_executable.__str__(extra_arguments))
     if not dry_run:
-        return build_executable(extra_arguments,
-                                environment=get_enriched_environment(build_configuration.name))
+        return build_executable(extra_arguments, environment=environment)
     else:
         return 0

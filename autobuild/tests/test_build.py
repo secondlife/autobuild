@@ -228,5 +228,19 @@ class TestVersionFileOddWhitespace(LocalBase):
         build('build', '--config-file=' + self.tmp_file, '--id=123456')
         assert_equals(self.read_metadata().package_description.version, "2.3")
 
+class TestSubstitutions(LocalBase):
+    def get_config(self):
+        config = super(TestSubstitutions, self).get_config()
+        config.package_description.platforms[common.get_current_platform()] \
+              .configurations['Release'].build = \
+              Executable("echo", arguments=["foo$AUTOBUILD_ADDRSIZE"])
+        return config
+
+    def test_substitutions(self):
+        self.assertEqual(self.autobuild('build', '--config-file=' + self.tmp_file,
+                                        '-A', '32'), "foo32")
+        self.assertEqual(self.autobuild('build', '--config-file=' + self.tmp_file,
+                                        '-A', '64'), "foo64")
+
 if __name__ == '__main__':
     unittest.main()
