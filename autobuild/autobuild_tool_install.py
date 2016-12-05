@@ -50,6 +50,7 @@ import common
 import configfile
 import autobuild_base
 import hash_algorithms
+from autobuild_tool_source_environment import get_enriched_environment
 
 logger = logging.getLogger('autobuild.install')
 
@@ -932,20 +933,29 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
         # establish a build directory so that the install directory is relative to it
         for build_configuration in common.select_configurations(args, config, "installing for"):
-            build_directory = config.get_build_directory(build_configuration, platform_name=platform)
+            # Get enriched environment based on the current configuration
+            environment = get_enriched_environment(build_configuration.name)
+            # then get a copy of the config specific to this build
+            # configuration
+            bconfig = config.copy()
+            # and expand its $variables according to the environment.
+            bconfig.expand_platform_vars(environment)
+            # Re-fetch the build configuration so we have its expansions.
+            build_configuration = bconfig.get_build_configuration(build_configuration.name)
+            build_directory = bconfig.get_build_directory(build_configuration, platform_name=platform)
 
             # write packages into 'packages' subdir of build directory
             install_dirs = \
-                common.select_directories(args, config,
+                common.select_directories(args, bconfig,
                                           "install", "installing packages for",
                                           lambda cnf:
-                                          os.path.join(config.make_build_directory(cnf, platform=platform, dry_run=args.dry_run),
+                                          os.path.join(bconfig.make_build_directory(cnf, platform=platform, dry_run=args.dry_run),
                                                        "packages"))
 
             # get the absolute paths to the install dir and installed-packages.xml file
             for install_dir in install_dirs:
                 install_dir = os.path.realpath(install_dir)
-                install_packages(args, config, install_dir, platform, args.package)
+                install_packages(args, bconfig, install_dir, platform, args.package)
 
 if __name__ == '__main__':
     sys.exit("Please invoke this script using 'autobuild %s'" %
