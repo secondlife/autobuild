@@ -548,7 +548,7 @@ class PackageDescription(common.Serialized):
             if base_platform in self.platforms:
                 target_platform = self.platforms[base_platform]
                 if package_selected_platform != base_platform:
-                    logger.warning("No %s configuration found; inheriting %s" % (platform, base_platform))
+                    logger.info("No %s configuration found; inheriting %s" % (platform, base_platform))
                     package_selected_platform = base_platform
         if target_platform is None:
             target_platform = self.platforms.get(common.PLATFORM_COMMON)
