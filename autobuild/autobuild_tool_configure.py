@@ -77,6 +77,11 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         current_directory = os.getcwd()
         try:
             build_configurations = common.select_configurations(args, config, "configuring for")
+            if not build_configurations:
+                logger.error("no applicable configurations found.\n"
+                             "did you remember to mark a configuration as default?\n"
+                             "autobuild cowardly refuses to do nothing!")
+
             for build_configuration in build_configurations:
                 # Get enriched environment based on the current configuration
                 environment = get_enriched_environment(build_configuration.name)

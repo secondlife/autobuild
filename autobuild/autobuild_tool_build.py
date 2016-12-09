@@ -142,10 +142,10 @@ only by 'autobuild build' to create package metadata.
             configure_first = not args.do_not_configure
             build_configurations = common.select_configurations(args, config, "building for")
             if not build_configurations:
-                logger.warn("no applicable build configurations found, "
-                            "autobuild cowardly refuses to build nothing!")
-                logger.warn("did you remember to mark a build command as default? "
-                            "try passing 'default=true' to your 'autobuild edit build' command")
+                logger.error("no applicable configurations found.\n"
+                             "did you remember to mark a configuration as default?\n"
+                             "autobuild cowardly refuses to do nothing!")
+
             # packages were written into 'packages' subdir of build directory by default
             install_dirs = common.select_directories(
                 args, config, "metadata", "getting installed packages",
