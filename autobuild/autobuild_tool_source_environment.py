@@ -677,10 +677,11 @@ def get_enriched_environment(configuration):
     the available VSnnnCOMNTOOLS environment variables.
     """
     result = common.get_autobuild_environment()
-    exports, _, vsvars = internal_source_environment(
+    exports, vars, vsvars = internal_source_environment(
         [configuration] if configuration else [],
         os.environ.get("AUTOBUILD_VARIABLES_FILE"))
     result.update(exports)
+    result.update(vars)
     result.update(vsvars)
     return result
 
