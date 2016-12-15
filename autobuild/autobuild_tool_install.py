@@ -947,7 +947,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             # and expand its $variables according to the environment.
             bconfig.expand_platform_vars(environment)
             # Re-fetch the build configuration so we have its expansions.
-            build_configuration = bconfig.get_build_configuration(build_configuration.name)
+            build_configuration = bconfig.get_build_configuration(build_configuration.name, platform_name=platform)
             build_directory = bconfig.get_build_directory(build_configuration, platform_name=platform)
 
             # write packages into 'packages' subdir of build directory

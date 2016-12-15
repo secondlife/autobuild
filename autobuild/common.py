@@ -63,8 +63,7 @@ PLATFORM_LINUX     = 'linux'
 PLATFORM_LINUX64   = 'linux64'
 PLATFORM_COMMON    = 'common'
 
-# If AUTOBUILD_ADDRSIZE is already set in the current environment, honor it.
-DEFAULT_ADDRSIZE = int(os.environ.get("AUTOBUILD_ADDRSIZE", 32))
+DEFAULT_ADDRSIZE = 32
 
 # Similarly, if we have an explicit platform in the environment, keep it. We
 # used to query os.environ in establish_platform(), instead of up here. The
@@ -507,7 +506,7 @@ def select_configurations(args, config, verb):
                           for name in args.configurations]
     else:
         configurations = config.get_default_build_configurations(platform)
-    logger.debug("%s configuration(s) %s" % (verb, pprint.pformat(configurations)))
+    logger.debug("common.select_configurations %s configuration(s)\n%s" % (verb, pprint.pformat(configurations)))
     return configurations
 
 

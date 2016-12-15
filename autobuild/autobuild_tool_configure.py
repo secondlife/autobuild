@@ -91,7 +91,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 # and expand its $variables according to the environment.
                 bconfig.expand_platform_vars(environment)
                 # Re-fetch the build configuration so we have its expansions.
-                build_configuration = bconfig.get_build_configuration(build_configuration.name)
+                build_configuration = bconfig.get_build_configuration(
+                    build_configuration.name, platform_name=platform)
                 build_directory = bconfig.make_build_directory(
                     build_configuration, platform=platform, dry_run=args.dry_run)
                 if not args.dry_run:
@@ -122,7 +123,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 ##    commands be used.  Build configurations defined in the common platform but not the working
 ##    platform are not configured.
 ##    """
-##    build_configuration = config.get_build_configuration(build_configuration_name)
+##    build_configuration = config.get_build_configuration(build_configuration_name, platform)
 ##    return _configure_a_configuration(config, build_configuration, extra_arguments,
 ##                                      environment)
 
@@ -132,20 +133,26 @@ def _configure_a_configuration(config, build_configuration, extra_arguments, dry
     try:
         common_build_configuration = \
             config.get_build_configuration(build_configuration.name, platform_name=common.PLATFORM_COMMON)
-        parent_configure = common_build_configuration.configure
+        common_configure = common_build_configuration.configure
     except Exception, e:
         if logger.getEffectiveLevel() <= logging.DEBUG:
             logger.exception(e)
         logger.debug('no common platform found')
-        parent_configure = None
+        common_configure = None
+
+    # see if the specified configuration exists; if so, use it
     if build_configuration.configure is not None:
         configure_executable = copy.copy(build_configuration.configure)
-        configure_executable.parent = parent_configure
-    elif parent_configure is not None:
-        configure_executable = parent_configure
+        configure_executable.parent = common_configure 
+
+    # if the specified configuration doesn't exist, and common does, use common
+    elif common_configure is not None:
+        configure_executable = common_configure
+
     else:
-        logger.info('no configure executable defined; doing nothing')
+        logger.warning('no configure executable defined; doing nothing')
         return 0
+
     logger.info('configure command:\n  %s', configure_executable.__str__(extra_arguments))
     if not dry_run:
         return configure_executable(extra_arguments, environment=environment)

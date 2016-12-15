@@ -163,7 +163,7 @@ only by 'autobuild build' to create package metadata.
                 # and expand its $variables according to the environment.
                 bconfig.expand_platform_vars(environment)
                 # Re-fetch the build configuration so we have its expansions.
-                build_configuration = bconfig.get_build_configuration(build_configuration.name)
+                build_configuration = bconfig.get_build_configuration(build_configuration.name, platform_name=platform)
                 build_directory = bconfig.make_build_directory(
                     build_configuration, platform=platform, dry_run=args.dry_run)
                 if not args.dry_run:

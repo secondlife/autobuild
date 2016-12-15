@@ -33,7 +33,9 @@ import subprocess
 import re
 
 import common
+import logging
 
+logger = logging.getLogger('autobuild.executable')
 
 class ExecutableError(common.AutobuildError):
     pass
@@ -97,9 +99,11 @@ class Executable(common.Serialized):
         filters = self.get_filters()
         if not filters:
             # no filtering, dump child stdout directly to our own stdout
+            logger.debug("subprocess %s" % ' '.join(commandlist))
             return subprocess.call(commandlist, env=environment)
         else:
             # have to filter, so run stdout through a pipe
+            logger.debug("running subprocess %s filtered %s" % (' '.join(commandlist), filters))
             process = subprocess.Popen(commandlist, env=environment,
                                        stdout=subprocess.PIPE)
             filters_re = [re.compile(filter, re.MULTILINE) for filter in filters]

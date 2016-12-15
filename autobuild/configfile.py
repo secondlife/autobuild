@@ -111,16 +111,20 @@ class ConfigurationDescription(common.Serialized):
         else:
             return os.path.abspath(os.path.join(os.path.dirname(self.path), path))
 
-    def get_all_build_configurations(self, platform_name=common.get_current_platform()):
+    def get_all_build_configurations(self, platform_name=None):
         """
         Returns all build configurations for the platform.
         """
+        if platform_name is None:
+            platform_name = common.get_current_platform()
         return self.get_platform(platform_name).configurations.values()
 
-    def get_build_configuration(self, build_configuration_name, platform_name=common.get_current_platform()):
+    def get_build_configuration(self, build_configuration_name, platform_name=None):
         """
         Returns the named build configuration for the platform.
         """
+        if platform_name is None:
+            platform_name = common.get_current_platform()
         try:
             return self.get_platform(platform_name).configurations[build_configuration_name]
         except KeyError:
@@ -128,19 +132,23 @@ class ConfigurationDescription(common.Serialized):
                                      "one may be created using 'autobuild edit build'" %
                                      build_configuration_name)
 
-    def get_default_build_configurations(self, platform_name=common.get_current_platform()):
+    def get_default_build_configurations(self, platform_name=None):
         """
         Returns the platform specific build configurations which are marked as default.
         """
+        if platform_name is None:
+            common.get_current_platform()
         return [value
                 for (key, value) in self.get_platform(platform_name).configurations.iteritems()
                 if value.default]
 
-    def get_build_directory(self, configuration, platform_name=common.get_current_platform()):
+    def get_build_directory(self, configuration, platform_name=None):
         """
         Returns the absolute path to the build directory for the platform.
         """
         build_directory=None
+        if platform_name is None:
+            platform_name = common.get_current_platform()
         platform_description = self.get_platform(platform_name)
         common_platform_description = self.package_description.platforms.get(common.PLATFORM_COMMON, None)
         config_directory = os.path.dirname(self.path)
@@ -552,6 +560,7 @@ class PackageDescription(common.Serialized):
                     package_selected_platform = base_platform
         if target_platform is None:
             target_platform = self.platforms.get(common.PLATFORM_COMMON)
+            logger.info("get_platform No %s configuration found; inheriting common" % (platform))
         return target_platform
 
     def read_version_file(self, build_directory):

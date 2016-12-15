@@ -142,7 +142,7 @@ class _config(InteractiveCommand):
         # fetch existing value if there is one
         cmds = dict([tuple for tuple in [('build', build), ('configure', configure)] if tuple[1]])
         try:
-            build_config_desc = self.config.get_build_configuration(name, platform)
+            build_config_desc = self.config.get_build_configuration(name, platform_name=platform)
             for name in build_config_desc.build_steps:
                 build_config_desc.update(cmds)
         except configfile.ConfigurationError:
