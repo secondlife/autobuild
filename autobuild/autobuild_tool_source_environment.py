@@ -300,8 +300,7 @@ and remove the set_build_variables command. All the same variables will be set."
     }
 """
 
-if common.is_system_windows():
-    windows_template = """
+windows_template = """
 
     build_sln() {
         local solution=$1
@@ -323,9 +322,7 @@ if common.is_system_windows():
     if ! (($USE_INCREDIBUILD)) ; then
         load_vsvars
     fi
-    """
-    environment_template = '\n'.join((environment_template, windows_template))
-
+"""
 
 def do_source_environment(args):
     # SL-452: autobuild source_environment now takes a positional argument
@@ -351,7 +348,11 @@ similar.""")
 
     var_mapping = {}
 
-    if common.is_system_windows():
+    if not common.is_system_windows():
+        template = environment_template
+    else:
+        template = '\n'.join((environment_template, windows_template))
+
         try:
             # reset stdout in binary mode so sh doesn't get confused by '\r'
             import msvcrt
@@ -403,14 +404,14 @@ similar.""")
             ('        export %s="%s"' % varval for varval in vsvarslist)
         )
 
-    # Before expanding environment_template with var_mapping, finalize the
-    # 'exports' and 'vars' dicts into var_mapping["vars"] as promised above.
+    # Before expanding template with var_mapping, finalize the 'exports' and
+    # 'vars' dicts into var_mapping["vars"] as promised above.
     var_mapping["vars"] = '\n'.join(itertools.chain(
         (("    export %s='%s'" % (k, v)) for k, v in exports.iteritems()),
         (("    %s='%s'" % (k, v)) for k, v in vars.iteritems()),
         ))
 
-    sys.stdout.write(environment_template % var_mapping)
+    sys.stdout.write(template % var_mapping)
 
     if get_params:
         # *TODO - run get_params.generate_bash_script()

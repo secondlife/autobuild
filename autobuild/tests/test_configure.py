@@ -26,7 +26,7 @@ from autobuild import autobuild_tool_configure as configure
 import autobuild.configfile as configfile
 from autobuild.executable import Executable
 import autobuild.common as common
-import os
+import os, sys
 from basetest import BaseTest
 
 
@@ -42,8 +42,13 @@ class TestConfigure(BaseTest, AutobuildBaselineCompare):
         package.license_file="LICENSES/file"
         platform = configfile.PlatformDescription()
         build_configuration = configfile.BuildConfigurationDescription()
+        # Formally you might consider that noop.py is an "argument" rather
+        # than an "option" -- but the way Executable is structured, if we pass
+        # it as an "argument" then the "build" subcommand gets inserted before
+        # it, which thoroughly confuses the Python interpreter.
         build_configuration.configure = \
-            Executable(command=os.path.join(os.path.dirname(__file__), "noop.py"))
+            Executable(command=sys.executable,
+                       options=[os.path.join(os.path.dirname(__file__), "noop.py")])
         build_configuration.default = True
         build_configuration.name = 'Release'
         platform.configurations['Release'] = build_configuration

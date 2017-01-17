@@ -22,6 +22,7 @@
 
 
 import os
+import sys
 import logging
 import pprint
 import tempfile
@@ -78,7 +79,13 @@ class LocalBase(BaseTest, AutobuildBaselineCompare):
         with open(package.version_file, "w") as vf:
             vf.write("1.0\n")
         build_configuration = configfile.BuildConfigurationDescription()
-        build_configuration.build = Executable(command="noop.py")
+        # Formally you might consider that noop.py is an "argument" rather
+        # than an "option" -- but the way Executable is structured, if we pass
+        # it as an "argument" then the "build" subcommand gets inserted before
+        # it, which thoroughly confuses the Python interpreter.
+        build_configuration.build = \
+            Executable(command=sys.executable,
+                       options=[os.path.join(os.path.dirname(__file__), "noop.py")])
         build_configuration.default = True
         build_configuration.name = 'Release'
         platform.configurations['Release'] = build_configuration
@@ -131,8 +138,14 @@ class TestEnvironment(LocalBase):
     def get_config(self):
         config = super(TestEnvironment, self).get_config()
         config.package_description.copyright="no copy"
+        # Formally you might consider that noop.py is an "argument" rather
+        # than an "option" -- but the way Executable is structured, if we pass
+        # it as an "argument" then the "build" subcommand gets inserted before
+        # it, which thoroughly confuses the Python interpreter.
         config.package_description.platforms[common.get_current_platform()] \
-              .configurations["Release"].build = Executable(command="envtest.py")
+              .configurations["Release"].build = \
+              Executable(command=sys.executable,
+                         options=[os.path.join(os.path.dirname(__file__), "envtest.py")])
         return config
 
     def test_env(self):

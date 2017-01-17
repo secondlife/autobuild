@@ -23,8 +23,10 @@
 from ast import literal_eval
 import logging
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 from autobuild import autobuild_tool_source_environment as atse
 from basetest import *
@@ -41,11 +43,14 @@ def assert_dict_has(d, key, value):
         assert_equals(dval, value)
 
 def assert_dict_subset(d, s):
+    # Windows insists on capitalizing environment variables, so prepare a copy
+    # of d with all-caps keys.
+    dupper = dict((k.upper(), v) for k, v in d.iteritems())
     missing = []
     mismatch = []
     for key, value in s.iteritems():
         try:
-            dval = d[key]
+            dval = dupper[key.upper()]
         except KeyError:
             missing.append(key)
         else:
@@ -95,7 +100,12 @@ class TestSourceEnvironment(BaseTest):
             else:
                 del os.environ[var]
 
+        # create a temp directory
+        self.tempdir = tempfile.mkdtemp()
+
     def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
         for var, value in self.restores.iteritems():
             os.environ[var] = value
         for var in self.removes:
@@ -125,22 +135,57 @@ class TestSourceEnvironment(BaseTest):
                (self.autobuild_bin, rc, stderr)
         return stdout.rstrip(), stderr.rstrip()
 
-    def source_env_and(self, args, commands):
-        """
-        This method runs a little bash script that runs autobuild
-        source_environment (with args as specified in the sequence 'args'),
-        evals its output and then performs whatever bash commands are passed
-        in the string 'commands'.
-        """
-        # You may wonder why we explicitly pass 'bash -c' before the command
-        # rather than shell=True. It's because on Windows, shell=True gets us
-        # the .bat processor rather than bash. We specifically want bash on
-        # all platforms.
-        return subprocess.check_output(["bash", "-c", """\
-eval "$('%s' source_environment %s)"
-%s""" % (self.autobuild_bin,
-         ' '.join("'%s'" % arg for arg in args),
-         commands)]).rstrip()
+    if not sys.platform.startswith("win"):
+        def source_env_and(self, args, commands):
+            """
+            This method runs a little bash script that runs autobuild
+            source_environment (with args as specified in the sequence 'args'),
+            evals its output and then performs whatever bash commands are passed
+            in the string 'commands'.
+            """
+            # You may wonder why we explicitly pass 'bash -c' before the command
+            # rather than shell=True. It's because on Windows, shell=True gets us
+            # the .bat processor rather than bash. We specifically want bash on
+            # all platforms.
+            return subprocess.check_output(["bash", "-c", """\
+    eval "$('%s' source_environment %s)"
+    %s""" % (self.autobuild_bin,
+             ' '.join("'%s'" % arg for arg in args),
+             commands)]).rstrip()
+
+        def shell_path(self, path):
+            return path
+
+    else: # Then There's Windows
+        # On Windows, running
+        # bash -c 'eval "$(autobuild source_environment)" ...'
+        # is unreasonably difficult. We've set things up so that
+        # self.autobuild_bin is the Windows .cmd file -- which won't work if
+        # passed to bash. Okay, we tell bash to execute the OTHER script, the
+        # one intended for bash. But that one depends on a shbang line
+        # #!/usr/bin/env python
+        # which (as desired) invokes the python.org Python interpreter...
+        # passing it /cygdrive/c/path/to/our/autobuild... which fails
+        # miserably. So on Windows, don't even try to run autobuild under
+        # bash. Instead we're going to run autobuild source_environment using
+        # self.autobuild(), capture its output, prepare a temp script file,
+        # append the specified commands and run that script file with bash.
+        def source_env_and(self, args, commands):
+            srcenv = self.autobuild("source_environment", *args)
+            scriptname = os.path.join(self.tempdir, "source_env_and.sh")
+            # binary mode because '\r\n' confuses bash
+            with open(scriptname, "wb") as scriptf:
+                scriptf.write(srcenv)
+                scriptf.write('\n')
+                scriptf.write(commands)
+            try:
+                return subprocess.check_output(["bash", "-c",
+                                                self.shell_path(scriptname)]).rstrip()
+            finally:
+                os.remove(scriptname)
+
+        def shell_path(self, path):
+            return subprocess.check_output(["cygpath", "-u", path]).rstrip()
 
     def read_variables(self, *args):
         """
@@ -160,7 +205,7 @@ for var in $(set | grep '^[^ ]' | cut -s -d= -f 1)
 do export $var
 done
 '%s' -c 'import os, pprint
-pprint.pprint(os.environ)'""" % sys.executable))
+pprint.pprint(os.environ)'""" % self.shell_path(sys.executable)))
         # filter out anything inherited from our own environment
         for var, value in os.environ.iteritems():
             if value == vars.get(var):
