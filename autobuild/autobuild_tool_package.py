@@ -205,7 +205,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
             files.add(package_description.license_file)
     if 'source_directory' in metadata_file.package_description:
         del metadata_file.package_description['source_directory']
-    disallowed_paths=[path for path in files if path.find("..") >= 0 or path[0] == "/"]
+    disallowed_paths=[path for path in files if ".." in path or os.path.isabs(path)]
     if disallowed_paths:
         raise PackageError("Absolute paths or paths with parent directory elements are not allowed:\n  "+"\n  ".join(sorted(disallowed_paths))+"\n")
     metadata_file.manifest = files
