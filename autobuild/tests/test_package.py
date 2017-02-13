@@ -181,6 +181,27 @@ $''' % ('test1', re.escape(os.path.join(self.data_dir, "package-test", "autobuil
         assert not os.path.exists(self.zip_name), "%s created by dry run" % self.zip_name
         assert not os.path.exists(self.tar_name), "%s created by dry run" % self.tar_name
 
+    def test_disallowed_paths(self):
+        self.options = PackageOptions(self.data_dir)
+        config_template=os.path.join(self.data_dir,"autobuild-package-disallowedpath-config.xml")
+        # earlier tests establish the 'common' platform
+        # clear that out so that this test uses both the current and common
+        del os.environ['AUTOBUILD_PLATFORM']
+        del os.environ['AUTOBUILD_PLATFORM_OVERRIDE']
+        common.Platform=None
+        self.platform=common.get_current_platform()
+        logger.debug("platform "+self.platform)
+        self.options.platform=self.platform
+        platform_config=self.platform+"-autobuild-package-disallowedpath-config.xml"
+        self.instantiateTemplate(config_template
+                                ,platform_config
+                                ,{'PLATFORM':self.platform})
+        self.options.autobuild_filename = platform_config
+        badpaths=["include/../include/file1","include/../file2","../package-test/include/file1","include/..","/etc/passwd"]
+        with ExpectError("Absolute paths or paths with parent directory elements are not allowed:\n  "+'\n  '.join(sorted(badpaths))+"\n",
+                         "Bad paths not detected"):
+            package.AutobuildTool().run(self.options)
+
     def test_package_missing(self):
         self.options = PackageOptions(self.data_dir)
         config_template=os.path.join(self.data_dir,"autobuild-package-missing-config.xml")
