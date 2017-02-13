@@ -150,7 +150,7 @@ def _configure_a_configuration(config, build_configuration, extra_arguments, dry
         configure_executable = common_configure
 
     else:
-        logger.warning('no configure executable defined; doing nothing')
+        logger.info('no configure executable defined; doing nothing')
         return 0
 
     logger.info('configure command:\n  %s', configure_executable.__str__(extra_arguments))
