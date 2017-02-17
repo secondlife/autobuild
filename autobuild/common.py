@@ -527,11 +527,9 @@ def establish_build_id(build_id_arg):
     elif 'AUTOBUILD_BUILD_ID' in os.environ:
         build_id = os.environ['AUTOBUILD_BUILD_ID']
     else:
-        # construct a timestamp that will fit into a signed 32 bit integer
-        # <two digit year><three digit day of year><four digit minute of day>
-        build_time = time.gmtime()
-        build_minutes = 60 * build_time.tm_hour + build_time.tm_min
-        build_id = "%02d%03d%04d" % ((build_time.tm_year % 100), build_time.tm_yday, build_minutes)
+        # construct a timestamp that will fit into a signed 32 bit integer:
+        #   <two digit year><three digit day of year><two digit hour><two digit minute>
+        build_id = time.strftime("%y%j%H%M", time.gmtime())
         logger.warn("Warning: no --id argument or AUTOBUILD_BUILD_ID environment variable specified;\n    using a value from the UTC date and time (%s), which may not be unique" % build_id)
     os.environ['AUTOBUILD_BUILD_ID'] = build_id
     return build_id
