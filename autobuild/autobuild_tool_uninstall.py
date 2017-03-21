@@ -39,6 +39,7 @@ import logging
 import configfile
 import autobuild_base
 from autobuild_tool_install import uninstall
+from autobuild_tool_source_environment import get_enriched_environment
 
 logger = logging.getLogger('autobuild.uninstall')
 
@@ -113,38 +114,45 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             default=self.configurations_from_environment())
 
     def run(self, args):
+        platform=common.get_current_platform()
+        logger.debug("uninstalling for platform "+platform)
+
         installed_filename = args.installed_filename
         if os.path.isabs(installed_filename):
             installed_filenames = [installed_filename]
         else:
-            # Give user the opportunity to avoid reading AUTOBUILD_CONFIG_FILE by
-            # specifying a full pathname for --installed-manifest. Make a
-            # 'config' object that only actually loads the config file if we
-            # try to use it by accessing an attribute.
-            class LazyConfig(object):
-                def __init__(self, filename):
-                    self.filename = filename
-                    self.config = None
-
-                def __getattr__(self, attr):
-                    if self.config is None:
-                        logger.debug("loading " + self.filename)
-                        self.config = configfile.ConfigurationDescription(self.filename)
-                    return getattr(self.config, attr)
-
             # This logic handles the (usual) case when installed_filename is
             # relative to install_dir. Therefore we must figure out install_dir.
 
             # write packages into 'packages' subdir of build directory by default
-            config = LazyConfig(args.install_filename)
-            installed_filenames = \
-                [os.path.realpath(os.path.join(install_dir, installed_filename))
-                 for install_dir in
-                 common.select_directories(args, config,
-                                           "install", "uninstalling",
-                                           lambda cnf:
-                                           os.path.join(config.make_build_directory(cnf, dry_run=args.dry_run),
-                                                        "packages"))]
+            config = configfile.ConfigurationDescription(args.install_filename)
+            # establish a build directory so that the install directory is relative to it
+            build_configurations = common.select_configurations(args, config, "uninstalling for")
+            if not build_configurations:
+                logger.error("no applicable configurations found.\n"
+                             "did you remember to mark a configuration as default?\n"
+                             "autobuild cowardly refuses to do nothing!")
+                
+            for build_configuration in build_configurations:
+                # Get enriched environment based on the current configuration
+                environment = get_enriched_environment(build_configuration.name)
+                # then get a copy of the config specific to this build
+                # configuration
+                bconfig = config.copy()
+                # and expand its $variables according to the environment.
+                bconfig.expand_platform_vars(environment)
+                # Re-fetch the build configuration so we have its expansions.
+                build_configuration = bconfig.get_build_configuration(build_configuration.name, platform_name=platform)
+                build_directory = bconfig.get_build_directory(build_configuration, platform_name=platform)
+                logger.debug("build directory: %s" % build_directory)
+                installed_filenames = \
+                  [os.path.realpath(os.path.join(install_dir, installed_filename))
+                   for install_dir in
+                   common.select_directories(args, config,
+                                            "install", "uninstalling",
+                                            lambda cnf:
+                                            os.path.join(build_directory,
+                                                         "packages"))]
 
         logger.debug("installed filenames: %s" % installed_filenames)
         for installed_filename in installed_filenames:
