@@ -731,7 +731,7 @@ def clean_files(install_dir, files):
                 # traceback. But there are a couple different ways we could get
                 # through this logic without actually deleting. So produce a
                 # message only when we're sure we've actually deleted something.
-                logger.debug("    removed " + filename)
+                logger.info("    removed " + filename)
             except OSError, err:
                 if err.errno == errno.ENOENT:
                     # this file has already been deleted for some reason -- fine
@@ -753,7 +753,7 @@ def clean_files(install_dir, files):
             dir_path = os.path.join(install_dir, dirname)
             if os.path.exists(dir_path) and not os.listdir(dir_path):
                 os.rmdir(dir_path)
-                logger.debug("    removed " + dirname)
+                logger.info("    removed " + dirname)
                 parent=os.path.dirname(dirname)
                 if dir_path:
                     parents.add(parent)
