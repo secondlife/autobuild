@@ -29,7 +29,7 @@
             <string>include/../file2</string>
             <string>../package-test/include/file1</string>
             <string>include/..</string>
-            <string>/etc/passwd</string>
+            <string>/</string>
           </array>
           <key>name</key>
           <string>common</string>

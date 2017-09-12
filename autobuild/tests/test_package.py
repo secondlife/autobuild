@@ -197,7 +197,10 @@ $''' % ('test1', re.escape(os.path.join(self.data_dir, "package-test", "autobuil
                                 ,platform_config
                                 ,{'PLATFORM':self.platform})
         self.options.autobuild_filename = platform_config
-        badpaths=["include/../include/file1","include/../file2","../package-test/include/file1","include/..","/etc/passwd"]
+        # it's hard to come up with a root path (such as /etc/passwd) that will be on all platforms
+        # so we use "/" here; if you use some /etc/passwd, you get a different exception
+        # (No files matched manifest specifiers) when the file does not exist
+        badpaths=["include/../include/file1","include/../file2","../package-test/include/file1","include/..","/"]
         with ExpectError("Absolute paths or paths with parent directory elements are not allowed:\n  "+'\n  '.join(sorted(badpaths))+"\n",
                          "Bad paths not detected"):
             package.AutobuildTool().run(self.options)
