@@ -29,6 +29,7 @@ Date   : 2010-09-29
 """
 
 import os
+import sys
 import subprocess
 import re
 
@@ -119,6 +120,7 @@ class Executable(common.Serialized):
         cmdargs=" '%s'" % "' '".join(commandlist[1:]) if len(commandlist) > 1 else ""
         showfilter="\n| filter (%s)" % "|".join(filters) if filters else ""
         print "%s%s%s" % (commandlist[0], cmdargs, showfilter)
+        sys.stdout.flush()
 
     def __str__(self, options=[]):
         try:
