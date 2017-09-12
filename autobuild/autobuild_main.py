@@ -261,9 +261,9 @@ def main():
     try:
         os.environ['PATH'] = os.environ.get('PATH') + os.pathsep + script_path
         sys.exit(Autobuild().main(sys.argv[1:]))
-    except KeyboardInterrupt, e:
+    except KeyboardInterrupt as e:
         sys.exit("Aborted...")
-    except common.AutobuildError, e:
+    except common.AutobuildError as e:
         if logger.getEffectiveLevel() <= logging.DEBUG:
             logger.exception(str(e))
         msg = ["ERROR: ", str(e)]

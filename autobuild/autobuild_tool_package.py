@@ -228,7 +228,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
         if results_file:
             try:
                 results=open(results_file,'wb')
-            except IOError, err:
+            except IOError as err:
                 raise PackageError("Unable to open results file %s:\n%s" % (results_file, err))
             results.write('autobuild_package_name="%s"\n' % package_description.name)
             results.write('autobuild_package_clean="%s"\n' % ("false" if metadata_file.dirty else "true"))
@@ -324,7 +324,7 @@ def _create_tarfile(tarfilename, build_directory, filelist, results):
                     print output
                 tfile.add(file)
                 logger.info('added ' + file)
-            except tarfile.TarError, IOError, OSError as err:
+            except (tarfile.TarError, IOError, OSError) as err:
                 # Apparently you can get any of the above if the specified filename can't be opened
                 raise PackageError("unable to add %s to %s: %s" % (file, tarfilename, err))
         tfile.close()
@@ -376,7 +376,7 @@ def _add_file_to_zip_archive(zip_file, unnormalized_file, archive_filename, adde
     else:
         try:
             zip_file.write(file)
-        except Exception, err:
+        except Exception as err:
             raise PackageError("%s: unable to add %s to %s: %s" %
                                (err.__class__.__name__, file, archive_filename, err))
         logger.info('added ' + file)

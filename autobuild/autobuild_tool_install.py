@@ -324,14 +324,14 @@ def extract_metadata_from_package(archive_path, metadata_file_name):
             tar = tarfile.open(archive_path, 'r')
             try:
                 metadata_file = tar.extractfile(metadata_file_name)
-            except KeyError, err:
+            except KeyError as err:
                 metadata_file = None
                 pass  # returning None will indicate that it was not there
         elif zipfile.is_zipfile(archive_path):
             try:
                 zip = zipfile.ZipFile(archive_path, 'r')
                 metadata_file = zip.open(metadata_file_name, 'r')
-            except KeyError, err:
+            except KeyError as err:
                 metadata_file = None
                 pass  # returning None will indicate that it was not there
         else:
@@ -732,7 +732,7 @@ def clean_files(install_dir, files):
                 # through this logic without actually deleting. So produce a
                 # message only when we're sure we've actually deleted something.
                 logger.info("    removed " + filename)
-            except OSError, err:
+            except OSError as err:
                 if err.errno == errno.ENOENT:
                     # this file has already been deleted for some reason -- fine
                     logger.warning("    expected file not found: " + install_path)
@@ -809,7 +809,7 @@ def install_packages(args, config_file, install_dir, platform, packages):
             # in case we got this far without ever having created installed_file's
             # parent directory
             os.makedirs(os.path.dirname(installed.path))
-        except OSError, err:
+        except OSError as err:
             if err.errno != errno.EEXIST:
                 raise AutobuildError(str(err))
         installed.save()

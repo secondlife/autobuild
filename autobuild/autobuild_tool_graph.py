@@ -219,7 +219,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             if args.dot_file:
                 try:
                     dot_file=open(args.dot_file,'wb')
-                except IOError, err:
+                except IOError as err:
                     raise GraphError("Unable to open dot file %s: %s" % (args.dot_file, err))
                 dot_file.write(graph.to_string())
                 dot_file.close()

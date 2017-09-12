@@ -342,7 +342,7 @@ def compute_md5(path):
 
     try:
         stream = open(path, 'rb')
-    except IOError, err:
+    except IOError as err:
         raise AutobuildError("Can't compute MD5 for %s: %s" % (path, err))
 
     try:

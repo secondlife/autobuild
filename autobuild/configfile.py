@@ -585,7 +585,7 @@ class PackageDescription(common.Serialized):
         try:
             with open(version_file) as vf:
                 version = vf.read().strip()
-        except IOError, err:
+        except IOError as err:
             raise common.AutobuildError("Can't read version_file '%s': %s" %
                                         (self.version_file, err))
 

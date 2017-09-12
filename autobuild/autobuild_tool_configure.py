@@ -134,7 +134,7 @@ def _configure_a_configuration(config, build_configuration, extra_arguments, dry
         common_build_configuration = \
             config.get_build_configuration(build_configuration.name, platform_name=common.PLATFORM_COMMON)
         common_configure = common_build_configuration.configure
-    except Exception, e:
+    except Exception as e:
         if logger.getEffectiveLevel() <= logging.DEBUG:
             logger.exception(e)
         logger.debug('no common platform found')
