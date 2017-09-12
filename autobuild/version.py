@@ -43,4 +43,4 @@ $/LicenseInfo$
 # will wreak havoc upon new users of your package, as they will not be able to
 # install your package without manually installing the dependencies first."
 
-AUTOBUILD_VERSION_STRING = "1.1.5"
+AUTOBUILD_VERSION_STRING = "1.1.6"

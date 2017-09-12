@@ -99,11 +99,11 @@ class Executable(common.Serialized):
         filters = self.get_filters()
         if not filters:
             # no filtering, dump child stdout directly to our own stdout
-            logger.debug("subprocess %s" % ' '.join(commandlist))
+            self.show_command(commandlist)
             return subprocess.call(commandlist, env=environment)
         else:
             # have to filter, so run stdout through a pipe
-            logger.debug("running subprocess %s filtered %s" % (' '.join(commandlist), filters))
+            self.show_command(commandlist, filters=filters)
             process = subprocess.Popen(commandlist, env=environment,
                                        stdout=subprocess.PIPE)
             filters_re = [re.compile(filter, re.MULTILINE) for filter in filters]
@@ -114,7 +114,12 @@ class Executable(common.Serialized):
                 line = line.replace("\r", "\n")
                 print line,  # Trailing , prevents an extra newline
             return process.wait()
-   
+
+    def show_command(self, commandlist, filters=None):
+        cmdargs=" '%s'" % "' '".join(commandlist[1:]) if len(commandlist) > 1 else ""
+        showfilter="\n| filter (%s)" % "|".join(filters) if filters else ""
+        print "%s%s%s" % (commandlist[0], cmdargs, showfilter)
+
     def __str__(self, options=[]):
         try:
             return ' '.join(self._get_all_arguments(options))

@@ -324,8 +324,8 @@ def _create_tarfile(tarfilename, build_directory, filelist, results):
                     print output
                 tfile.add(file)
                 logger.info('added ' + file)
-            except (tarfile.TarError, IOError), err:
-                # IOError in case the specified filename can't be opened
+            except tarfile.TarError, IOError, OSError as err:
+                # Apparently you can get any of the above if the specified filename can't be opened
                 raise PackageError("unable to add %s to %s: %s" % (file, tarfilename, err))
         tfile.close()
     finally:
