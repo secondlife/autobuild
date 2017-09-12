@@ -250,10 +250,10 @@ class TestSubstitutions(LocalBase):
         return config
 
     def test_substitutions(self):
-        self.assertEqual(self.autobuild('build', '--config-file=' + self.tmp_file,
-                                        '-A', '32'), "foo32")
-        self.assertEqual(self.autobuild('build', '--config-file=' + self.tmp_file,
-                                        '-A', '64'), "foo64")
+        assert "foo32" in self.autobuild('build', '--config-file=' + self.tmp_file,
+                                        '-A', '32')
+        assert "foo64" in self.autobuild('build', '--config-file=' + self.tmp_file,
+                                        '-A', '64')
 
 if __name__ == '__main__':
     unittest.main()

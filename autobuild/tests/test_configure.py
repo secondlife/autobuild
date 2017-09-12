@@ -71,10 +71,10 @@ class TestConfigure(BaseTest, AutobuildBaselineCompare):
             .configurations['Release'].configure = \
             Executable("echo", arguments=["foo$AUTOBUILD_ADDRSIZE"])
         self.config.save()
-        self.assertEqual(self.autobuild('configure', '--config-file=' + self.tmp_file,
-                                        '-A', '32'), "foo32")
-        self.assertEqual(self.autobuild('configure', '--config-file=' + self.tmp_file,
-                                        '-A', '64'), "foo64")
+        assert "foo32" in self.autobuild('configure', '--config-file=' + self.tmp_file,
+                                        '-A', '32')
+        assert "foo64" in self.autobuild('configure', '--config-file=' + self.tmp_file,
+                                        '-A', '64')
 
     def tearDown(self):
         self.cleanup_tmp_file()
