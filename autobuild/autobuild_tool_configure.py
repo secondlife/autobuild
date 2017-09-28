@@ -61,7 +61,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             default=self.configurations_from_environment())
         parser.add_argument('--all', '-a', dest='all', default=False, action="store_true",
                             help="build all configurations")
-        parser.add_argument('--id', '-i', dest='build_id', help='unique build identifier')
+        parser.add_argument('--id', '-i', dest='build_id', type=int, help='unique build number')
         parser.add_argument('additional_options', nargs="*", metavar='OPT',
                             help="an option to pass to the configuration command")
 

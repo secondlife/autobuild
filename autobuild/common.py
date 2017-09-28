@@ -521,7 +521,6 @@ def establish_build_id(build_id_arg):
     to the same value.
     """
 
-    build_id = None
     if build_id_arg:
         build_id = build_id_arg
     elif 'AUTOBUILD_BUILD_ID' in os.environ:
@@ -531,7 +530,9 @@ def establish_build_id(build_id_arg):
         #   <two digit year><three digit day of year><two digit hour><two digit minute>
         build_id = time.strftime("%y%j%H%M", time.gmtime())
         logger.warn("Warning: no --id argument or AUTOBUILD_BUILD_ID environment variable specified;\n    using a value from the UTC date and time (%s), which may not be unique" % build_id)
-    os.environ['AUTOBUILD_BUILD_ID'] = build_id
+
+    logger.debug("Build id %s" % build_id)
+    os.environ['AUTOBUILD_BUILD_ID'] = str(build_id)
     return build_id
 
 

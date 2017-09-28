@@ -75,6 +75,13 @@ class TestConfigure(BaseTest, AutobuildBaselineCompare):
                                         '-A', '32')
         assert "foo64" in self.autobuild('configure', '--config-file=' + self.tmp_file,
                                         '-A', '64')
+    def test_id(self):
+        self.config.package_description.platforms[common.get_current_platform()] \
+            .configurations['Release'].configure = \
+            Executable("echo", arguments=["foo$AUTOBUILD_BUILD_ID"])
+        self.config.save()
+        assert "foo666" in self.autobuild('configure', '--config-file=' + self.tmp_file,
+                                        '-i', '666')
 
     def tearDown(self):
         self.cleanup_tmp_file()

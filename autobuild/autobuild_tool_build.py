@@ -78,7 +78,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="build a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
-        parser.add_argument('--id', '-i', dest='build_id', help='unique build identifier')
+        parser.add_argument('--id', '-i', dest='build_id', type=int, help='unique build number')
 
         parser.add_argument('--clean-only',
                             action="store_true",
