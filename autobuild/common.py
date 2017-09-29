@@ -533,6 +533,6 @@ def establish_build_id(build_id_arg):
 
     logger.debug("Build id %s" % build_id)
     os.environ['AUTOBUILD_BUILD_ID'] = str(build_id)
-    return build_id
+    return str(build_id)
 
 
