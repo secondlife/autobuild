@@ -146,14 +146,6 @@ only by 'autobuild build' to create package metadata.
                              "did you remember to mark a configuration as default?\n"
                              "autobuild cowardly refuses to do nothing!")
 
-            # packages were written into 'packages' subdir of build directory by default
-            install_dirs = common.select_directories(
-                args, config, "metadata", "getting installed packages",
-                lambda cnf: os.path.join(config.get_build_directory(cnf, platform), "packages"))
-
-            # get the absolute paths to the install dir and installed-packages.xml file
-            install_dir = os.path.realpath(install_dirs[0])
-
             for build_configuration in build_configurations:
                 # Get enriched environment based on the current configuration
                 environment = get_enriched_environment(build_configuration.name)
@@ -215,8 +207,25 @@ only by 'autobuild build' to create package metadata.
                 metadata_file.build_id = build_id
                 # get the record of any installed packages
                 logger.debug("installed files in " + args.installed_filename)
+
+                # SL-773: This if/else partly replicates
+                # common.select_directories() because our build_directory
+                # comes from bconfig, which has been $-expanded.
+                # The former select_directories() call produced (e.g.)
+                # build-vc120-$AUTOBUILD_ADDRSIZE, which didn't exist.
+                if args.select_dir:
+                    install_dir = args.select_dir
+                    logger.debug("specified metadata directory: {}"
+                                 .format(install_dir))
+                else:
+                    # packages were written into 'packages' subdir of build directory by default
+                    install_dir = os.path.join(build_directory, "packages")
+                    logger.debug("metadata in build subdirectory: {}"
+                                 .format(install_dir))
+
                 # load the list of already installed packages
-                installed_pathname = os.path.join(install_dir, args.installed_filename)
+                installed_pathname = os.path.realpath(
+                    os.path.join(install_dir, args.installed_filename))
                 if os.path.exists(installed_pathname):
                     metadata_file.add_dependencies(installed_pathname)
                 else:
