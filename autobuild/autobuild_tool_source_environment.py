@@ -23,6 +23,7 @@
 import os
 import sys
 from ast import literal_eval
+import errno
 import itertools
 import logging
 from pprint import pformat
@@ -35,7 +36,6 @@ import tempfile
 
 import common
 import autobuild_base
-
 
 logger = logging.getLogger('autobuild.source_environment')
 
@@ -66,13 +66,49 @@ class SourceEnvError(common.AutobuildError):
 _VSxxxCOMNTOOLS_re = re.compile(r"VS(.*)COMNTOOLS$")
 _VSxxxCOMNTOOLS_st = "VS%sCOMNTOOLS"
 
+# From VS 2017 on, we have to look for vswhere.exe at this canonical path to
+# discover where the Visual Studio install is.
+# https://stackoverflow.com/a/44323312
+# https://blogs.msdn.microsoft.com/heaths/2017/02/25/vswhere-available/
+# It's plausible to make these getenv() and join() calls even on a non-Windows
+# system, as long as we don't assume the resulting path actually exists.
+_VSWHERE_PATH = os.path.join(os.getenv("ProgramFiles(x86)", ""),
+                            "Microsoft Visual Studio", "Installer", "vswhere.exe")
+
 def _available_vsvers():
-    candidates = [match.group(1)
-                  for match in (_VSxxxCOMNTOOLS_re.match(k)
-                                for k in os.environ.iterkeys())
-                  if match]
-    candidates.sort()
-    return candidates
+    # First check all the VSxxxCOMNTOOLS environment variables.
+    candidates = set(match.group(1)
+                     for match in (_VSxxxCOMNTOOLS_re.match(k) for k in os.environ)
+                     if match)
+    # Now, if there's a vswhere.exe on this system, ask it to enumerate VS
+    # versions too. Use a set to unify any duplication.
+    try:
+        versions = subprocess.check_output(
+            # Unless you add -legacy, vswhere.exe doesn't report anything
+            # older than VS 2015.
+            [_VSWHERE_PATH, '-all', '-legacy',
+             '-products', '*',
+             '-requires', 'Microsoft.Component.MSBuild',
+             '-property', 'installationVersion'])
+    except OSError as err:
+        if err.errno != errno.ENOENT:
+            raise
+        # Nonexistence of the vswhere.exe utility is normal for older VS
+        # installs.
+    else:
+        # 'versions' is (e.g.):
+        # 15.8.28010.2016
+        # 12.0
+        # Have to convert from (e.g.) 15.8.28010.2016 to 158 to align with
+        # AUTOBUILD_VSVER convention. In other words, match only ONE digit
+        # after the dot.
+        pattern = re.compile(r'([0-9]+)\.([0-9])')
+        candidates.update(''.join(match.group(1,2))
+                          for match in (pattern.match(line)
+                                        for line in versions.splitlines())
+                          if match)
+    # Caller expects a list; sorted() is documented to return a list.
+    return sorted(candidates)
 
 def load_vsvars(vsver):
     """
@@ -93,49 +129,89 @@ def load_vsvars(vsver):
     file will set variables appropriate for a 32-bit build, and similarly when
     it's '64'.
     """
-    key = _VSxxxCOMNTOOLS_st % vsver
-    logger.debug("vsver %s, key %s" % (vsver, key))
-    try:
-        # We've seen traceback output from this if vsver doesn't match an
-        # environment variable. Produce a reasonable error message instead.
-        VSxxxCOMNTOOLS = os.environ[key]
-    except KeyError:
-        candidates = _available_vsvers()
-        explain = " (candidates: %s)" % ", ".join(candidates) if candidates \
-                  else ""
-        raise SourceEnvError('AUTOBUILD_VSVER=%s unsupported, is Visual Studio %s installed?%s' %
-                             (vsver, vsver, explain))
+    # open question: At what version did Microsoft stop setting VSxxxCOMNTOOLS
+    # in favor of the vswhere.exe tool? We're sure that by VS 2017 ('150')
+    # there was no VS150COMNTOOLS environment variable, whereas at that point
+    # vswhere.exe was installed at the canonical location by Visual Studio.
+    # Did VS 2015 still adhere to the VS140COMNTOOLS convention? Adjust the
+    # comparison here as necessary.
+    if int(vsver) >= 150:
+        # We can't use the VSxxxCOMNTOOLS dodge as we always used to. Use
+        # vswhere.exe instead.
+        via = os.path.basename(_VSWHERE_PATH)
+        # Split (e.g.) '150' into '15' and '0', then insert '.'
+        version = '.'.join((vsver[:-1], vsver[-1:]))
+        try:
+            where = subprocess.check_output(
+                [_VSWHERE_PATH, '-version', version, '-products', '*',
+                 '-requires', 'Microsoft.Component.MSBuild',
+                 '-property', 'InstallationPath']).rstrip()
+        except OSError as err:
+            if err.errno != errno.ENOENT:
+                raise
+            raise SourceEnvError('AUTOBUILD_VSVER={} unsupported, '
+                                 'is Visual Studio {} installed? (%s not found)'
+                                 .format(vsver, vsver, _VSWHERE_PATH))
+        except subprocess.CalledProcessError as err:
+            raise SourceEnvError('AUTOBUILD_VSVER={} unsupported: {}'
+                                 .format(vsver, err))
+        if not where:
+            # vswhere terminated with 0, yet its output is empty.
+            raise SourceEnvError('AUTOBUILD_VSVER={} unsupported, '
+                                 'is Visual Studio {} installed? (vswhere couldn\'t find)'
+                                 .format(vsver, vsver))
+        # If we get this far, 'where' is the output of the above
+        # vswhere command. Append the rest of the directory path.
+        VCINSTALLDIR = os.path.join(where, 'VC', 'Auxiliary', 'Build')
 
-    # VSxxxCOMNTOOLS will be something like:
-    # C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\Tools\
-    # We want to find vcvarsall.bat, which will be somewhere like
-    # C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat
-    # Assuming that we can just find %VSxxxCOMNTOOLS%..\..\VC seems a little
-    # fragile across installs or (importantly) across future VS versions.
-    # Instead, use %VSxxxCOMNTOOLS%VCVarsQueryRegistry.bat to populate
-    # VCINSTALLDIR.
-    VCVarsQueryRegistry_base = "VCVarsQueryRegistry.bat"
-    VCVarsQueryRegistry = os.path.join(VSxxxCOMNTOOLS, VCVarsQueryRegistry_base)
-    # Failure to find any of these .bat files could produce really obscure
-    # execution errors. Make the error messages as explicit as we can.
-    if not os.path.exists(VCVarsQueryRegistry):
-        raise SourceEnvError("%s not found at %s: %s" %
-                             (VCVarsQueryRegistry_base, key, VSxxxCOMNTOOLS))
+    else:
+        # Older Visual Studio versions use the VSxxxCOMNTOOLS environment
+        # variable.
+        key = _VSxxxCOMNTOOLS_st % vsver
+        via = key
+        logger.debug("vsver %s, key %s" % (vsver, key))
+        try:
+            # We've seen traceback output from this if vsver doesn't match an
+            # environment variable. Produce a reasonable error message instead.
+            VSxxxCOMNTOOLS = os.environ[key]
+        except KeyError:
+            candidates = _available_vsvers()
+            explain = " (candidates: %s)" % ", ".join(candidates) if candidates \
+                      else ""
+            raise SourceEnvError('AUTOBUILD_VSVER=%s unsupported, '
+                                 'is Visual Studio %s installed?%s' %
+                                 (vsver, vsver, explain))
 
-    # Found VCVarsQueryRegistry.bat, run it.
-    vcvars = get_vars_from_bat(VCVarsQueryRegistry)
+        # VSxxxCOMNTOOLS will be something like:
+        # C:\Program Files (x86)\Microsoft Visual Studio 12.0\Common7\Tools\
+        # We want to find vcvarsall.bat, which will be somewhere like
+        # C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat
+        # Assuming that we can just find %VSxxxCOMNTOOLS%..\..\VC seems a little
+        # fragile across installs or (importantly) across future VS versions.
+        # Instead, use %VSxxxCOMNTOOLS%VCVarsQueryRegistry.bat to populate
+        # VCINSTALLDIR.
+        VCVarsQueryRegistry_base = "VCVarsQueryRegistry.bat"
+        VCVarsQueryRegistry = os.path.join(VSxxxCOMNTOOLS, VCVarsQueryRegistry_base)
+        # Failure to find any of these .bat files could produce really obscure
+        # execution errors. Make the error messages as explicit as we can.
+        if not os.path.exists(VCVarsQueryRegistry):
+            raise SourceEnvError("%s not found at %s: %s" %
+                                 (VCVarsQueryRegistry_base, key, VSxxxCOMNTOOLS))
 
-    # Then we can find %VCINSTALLDIR%vcvarsall.bat.
-    try:
-        VCINSTALLDIR = vcvars["VCINSTALLDIR"]
-    except KeyError:
-        raise SourceEnvError("%s did not populate VCINSTALLDIR" % VCVarsQueryRegistry)
+        # Found VCVarsQueryRegistry.bat, run it.
+        vcvars = get_vars_from_bat(VCVarsQueryRegistry)
+
+        # Then we can find %VCINSTALLDIR%vcvarsall.bat.
+        try:
+            VCINSTALLDIR = vcvars["VCINSTALLDIR"]
+        except KeyError:
+            raise SourceEnvError("%s did not populate VCINSTALLDIR" % VCVarsQueryRegistry)
 
     vcvarsall_base = "vcvarsall.bat"
     vcvarsall = os.path.join(VCINSTALLDIR, vcvarsall_base)
     if not os.path.exists(vcvarsall):
-        raise SourceEnvError("%s not found at VCINSTALLDIR: %s" %
-                             (vcvarsall_base, VCINSTALLDIR))
+        raise SourceEnvError("%s not found at: %s (via %s)" %
+                             (vcvarsall_base, VCINSTALLDIR, via))
 
     # vcvarsall.bat accepts a single argument: the target architecture, e.g.
     # "x86" or "x64".
@@ -327,7 +403,7 @@ windows_template = """
 def do_source_environment(args):
     # SL-452: autobuild source_environment now takes a positional argument
     # 'varsfile' indicating the script in which we'll find essential
-    # environment variable settings. This isn't a required argument to ease
+    # environment variable settings. This argument isn't required to ease
     # transitioning from autobuild 1.0 and earlier -- instead, if omitted,
     # check AUTOBUILD_VARIABLES_FILE. (Easier for a developer to set that one
     # environment variable than to fix every autobuild source_environment
@@ -631,6 +707,8 @@ def internal_source_environment(configurations, varsfile):
             try:
                 AUTOBUILD_WIN_CMAKE_GEN = {
                     '120': "Visual Studio 12",
+                    '140': "Visual Studio 14",
+                    '150': "Visual Studio 15",
                     }[vsver]
             except KeyError:
                 # We don't have a specific mapping for this value of vsver. Take
