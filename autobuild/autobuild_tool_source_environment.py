@@ -85,8 +85,9 @@ def _available_vsvers():
     try:
         versions = subprocess.check_output(
             # Unless you add -legacy, vswhere.exe doesn't report anything
-            # older than VS 2015.
-            [_VSWHERE_PATH, '-all', '-legacy',
+            # older than VS 2015. However:
+            # Error 0x57: The "legacy" parameter cannot be specified with either the "products" or "requires" parameter
+            [_VSWHERE_PATH, '-all', # '-legacy',
              '-products', '*',
              '-requires', 'Microsoft.Component.MSBuild',
              '-property', 'installationVersion'])
@@ -95,6 +96,10 @@ def _available_vsvers():
             raise
         # Nonexistence of the vswhere.exe utility is normal for older VS
         # installs.
+    except subprocess.CalledProcessError as err:
+        # We were able to find it, but it was unsuccessful. vswhere reports
+        # important error information on stdout, captured as err.output.
+        raise SourceEnvError('{}:\n{}'.format(err, err.output))
     else:
         # 'versions' is (e.g.):
         # 15.8.28010.2016
@@ -153,8 +158,9 @@ def load_vsvars(vsver):
                                  'is Visual Studio {} installed? (%s not found)'
                                  .format(vsver, vsver, _VSWHERE_PATH))
         except subprocess.CalledProcessError as err:
-            raise SourceEnvError('AUTOBUILD_VSVER={} unsupported: {}'
-                                 .format(vsver, err))
+            # Don't forget that vswhere reports error information on stdout.
+            raise SourceEnvError('AUTOBUILD_VSVER={} unsupported: {}:\n{}'
+                                 .format(vsver, err, err.output))
         if not where:
             # vswhere terminated with 0, yet its output is empty.
             raise SourceEnvError('AUTOBUILD_VSVER={} unsupported, '
