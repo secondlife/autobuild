@@ -236,6 +236,9 @@ class Platform(InteractiveCommand):
         except configfile.ConfigurationError:
             platform_description = configfile.PlatformDescription({'name': name})
             self.config.package_description.platforms[name] = platform_description
+        if platform_description['name'] != name:
+            platform_description = configfile.PlatformDescription({'name': name})
+            self.config.package_description.platforms[name] = platform_description
         if build_directory is not None:
             platform_description.build_directory = build_directory
 

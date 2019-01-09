@@ -98,6 +98,14 @@ class TestEdit(BaseTest, AutobuildBaselineCompare):
         built_config = self._try_cmd(args)
         assert_equals(built_config['package_description']['platforms']['windows']['build_directory'], 'foo/bar/baz')
 
+    def test_platform_configure_ios(self):
+        args = ['platform', "--config-file=%s" % self.tmp_file, 'name=common', 'build_directory=foo/bar/baz']
+        built_config = self._try_cmd(args)
+        args = ['platform', "--config-file=%s" % self.tmp_file, 'name=darwin_ios', 'build_directory=foo/bar/baz_ios']
+        built_config = self._try_cmd(args)
+        assert_equals(built_config['package_description']['platforms']['common']['build_directory'], 'foo/bar/baz')
+        assert_equals(built_config['package_description']['platforms']['darwin_ios']['build_directory'], 'foo/bar/baz_ios')
+
     def tearDown(self):
         self.cleanup_tmp_file()
         BaseTest.tearDown(self)
