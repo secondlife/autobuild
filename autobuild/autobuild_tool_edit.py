@@ -237,6 +237,9 @@ class Platform(InteractiveCommand):
             platform_description = configfile.PlatformDescription({'name': name})
             self.config.package_description.platforms[name] = platform_description
         if platform_description['name'] != name:
+            # in this case, config.get_platform() has returned the common platform's description
+            # our requested platform is still absent, so we need to create it and insert it, rather
+            # than updating the wrong PlatformDescription object
             platform_description = configfile.PlatformDescription({'name': name})
             self.config.package_description.platforms[name] = platform_description
         if build_directory is not None:
