@@ -42,6 +42,13 @@ class TestCommon(BaseTest):
         exe_path = common.find_executable(shell)
         assert exe_path != None
 
+    def test_cache_dir(self):
+        cache_path = common.get_cache_dir()
+
+        # ensure files can be created and removed at the cache path
+        with tempfile.TemporaryFile(dir=cache_path):
+            pass
+
     def tearDown(self):
         BaseTest.tearDown(self)
 

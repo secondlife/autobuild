@@ -545,6 +545,14 @@ def internal_source_environment(configurations, varsfile):
     # existing value. Otherwise just use our own executable path.
     autobuild_path = common.get_autobuild_executable_path()
     AUTOBUILD = os.environ.get("AUTOBUILD", autobuild_path)
+
+    # make available a shared cache file for autoconf based builds to accellerate configuration
+    # see https://www.gnu.org/software/autoconf/manual/autoconf-2.65/html_node/Cache-Files.html
+    # note that this must be platform dependent to avoid messing up cross-compilation
+    autoconf_platform_cache = "{}.config_cache".format(common.get_current_platform())
+    autobuild_cache_dir = common.get_cache_dir()
+    autoconf_cache_path = os.path.join(autobuild_cache_dir, autoconf_platform_cache)
+
     # The cross-platform environment_template contains a generic 'vars' slot
     # where we can insert lines defining environment variables. Putting a
     # variable definition into this 'exports' dict causes it to be listed
@@ -561,6 +569,7 @@ def internal_source_environment(configurations, varsfile):
     vars = dict(
 ##      MAKEFLAGS="",
 ##      DISTCC_HOSTS="",
+        AUTOCONF_CACHE_FILE=autoconf_cache_path,
         )
     vsvars = {}
 
