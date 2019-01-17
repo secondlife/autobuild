@@ -29,15 +29,17 @@ Build configuration includes:
     - set the build command
     - parameterize the package that is built
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 import sys
 from StringIO import StringIO
 import argparse
 
-import configfile
-from autobuild_base import AutobuildBase
-from common import AutobuildError, get_current_platform
-from interactive import InteractiveCommand
+from . import configfile
+from .autobuild_base import AutobuildBase
+from .common import AutobuildError, get_current_platform
+from .interactive import InteractiveCommand
 
 CONFIG_NAME_DEFAULT = 'default'
 DEFAULT_CONFIG_CMD = ''
@@ -184,7 +186,7 @@ class Build(_config):
         """
         Delete the named config value.
         """
-        print "Deleting entry."
+        print("Deleting entry.")
         configuration = self._get_configuration(name, platform)
         configuration.pop('build')
 
@@ -207,7 +209,7 @@ class Configure(_config):
         """
         Delete the named config value.
         """
-        print "Deleting entry."
+        print("Deleting entry.")
         configuration = self._get_configuration(name, platform)
         configuration.pop('configure')
 
@@ -257,7 +259,7 @@ class Platform(InteractiveCommand):
         """
         if not name:
             raise AutobuildError("'name' argument must be provided with --delete option.")
-        print "Deleting entry."
+        print("Deleting entry.")
         self.config.package_description.platforms.pop(name)
 
 
@@ -305,7 +307,7 @@ class Archive(InteractiveCommand):
         """
         Delete the named config value.
         """
-        print "Deleting %s archive entry." % platform
+        print("Deleting %s archive entry." % platform)
         platform_description = self.config.get_platform(platform)
         if platform_description is not None:
             platform_description.archive = None
@@ -366,10 +368,10 @@ class Package(_package):
         if self._confirm_delete():
             really_really_delete = raw_input("Do you really really want to delete this entry?\nThis will delete everything in the config file except the installables. (y/[n])> ")
             if really_really_delete in ['y', 'Y', 'yes', 'Yes', 'YES']:
-                print "Deleting entry."
+                print("Deleting entry.")
                 self.config.package_description = None
                 return
-        print "Cancelling delete."
+        print("Cancelling delete.")
 
 
 def _process_key_value_arguments(arguments):
@@ -379,7 +381,7 @@ def _process_key_value_arguments(arguments):
             key, value = argument.split('=', 1)
             dictionary[key] = value
         except ValueError:
-            print >> sys.stderr, 'ignoring malformed argument', argument
+            print('ignoring malformed argument', argument, file=sys.stderr)
     return dictionary
 
 

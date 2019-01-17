@@ -30,6 +30,8 @@ the dependencies of the project.
 Author : Scott Lawrence / Logan Dethrow
 Date   : 2014-05-09
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 import os
 import sys
@@ -54,11 +56,11 @@ except ImportError:
 
 import webbrowser
 
-import common
+from . import common
 import logging
-import configfile
-import autobuild_base
-from autobuild_tool_install import extract_metadata_from_package
+from . import configfile
+from . import autobuild_base
+from .autobuild_tool_install import extract_metadata_from_package
 
 logger = logging.getLogger('autobuild.graph')
 
@@ -236,7 +238,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 if args.display and not args.graph_file:
                     webbrowser.open('file:'+graph_file)
             else:
-                print "%s" % graph.to_string()
+                print("%s" % graph.to_string())
 
         else:
             raise GraphError("No metadata found")

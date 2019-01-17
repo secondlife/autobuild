@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -34,8 +35,8 @@ import string
 import subprocess
 import tempfile
 
-import common
-import autobuild_base
+from . import common
+from . import autobuild_base
 
 logger = logging.getLogger('autobuild.source_environment')
 

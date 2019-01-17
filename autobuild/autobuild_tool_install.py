@@ -32,6 +32,8 @@ to specify all the files that have been installed.
 Author : Martin Reddy
 Date   : 2010-04-19
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 import os
 import sys
@@ -46,11 +48,11 @@ import socket
 import itertools
 import codecs
 
-import common
-import configfile
-import autobuild_base
-import hash_algorithms
-from autobuild_tool_source_environment import get_enriched_environment
+from . import common
+from . import configfile
+from . import autobuild_base
+from . import hash_algorithms
+from .autobuild_tool_source_environment import get_enriched_environment
 
 logger = logging.getLogger('autobuild.install')
 
@@ -91,7 +93,7 @@ def print_list(label, array):
     if array:
         array.sort()
         list = ", ".join(array)
-    print "%s: %s" % (label, list)
+    print("%s: %s" % (label, list))
     return True
 
 
@@ -138,7 +140,7 @@ def handle_query_args(options, config_file, installed_file):
             all_copyrights=""
         for pkg in sorted(copyrights):
             all_copyrights+="%s: %s" % (pkg,copyrights[pkg])
-        print all_copyrights.rstrip() # the rstrip prevents two newlines on the end
+        print(all_copyrights.rstrip()) # the rstrip prevents two newlines on the end
         return True
 
     if options.versions:
@@ -158,7 +160,7 @@ def handle_query_args(options, config_file, installed_file):
         all_versions=""
         for pkg in sorted(versions):
             all_versions+="%s: %s" % (pkg,versions[pkg])
-        print all_versions.rstrip() # the rstrip prevents two newlines on the end
+        print(all_versions.rstrip()) # the rstrip prevents two newlines on the end
         return True
 
     if options.export_manifest:
@@ -181,7 +183,7 @@ def handle_query_args(options, config_file, installed_file):
                 archives.append('%s' % package['archive']['url'])
             else:
                 archives.append('%s - no url' % name)
-        print '\n'.join(archives)
+        print('\n'.join(archives))
         return True
 
     if options.query_installed_file:
@@ -198,10 +200,10 @@ def print_package_for(target_file, installed_file):
             break
             
     if found_package:
-        print "file '%s' installed by package '%s'" \
-        % (target_file, package['package_description']['name'])
+        print("file '%s' installed by package '%s'" \
+        % (target_file, package['package_description']['name']))
     else:
-        print "file '%s' not found in installed files" % target_file
+        print("file '%s' not found in installed files" % target_file)
 
 def package_cache_path(package):
     """
@@ -261,15 +263,15 @@ def get_package_file(package_name, package_url, hash_algorithm='md5', expected_h
                         if logger.getEffectiveLevel() <= logging.INFO:
                             # use CR and trailing comma to rewrite the same line each time for progress
                             if package_blocks:
-                                print "%d MB / %d MB (%d%%)\r" % (blocks_recvd, package_blocks, int(100*blocks_recvd/package_blocks)),
+                                print("%d MB / %d MB (%d%%)\r" % (blocks_recvd, package_blocks, int(100*blocks_recvd/package_blocks)), end=' ')
                                 sys.stdout.flush()
                             else:
-                                print "%d\r" % blocks_recvd,
+                                print("%d\r" % blocks_recvd, end=' ')
                                 sys.stdout.flush()
                         cache.write(block)
                         block = package_response.read(max_block_size)
                 if logger.getEffectiveLevel() <= logging.INFO:
-                    print "" # get a new line following progress message
+                    print("") # get a new line following progress message
                     sys.stdout.flush()
                 # some failures seem to leave empty cache files... delete and retry
                 if os.path.exists(cache_file) and os.path.getsize(cache_file) == 0:

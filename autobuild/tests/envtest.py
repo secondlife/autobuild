@@ -21,6 +21,7 @@
 # THE SOFTWARE.
 # $/LicenseInfo$
 
+from __future__ import print_function
 import os
 import sys
 import re
@@ -49,6 +50,6 @@ if __name__ == '__main__':
         assert rc == 0, "%s => %s" % (' '.join(command), rc)
         assert stdout.startswith("autobuild "), \
                "does not look like autobuild --version output:\n" + stdout
-    except AssertionError, err:
-        print >>sys.stderr, "***Failed command: %s" % command
+    except AssertionError as err:
+        print("***Failed command: %s" % command, file=sys.stderr)
         raise

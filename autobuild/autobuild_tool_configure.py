@@ -25,13 +25,14 @@
 """
 Configures source in preparation for building.
 """
+from __future__ import absolute_import
 
-import autobuild_base
+from . import autobuild_base
 import copy
-import common
-from common import AutobuildError
-from autobuild_tool_source_environment import get_enriched_environment
-import configfile
+from . import common
+from .common import AutobuildError
+from .autobuild_tool_source_environment import get_enriched_environment
+from . import configfile
 import os
 import logging
 

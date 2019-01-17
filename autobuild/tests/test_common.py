@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -28,7 +29,7 @@ import tempfile
 import unittest
 from zipfile import ZipFile
 from autobuild import common
-from basetest import *
+from .basetest import *
 
 class TestCommon(BaseTest):
     def setUp(self):

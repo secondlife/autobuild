@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -24,7 +25,7 @@ import sys
 import unittest
 from nose.plugins.skip import SkipTest
 from autobuild.executable import Executable
-from basetest import BaseTest
+from .basetest import BaseTest
 
 class TestExecutable(BaseTest):
     def setUp(self):

@@ -29,11 +29,13 @@ You may find that you prefer to overload the class methods, rather than extend u
 
 See: autobuild_tool_edit.py for usage examples 
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 import sys
 from StringIO import StringIO
-import configfile
-from common import AutobuildError
+from . import configfile
+from .common import AutobuildError
 
 
 class InteractiveCommand(object):
@@ -87,16 +89,16 @@ class InteractiveCommand(object):
         command = '%s' % self.__class__.__name__
         command = command.lower()
         if getattr(self, 'description', ''):
-            print '\n%s' % self.description
+            print('\n%s' % self.description)
 
         action = "Create or update"
         if delete:
             action = "Delete"
-        print "\n%s %s details:" % (action, command)
+        print("\n%s %s details:" % (action, command))
         if getattr(self, 'help', ''):
-            print self.help
-        print "Any fields left blank will remain unchanged."
-        print "Any fields entered as 'none' will clear the existing value."
+            print(self.help)
+        print("Any fields left blank will remain unchanged.")
+        print("Any fields entered as 'none' will clear the existing value.")
 
         input_values = {}
         for argument in self.ARGUMENTS:
@@ -108,14 +110,14 @@ class InteractiveCommand(object):
                         i = ''
                     input_values[argument] = i
             except EOFError:
-                print ""
+                print("")
                 exit = 'y'
                 exit = raw_input("Do you really want to exit ([y]/n)? ")
                 if exit == 'y':
                     sys.exit(0)
 
-        print "These fields will be changed:"
-        print input_values
+        print("These fields will be changed:")
+        print(input_values)
         if delete:
             if self._confirm_delete():
                 self.delete(**input_values)
@@ -124,7 +126,7 @@ class InteractiveCommand(object):
             if save in ['y', 'Y', 'yes', 'Yes', 'YES']:
                 self.run(**input_values)
             else:
-                print "Not saved."
+                print("Not saved.")
     
     @classmethod
     def run_cmd(klass, config, kwargs, delete):

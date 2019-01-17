@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -29,9 +30,9 @@ import sys
 import tempfile
 import unittest
 from autobuild import autobuild_tool_source_environment as atse
-from basetest import *
+from .basetest import *
 from nose.tools import *
-from patch import patch
+from .patch import patch
 from pprint import pformat
 
 def assert_dict_has(d, key, value):

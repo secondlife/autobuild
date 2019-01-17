@@ -27,12 +27,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 $/LicenseInfo$
 """
+from __future__ import absolute_import
 
 import re
 from unittest import TestCase
 from nose.tools import *                # assert_equals() et al.
-from basetest import exc
-from patch import patch
+from .basetest import exc
+from .patch import patch
 
 from autobuild import update
 

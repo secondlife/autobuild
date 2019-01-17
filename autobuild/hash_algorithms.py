@@ -27,9 +27,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 $/LicenseInfo$
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
-import common
-from common import AutobuildError
+from . import common
+from .common import AutobuildError
 
 # Valid configfile.ArchiveDescription.hash_algorithm values are registered
 # here by means of the @hash_algorithm decorator.
@@ -68,7 +70,7 @@ def verify_hash(hash_algorithm, pathname, hash):
         # unconditionally fail, but that risks getting the user stuck. So
         # -- if there's no specified hash value, unconditionally accept
         # the download.
-        print "Warning: unable to verify %s; expected hash value not specified" % pathname
+        print("Warning: unable to verify %s; expected hash value not specified" % pathname)
         return True
 
     if not hash_algorithm:

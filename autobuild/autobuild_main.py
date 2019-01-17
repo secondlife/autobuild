@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import absolute_import
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -34,9 +36,8 @@ class _local_scope(object):
 
     # We have NOT yet tested autobuild with Python 3!
     if sys.version_info[0] >= 3:
-        print >>sys.stderr, \
-              "%s autobuild is untested with Python 3+, experiment at your own risk.%s" % \
-              (WARNING.ljust(msgind), vermsg)
+        print("%s autobuild is untested with Python 3+, experiment at your own risk.%s" % \
+              (WARNING.ljust(msgind), vermsg), file=sys.stderr)
 
     # As of autobuild version 0.9, autobuild requires at least Python 2.6.
     elif sys.version_info[:2] < (2, 6):
@@ -45,10 +46,10 @@ class _local_scope(object):
         sys.exit("%s autobuild now requires Python 2.7.%s" %
                  (ERROR.ljust(msgind), vermsg))
 
-import common
+from . import common
 import argparse
 import logging
-from common import AutobuildError
+from .common import AutobuildError
 
 ## Environment variable name used for default log level verbosity
 AUTOBUILD_LOGLEVEL = 'AUTOBUILD_LOGLEVEL'
@@ -58,7 +59,7 @@ class RunHelp(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         parser.parent.search_for_and_import_tools(parser.parent.tools_list)
         parser.parent.register_tools(parser.parent.tools_list)
-        print parser.format_help()
+        print(parser.format_help())
         parser.exit(0)
 
 class Version(argparse.Action):
@@ -81,7 +82,7 @@ class Version(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         formatter = parser._get_formatter()
         formatter.add_text(self.version or parser.version)
-        print formatter.format_help()
+        print(formatter.format_help())
         parser.exit(message="")
 
 class Autobuild(object):

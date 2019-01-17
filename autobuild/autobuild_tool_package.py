@@ -42,6 +42,8 @@ following metadata in the autobuild.xml file:
 * license
 * license_file (assumes LICENSES/<package-name>.txt otherwise)
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 import hashlib
 import os
@@ -53,11 +55,11 @@ import urllib2
 import re
 from zipfile import ZipFile, ZIP_DEFLATED
 
-import common
+from . import common
 import logging
-import configfile
-import autobuild_base
-from common import AutobuildError
+from . import configfile
+from . import autobuild_base
+from .common import AutobuildError
 
 logger = logging.getLogger('autobuild.package')
 
@@ -221,7 +223,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     # printing unconditionally on stdout for backward compatibility
     # the Linden Lab build scripts no longer rely on this
     # (they use the --results-file option instead)
-    print "packing %s" % package_description.name
+    print("packing %s" % package_description.name)
 
     results = None
     if not dry_run:
@@ -320,8 +322,8 @@ def _create_tarfile(tarfilename, build_directory, filelist, results):
                     output = CACLS.communicate("Y")[0]
                     rc = CACLS.wait()
                     if rc != 0:
-                        print "error: rc %s from %s:" % (rc, ' '.join(command))
-                    print output
+                        print("error: rc %s from %s:" % (rc, ' '.join(command)))
+                    print(output)
                 tfile.add(file)
                 logger.info('added ' + file)
             except (tarfile.TarError, IOError, OSError) as err:
@@ -333,7 +335,7 @@ def _create_tarfile(tarfilename, build_directory, filelist, results):
     # printing unconditionally on stdout for backward compatibility
     # the Linden Lab build scripts no longer rely on this
     # (they use the --results-file option instead)
-    print "wrote  %s" % tarfilename
+    print("wrote  %s" % tarfilename)
     if results:
         results.write('autobuild_package_filename="%s"\n' % tarfilename)
     _print_hash(tarfilename, results)
@@ -355,7 +357,7 @@ def _create_zip_archive(archive_filename, build_directory, file_list, results):
     # printing unconditionally on stdout for backward compatibility
     # the Linden Lab build scripts no longer rely on this
     # (they use the --results-file option instead)
-    print "wrote  %s" % archive_filename
+    print("wrote  %s" % archive_filename)
     if results:
         results.write('autobuild_package_filename="%s"\n' % archive_filename)
     _print_hash(archive_filename, results)
@@ -393,7 +395,7 @@ def _print_hash(filename, results):
     # printing unconditionally on stdout for backward compatibility
     # the Linden Lab build scripts no longer rely on this
     # (they use the --results-file option instead)
-    print "md5    %s" % m.hexdigest()
+    print("md5    %s" % m.hexdigest())
     if results:
         results.write('autobuild_package_md5="%s"\n' % m.hexdigest())
 

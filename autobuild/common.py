@@ -34,6 +34,7 @@ are available, such as llbase
 Author : Martin Reddy
 Date   : 2010-04-13
 """
+from __future__ import absolute_import
 
 import os
 import sys
@@ -47,7 +48,7 @@ import tempfile
 import argparse
 import appdirs
 
-from version import AUTOBUILD_VERSION_STRING
+from .version import AUTOBUILD_VERSION_STRING
 
 logger = logging.getLogger('autobuild.common')
 
@@ -245,7 +246,7 @@ def get_install_cache_dir():
         cache = get_temp_dir("install.cache")
     else:
         if not os.path.exists(cache):
-            os.makedirs(cache, mode=0755)
+            os.makedirs(cache, mode=0o755)
     return cache
 
 
@@ -262,7 +263,7 @@ def get_temp_dir(basename):
     else:
         tmpdir = "/var/tmp/%s/%s" % (user, basename)
     if not os.path.exists(tmpdir):
-        os.makedirs(tmpdir, mode=0755)
+        os.makedirs(tmpdir, mode=0o755)
     return tmpdir
 
 
@@ -549,5 +550,5 @@ def get_cache_dir():
     """
     cache_dir_path = appdirs.user_cache_dir('autobuild','Linden Lab')
     if not os.path.exists(cache_dir_path):
-        os.makedirs(cache_dir_path, mode=0755)
+        os.makedirs(cache_dir_path, mode=0o755)
     return cache_dir_path

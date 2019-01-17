@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import absolute_import
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -23,7 +25,7 @@
 import sys
 import unittest
 import autobuild.autobuild_main
-from basetest import BaseTest
+from .basetest import BaseTest
 
 captured_stdout = ''
 
@@ -48,7 +50,7 @@ class TestOptions(BaseTest):
         self.autobuild_fixture = autobuild.autobuild_main.Autobuild()
         def mock_exit(value=None, message=None):
             if(message):
-                print message
+                print(message)
             raise EarlyExitException()
         self.autobuild_fixture.exit = mock_exit
         self.autobuild_fixture.parser.exit = mock_exit
@@ -62,7 +64,7 @@ class TestOptions(BaseTest):
         sys.exit = self.old_exit
 
         if(False):
-            print '\nCaptured StdOut:\n****\n' + captured_stdout + '****\n'
+            print('\nCaptured StdOut:\n****\n' + captured_stdout + '****\n')
         pass
         BaseTest.tearDown(self)
 

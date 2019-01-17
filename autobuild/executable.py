@@ -27,13 +27,15 @@ Defines a system executable object which can be linked to cascade parameters.
 Author : Alan Linden
 Date   : 2010-09-29
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 import os
 import sys
 import subprocess
 import re
 
-import common
+from . import common
 import logging
 
 logger = logging.getLogger('autobuild.executable')
@@ -112,13 +114,13 @@ class Executable(common.Serialized):
                     continue
                 line = line.replace("\r\n", "\n")
                 line = line.replace("\r", "\n")
-                print line,  # Trailing , prevents an extra newline
+                print(line, end=' ')  # Trailing , prevents an extra newline
             return process.wait()
 
     def show_command(self, commandlist, filters):
         showcmd=" '%s'" % "' '".join(commandlist)
         showfilter="\n| filter (%s)" % "|".join(filters) if filters else ""
-        print "%s%s" % (showcmd, showfilter)
+        print("%s%s" % (showcmd, showfilter))
         sys.stdout.flush()
 
     def __str__(self, options=[]):

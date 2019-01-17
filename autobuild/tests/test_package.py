@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -37,7 +38,7 @@ from string import Template
 import autobuild.autobuild_tool_package as package
 from autobuild import configfile
 from autobuild import common
-from basetest import BaseTest, ExpectError, CaptureStdout, clean_dir, clean_file
+from .basetest import BaseTest, ExpectError, CaptureStdout, clean_dir, clean_file
         
 
 # ****************************************************************************

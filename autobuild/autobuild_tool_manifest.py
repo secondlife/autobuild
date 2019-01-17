@@ -27,13 +27,15 @@ Provides tools for manipulating platform manifests.
 Manifests specify by platform the files that should be bundled into 
 an archive when packaging the build product.
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 import sys
 import os
 
-import autobuild_base
-import common
-import configfile
+from . import autobuild_base
+from . import common
+from . import configfile
 
 
 class AutobuildTool(autobuild_base.AutobuildBase):
@@ -107,12 +109,12 @@ def print_manifest(config, platform_name):
             patterns = config.get_platform(platform).manifest
             if len(patterns) == 0:
                 continue
-            print "%s:" % platform
+            print("%s:" % platform)
             for pattern in config.get_platform(platform).manifest:
-                print "\t%s" % pattern
+                print("\t%s" % pattern)
     else:
         for pattern in config.get_platform(platform_name).manifest:
-            print pattern
+            print(pattern)
 
 
 if __name__ == "__main__":
