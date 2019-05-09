@@ -28,6 +28,10 @@ from __future__ import print_function
 # THE SOFTWARE.
 # $/LicenseInfo$
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 import os
 import sys
 import errno
@@ -37,7 +41,7 @@ import time
 import shutil
 import unittest
 from contextlib import contextmanager
-from cStringIO import StringIO
+from io import StringIO
 
 from autobuild import common
 

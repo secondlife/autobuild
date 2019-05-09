@@ -22,6 +22,8 @@ from __future__ import absolute_import
 # THE SOFTWARE.
 # $/LicenseInfo$
 
+from builtins import str
+from builtins import object
 import sys
 import os
 

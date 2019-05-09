@@ -299,5 +299,5 @@ def _check_name(arg_name, key_values, metadata):
     return package_name
 
 def _warn_unused(data):
-    for (key, value) in data.iteritems():
+    for (key, value) in data.items():
         logger.warning('ignoring unused argument %s=%s' % (key, value))

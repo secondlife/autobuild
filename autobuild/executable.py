@@ -85,7 +85,7 @@ class Executable(common.Serialized):
             # might vary by platform. While we believe os.environ is a
             # case-insensitive dict, we can't be sure that the passed
             # 'environment' is necessarily such a dict.
-            pathkey = [k for k in environment.iterkeys() if k.upper() == "PATH"]
+            pathkey = [k for k in environment.keys() if k.upper() == "PATH"]
             # If we can't find any such key, don't blow up, just don't replace
             # prog.
             if pathkey:

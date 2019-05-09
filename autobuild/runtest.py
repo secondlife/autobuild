@@ -24,6 +24,7 @@ from __future__ import print_function
 # simple test runner, superseded by nose, but might be handy for something
 # built to try out argparse while working with the existing tests
 
+from builtins import object
 import sys
 import os
 import argparse
@@ -33,7 +34,7 @@ sys.path.append(os.getcwd() + '/../')       # for autobuild scripts
 sys.path.append(os.getcwd() + '/tests/')    # for test suites
 
 
-class text_colours:
+class text_colours(object):
     warning = '\033[91m'
     title = '\033[92m'
     end = '\033[0m'

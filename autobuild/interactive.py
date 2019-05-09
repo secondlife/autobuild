@@ -32,8 +32,12 @@ See: autobuild_tool_edit.py for usage examples
 from __future__ import print_function
 from __future__ import absolute_import
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import input
+from builtins import object
 import sys
-from StringIO import StringIO
+from io import StringIO
 from . import configfile
 from .common import AutobuildError
 
@@ -104,7 +108,7 @@ class InteractiveCommand(object):
         for argument in self.ARGUMENTS:
             try:
                 helptext = self.ARG_DICT[argument]['help']
-                i = raw_input("    %s> " % helptext)
+                i = input("    %s> " % helptext)
                 if i:
                     if i.lower() == 'none':
                         i = ''
@@ -112,7 +116,7 @@ class InteractiveCommand(object):
             except EOFError:
                 print("")
                 exit = 'y'
-                exit = raw_input("Do you really want to exit ([y]/n)? ")
+                exit = input("Do you really want to exit ([y]/n)? ")
                 if exit == 'y':
                     sys.exit(0)
 
@@ -122,7 +126,7 @@ class InteractiveCommand(object):
             if self._confirm_delete():
                 self.delete(**input_values)
         else:
-            save = raw_input("Save to config (y/[n])? ")
+            save = input("Save to config (y/[n])? ")
             if save in ['y', 'Y', 'yes', 'Yes', 'YES']:
                 self.run(**input_values)
             else:
@@ -161,7 +165,7 @@ class InteractiveCommand(object):
         raise AutobuildError("Delete not yet implemented for this command.")
 
     def _confirm_delete(self):
-        really_delete = raw_input("Do you really want to delete this entry (y/[n])? ")
+        really_delete = input("Do you really want to delete this entry (y/[n])? ")
         if really_delete in ['y', 'Y', 'yes', 'Yes', 'YES']:
             return True
         return False

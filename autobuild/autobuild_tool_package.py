@@ -45,13 +45,15 @@ following metadata in the autobuild.xml file:
 from __future__ import print_function
 from __future__ import absolute_import
 
+from future import standard_library
+standard_library.install_aliases()
 import hashlib
 import os
 import tarfile
 import getpass
 import glob
 import subprocess
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import re
 from zipfile import ZipFile, ZIP_DEFLATED
 

@@ -24,6 +24,7 @@ from __future__ import absolute_import
 # Integration test to exercise the archive packaging
 #
 
+from builtins import object
 import os
 import sys
 import logging

@@ -109,7 +109,7 @@ class LocalBase(BaseTest, AutobuildBaselineCompare):
         else:
             assert len(platforms) == 1, \
                    "read_metadata(no platform) ambiguous: " \
-                   "pass one of %s" % ', '.join(platforms.keys())
+                   "pass one of %s" % ', '.join(list(platforms.keys()))
             _, platdata = platforms.popitem()
         return MetadataDescription(os.path.join(platdata.build_directory,
                                                 PACKAGE_METADATA_FILE))

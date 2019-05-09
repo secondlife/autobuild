@@ -22,6 +22,7 @@
 # THE SOFTWARE.
 # $/LicenseInfo$
 
+from past.builtins import execfile
 from setuptools import setup
 import sys
 import os.path
@@ -71,11 +72,11 @@ setup(
     entry_points=dict(console_scripts=['autobuild=autobuild.autobuild_main:main']),
     scripts=[],
     license='MIT',
-    classifiers=filter(None, CLASSIFIERS.split("\n")),
+    classifiers=[_f for _f in CLASSIFIERS.split("\n") if _f],
     # argparse is specifically for Python 2.6 compatibility. If/when we drop
     # Python 2.6 support, the conditional argparse item can be removed from
     # install_requires: it's bundled with Python 2.7+.
-    install_requires=['llbase', 'pydot', 'appdirs'] + \
+    install_requires=['llbase', 'pydot', 'appdirs', 'future'] + \
                      (['argparse'] if sys.version_info[:2] < (2, 7) else []),
     #ext_modules=ext_modules,
     )

@@ -24,6 +24,7 @@ from __future__ import absolute_import
 # Integration test to exercise the config file reading/writing
 #
 
+from builtins import str
 import unittest
 import os
 import sys

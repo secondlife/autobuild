@@ -26,6 +26,9 @@
 from __future__ import with_statement
 from __future__ import absolute_import
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import os
 import sys
 import errno
@@ -35,16 +38,16 @@ import logging
 import tarfile
 import tempfile
 import unittest
-import urllib
-import urlparse
+import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 import posixpath
 import subprocess
 from .basetest import *
 from nose.tools import *                # assert_equals etc.
 from string import Template
 from threading import Thread
-from BaseHTTPServer import HTTPServer
-from SimpleHTTPServer import SimpleHTTPRequestHandler
+from http.server import HTTPServer
+from http.server import SimpleHTTPRequestHandler
 from autobuild import autobuild_tool_install, autobuild_tool_uninstall, configfile, common
 
 # ****************************************************************************
@@ -194,7 +197,7 @@ def setup():
             params.pop("params", None)  # may or may not be there yet?
             self.__dict__.update(params)
             # Remember attribute names for copy() implementation
-            self._attrs = params.keys()
+            self._attrs = list(params.keys())
 
         def copy(self):
             # Get a (key, value) pair for each attribute defined in our
@@ -238,10 +241,10 @@ class DownloadServer(SimpleHTTPRequestHandler):
         that method.
         """
         # abandon query parameters
-        path = urlparse.urlparse(path)[2]
-        path = posixpath.normpath(urllib.unquote(path))
+        path = urllib.parse.urlparse(path)[2]
+        path = posixpath.normpath(urllib.parse.unquote(path))
         words = path.split('/')
-        words = filter(None, words)
+        words = [_f for _f in words if _f]
         path = SERVER_DIR # <== the one changed line
         for word in words:
             drive, word = os.path.splitdrive(word)

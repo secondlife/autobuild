@@ -22,6 +22,7 @@ from __future__ import absolute_import
 # THE SOFTWARE.
 # $/LicenseInfo$
 
+from builtins import object
 import sys
 import unittest
 import autobuild.autobuild_main
@@ -32,7 +33,7 @@ captured_stdout = ''
 class EarlyExitException(Exception):
     pass
 
-class CatchStdOut:
+class CatchStdOut(object):
     def write(self, text):
         global captured_stdout
         captured_stdout += text

@@ -23,12 +23,13 @@
 # Base Class to give autobuild tool modules integration into autobuild
 # and standalone functionality
 
+from builtins import object
 import os
 import argparse
 
 
 # Main tool functionality
-class AutobuildBase:
+class AutobuildBase(object):
 
     def name_from_file(self, filename):
         """

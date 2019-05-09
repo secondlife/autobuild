@@ -32,8 +32,11 @@ Build configuration includes:
 from __future__ import print_function
 from __future__ import absolute_import
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import input
 import sys
-from StringIO import StringIO
+from io import StringIO
 import argparse
 
 from . import configfile
@@ -56,7 +59,7 @@ class AutobuildTool(AutobuildBase):
         parser.description = "edit the definition of the current package, for specifying the commands to run for the various build steps (configure and build subcommands), versioning and licensing information (package subcommand), etc."
         subparsers = parser.add_subparsers(title='subcommands', dest='subparser_name')
 
-        for (cmd, callable) in self._get_command_callables().items():
+        for (cmd, callable) in list(self._get_command_callables().items()):
             parser = subparsers.add_parser(cmd, help=callable.HELP, formatter_class=argparse.RawTextHelpFormatter)
             parser.add_argument('argument', 
                                 nargs='*',
@@ -278,7 +281,7 @@ class Archive(InteractiveCommand):
         stream = StringIO()
         stream.write("Current platform archive settings:\n")
         archives = {}
-        for platform, description in config.get_all_platforms().iteritems():
+        for platform, description in config.get_all_platforms().items():
             if description.archive is not None:
                 archives[platform] = description.archive
         configfile.pretty_print(archives, stream)
@@ -366,7 +369,7 @@ class Package(_package):
         Delete the named config value.
         """
         if self._confirm_delete():
-            really_really_delete = raw_input("Do you really really want to delete this entry?\nThis will delete everything in the config file except the installables. (y/[n])> ")
+            really_really_delete = input("Do you really really want to delete this entry?\nThis will delete everything in the config file except the installables. (y/[n])> ")
             if really_really_delete in ['y', 'Y', 'yes', 'Yes', 'YES']:
                 print("Deleting entry.")
                 self.config.package_description = None

@@ -204,7 +204,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                         pkg_node.set_style('dashed')
                     graph.add_node(pkg_node)
                     if 'dependencies' in pkg:
-                        for dep_pkg in pkg['dependencies'].itervalues():
+                        for dep_pkg in pkg['dependencies'].values():
                             dep_name = dep_pkg['package_description']['name']
                             dep_node = add_depends(graph, dep_pkg)
                             logger.debug(" graph adding dependency %s -> %s" % (dep_name, name))
