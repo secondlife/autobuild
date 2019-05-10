@@ -116,9 +116,9 @@ def query_manifest(options=None):
     return dict((item.get("package_description").get("name"), item) for item in sequence)
 
 # ****************************************************************************
-#   module setup() and teardown()
+#   module setUpModule() and tearDownModule()
 # ****************************************************************************
-def setup():
+def setUpModule():
     """
     Module-level setup
     """
@@ -208,7 +208,7 @@ def setup():
 
     # -----------------------------------  -----------------------------------
 
-def teardown():
+def tearDownModule():
     """
     Module-level teardown
     """
@@ -265,14 +265,15 @@ class DownloadServer(SimpleHTTPRequestHandler):
 # ****************************************************************************
 #   tests
 # ****************************************************************************
-class BaseTest(object):
+class BaseTest(unittest.TestCase):
     default_config="packages-install.xml"
 
-    def __init__(self):
+    def __init__(self, *args):
+        super(BaseTest, self).__init__(*args)
         self.tempfiles = []
         self.tempdirs = []
 
-    def setup(self):
+    def setUp(self):
         # construct default options
         self.options = FakeOptions(install_filename=self.localizedConfig(self.default_config))
         # do not use the normal system cache so that unit tests can't leave anything
@@ -303,7 +304,7 @@ class BaseTest(object):
         
     def localizedConfig(self, template):
         temp_config_basename=os.path.splitext(os.path.basename(template))[0]
-        temp_config_fd, config_filename=tempfile.mkstemp(prefix=os.path.join(mydir, "data", temp_config_basename+"-"),suffix="-local.xml")
+        temp_config_fd, config_filename=tempfile.mkstemp(prefix=os.path.join(STAGING_DIR, temp_config_basename+"-"),suffix="-local.xml")
         temp_config=os.fdopen(temp_config_fd,'w')
         template_path=os.path.join(mydir,"data",template)
         logger.debug("localize config file '%s' -> '%s'" % (template_path,config_filename))
@@ -325,7 +326,7 @@ class BaseTest(object):
         # modifications to that PackageDescription metadata don't affect,
         self.config.installables[package.name] = package.copy()
 
-    def teardown(self):
+    def tearDown(self):
         # Actually, for the same reason, undo any successful install. To test
         # reinstalling, or installing several packages, explicitly perform the
         # desired sequence within a single test method.
@@ -340,8 +341,8 @@ class BaseTest(object):
 
 # -------------------------------------  -------------------------------------
 class TestInstallArchive(BaseTest):
-    def setup(self):
-        BaseTest.setup(self)
+    def setUp(self):
+        BaseTest.setUp(self)
         self.pkg = "bogus"
         self.options.package = [self.pkg]
 
@@ -549,8 +550,8 @@ class TestInstallArchive(BaseTest):
 
 # -------------------------------------  -------------------------------------
 class TestInstallCachedArchive(BaseTest):
-    def setup(self):
-        BaseTest.setup(self)
+    def setUp(self):
+        BaseTest.setUp(self)
         self.pkg = "bogus"
         # make sure that the archive is not in the server
         clean_file(os.path.join(SERVER_DIR, "bogus-0.1-common-111.tar.bz2"))
@@ -572,8 +573,8 @@ class TestInstallCachedArchive(BaseTest):
 
 # -------------------------------------  -------------------------------------
 class TestInstallLocalArchive(BaseTest):
-    def setup(self):
-        BaseTest.setup(self)
+    def setUp(self):
+        BaseTest.setUp(self)
         self.pkg = "bogus"
         target_archive="bogus-0.1-common-111.tar.bz2"
         # Make sure the archive isn't in either the server directory or cache:
@@ -611,8 +612,8 @@ class TestInstallLocalArchive(BaseTest):
 
 # -------------------------------------  -------------------------------------
 class TestDownloadFail(BaseTest):
-    def setup(self):
-        BaseTest.setup(self)
+    def setUp(self):
+        BaseTest.setUp(self)
         self.pkg = "notthere"
         clean_file(os.path.join(SERVER_DIR, "bogus-0.1-common-111.tar.bz2"))
         self.cache_name = in_dir(common.get_install_cache_dir(), "bogus-0.1-common-111.tar.bz2")
@@ -625,8 +626,8 @@ class TestDownloadFail(BaseTest):
 
 # -------------------------------------  -------------------------------------
 class TestGarbledDownload(BaseTest):
-    def setup(self):
-        BaseTest.setup(self)
+    def setUp(self):
+        BaseTest.setUp(self)
         self.cache_name = in_dir(common.get_install_cache_dir(), "bogus-0.1-common-111.tar.bz2")
         assert not os.path.exists(self.cache_name)
 
@@ -638,8 +639,8 @@ class TestGarbledDownload(BaseTest):
 
 # -------------------------------------  -------------------------------------
 class TestUninstallArchive(BaseTest):
-    def setup(self):
-        BaseTest.setup(self)
+    def setUp(self):
+        BaseTest.setUp(self)
         # Preliminary setup just like TestInstallArchive
         self.pkg = "bogus"
         self.options.package=[self.pkg]
