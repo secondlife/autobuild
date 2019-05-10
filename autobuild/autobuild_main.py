@@ -36,15 +36,9 @@ class _local_scope(object):
     vermsg  = "\n%s You are running with Python %s.%s.%s." % \
                ((msgind*' ',) + sys.version_info[:3])
 
-    # We have NOT yet tested autobuild with Python 3!
-    if sys.version_info[0] >= 3:
-        print("%s autobuild is untested with Python 3+, experiment at your own risk.%s" % \
-              (WARNING.ljust(msgind), vermsg), file=sys.stderr)
-
-    # As of autobuild version 0.9, autobuild requires at least Python 2.6.
-    elif sys.version_info[:2] < (2, 6):
-        # Older than Python 2.6 is very likely to produce hard-to-diagnose errors.
-        # Nip that in the bud.
+    # As of autobuild version 1.2, autobuild requires at least Python 2.7.
+    if sys.version_info[:2] < (2, 7):
+        # Older than Python 2.7 is unsupported by python-future
         sys.exit("%s autobuild now requires Python 2.7.%s" %
                  (ERROR.ljust(msgind), vermsg))
 
@@ -251,6 +245,11 @@ class Autobuild(object):
 
         if tool_to_run != -1:
             tool_to_run.run(args)
+        else:
+            # under python2 argparse will do this for us above when we call parse_args.
+            # we imitate that here under python3
+            self.parser.print_help()
+            self.parser.error("no subcommand specified")
 
         return 0
 
