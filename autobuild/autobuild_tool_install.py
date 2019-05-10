@@ -255,7 +255,7 @@ def get_package_file(package_name, package_url, hash_algorithm='md5', expected_h
                 cache_file = None
 
             if package_response is not None:
-                with file(cache_file, 'wb') as cache:
+                with open(cache_file, 'wb') as cache:
                     max_block_size = 1024*1024 # if this is changed, also change 'MB' in progress message below
                     package_size = int(package_response.headers.get("content-length", 0))
                     package_blocks = old_div(package_size, max_block_size) if package_size else 0

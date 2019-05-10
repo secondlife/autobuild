@@ -226,7 +226,8 @@ class ConfigurationDescription(common.Serialized):
             raise ConfigurationError("Aborting attempt to save %s with variable expansions" %
                                      self.path)
         logger.debug("Writing configuration file %s" % self.path)
-        file(self.path, 'wb').write(llsd.format_pretty_xml(_compact_to_dict(self)))
+        with open(self.path, 'wb') as f:
+            f.write(llsd.format_pretty_xml(_compact_to_dict(self)))
 
     def __load(self, path):
         # circular imports, sorry, must import update locally
@@ -242,7 +243,7 @@ class ConfigurationDescription(common.Serialized):
             else:
                 self.path = abs_path
         if os.path.isfile(self.path):
-            autobuild_xml = file(self.path, 'rb').read()
+            autobuild_xml = open(self.path, 'rb').read()
             if not autobuild_xml:
                 logger.warn("Configuration file '%s' is empty" % self.path)
                 return
@@ -368,7 +369,8 @@ class Dependencies(common.Serialized):
         """
         dict_representation=_compact_to_dict(self)
         del dict_representation['path'] # there's no need for the file to include its own name
-        file(self.path, 'wb').write(llsd.format_pretty_xml(dict_representation))
+        with open(self.path, 'wb') as f:
+            f.write(llsd.format_pretty_xml(dict_representation))
 
     def __load(self, path=None):
         if os.path.isabs(path):
@@ -381,7 +383,7 @@ class Dependencies(common.Serialized):
             else:
                 self.path = abs_path
         if os.path.isfile(self.path):
-            installed_xml = file(self.path, 'rb').read()
+            installed_xml = open(self.path, 'rb').read().decode()
             if not installed_xml:
                 logger.warn("Installed file '%s' is empty" % self.path)
                 return
@@ -446,7 +448,7 @@ class MetadataDescription(common.Serialized):
         if path:
             self.path = path
             if os.path.isfile(self.path):
-                metadata_xml = file(self.path, 'rb').read()
+                metadata_xml = open(self.path, 'rb').read()
                 if not metadata_xml:
                     logger.warn("Metadata file '%s' is empty" % self.path)
                     self.dirty=False
@@ -499,7 +501,8 @@ class MetadataDescription(common.Serialized):
         Save the metadata.
         """
         if self.path:
-            file(self.path, 'wb').write(llsd.format_pretty_xml(_compact_to_dict(self)))
+            with open(self.path, 'wb') as f:
+                f.write(llsd.format_pretty_xml(_compact_to_dict(self)))
 
 package_selected_platform = None
 

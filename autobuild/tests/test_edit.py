@@ -58,7 +58,7 @@ class TestEdit(BaseTest, AutobuildBaselineCompare):
         Return results.
         """
         self.edit_cmd.main(args)
-        return llsd.parse(file(self.tmp_file, 'rb').read())
+        return llsd.parse(open(self.tmp_file, 'rb').read())
 
     def test_build(self):
         """
