@@ -24,6 +24,7 @@ from __future__ import absolute_import
 
 from builtins import str
 from builtins import object
+from importlib import import_module
 import sys
 import os
 
@@ -117,8 +118,8 @@ class Autobuild(object):
             if(file_name.endswith('.py') and
                file_name != '__init__.py' and
                file_name.startswith('autobuild_tool_')):
-                module_name = file_name[:-3]
-                possible_tool_module = __import__(module_name, globals(), locals(), [])
+                module_name = "." + file_name[:-3]
+                possible_tool_module = import_module(module_name, 'autobuild')
                 if getattr(possible_tool_module, 'AutobuildTool', None):
                     tools_list.append(possible_tool_module)
 
@@ -128,7 +129,7 @@ class Autobuild(object):
         tool_file_name = tool_module_name + '.py'
         full_tool_path = os.path.join(autobuild_package_dir, tool_file_name)
         if os.path.exists(full_tool_path):
-            possible_tool_module = __import__(tool_module_name, globals(), locals(), [])
+            possible_tool_module = import_module("." + tool_module_name, 'autobuild')
             if getattr(possible_tool_module, 'AutobuildTool', None):
                 tools_list.append(possible_tool_module)
                 instance = self.register_tool(possible_tool_module)
