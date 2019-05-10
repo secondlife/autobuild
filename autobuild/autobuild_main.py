@@ -1,5 +1,3 @@
-from __future__ import print_function
-from __future__ import absolute_import
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -22,6 +20,8 @@ from __future__ import absolute_import
 # THE SOFTWARE.
 # $/LicenseInfo$
 
+from __future__ import print_function
+from __future__ import absolute_import
 from builtins import str
 from builtins import object
 from importlib import import_module
@@ -43,9 +43,9 @@ class _local_scope(object):
         sys.exit("%s autobuild now requires Python 2.7.%s" %
                  (ERROR.ljust(msgind), vermsg))
 
-from . import common
 import argparse
 import logging
+from . import common
 from .common import AutobuildError
 
 ## Environment variable name used for default log level verbosity

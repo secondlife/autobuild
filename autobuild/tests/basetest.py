@@ -5,7 +5,6 @@
 @date   2012-08-24
 @brief  Define BaseTest, a base class for all individual test classes.
 """
-from __future__ import print_function
 # $LicenseInfo:firstyear=2012&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -28,6 +27,7 @@ from __future__ import print_function
 # THE SOFTWARE.
 # $/LicenseInfo$
 
+from __future__ import print_function
 from future import standard_library
 standard_library.install_aliases()
 from builtins import str
