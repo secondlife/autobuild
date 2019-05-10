@@ -757,7 +757,7 @@ def clean_files(install_dir, files):
     # added to the list when deleting files above.
     while directories:
         parents=set()
-        for dirname in sorted(directories, cmp=lambda x,y: cmp(len(y),len(x))):
+        for dirname in sorted(directories, key=len):
             dir_path = os.path.join(install_dir, dirname)
             if os.path.exists(dir_path) and not os.listdir(dir_path):
                 os.rmdir(dir_path)
