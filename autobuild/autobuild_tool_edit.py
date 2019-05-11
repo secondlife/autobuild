@@ -31,12 +31,18 @@ Build configuration includes:
 """
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import unicode_literals
 
 from future import standard_library
 standard_library.install_aliases()
 from builtins import input
 import sys
-from io import StringIO
+try:
+    # this is a mess.  pprint expects bytes in python2 and unicode in python3, so
+    # use the old bytes version of StringIO if its there
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 import argparse
 
 from . import configfile

@@ -32,6 +32,7 @@ Date   : 2014-05-09
 """
 from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import unicode_literals
 
 import os
 import sys
@@ -223,7 +224,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                     dot_file=open(args.dot_file,'wb')
                 except IOError as err:
                     raise GraphError("Unable to open dot file %s: %s" % (args.dot_file, err))
-                dot_file.write(graph.to_string())
+                dot_file.write(graph.to_string().encode())
                 dot_file.close()
                 
             if args.display or args.graph_file:

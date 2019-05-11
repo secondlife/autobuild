@@ -35,6 +35,7 @@ Date   : 2010-04-19
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 from past.builtins import cmp
 from future import standard_library
@@ -52,7 +53,6 @@ import urllib.request, urllib.error, urllib.parse
 import subprocess
 import socket
 import itertools
-import codecs
 
 from . import common
 from . import configfile
@@ -929,9 +929,6 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             default=self.configurations_from_environment())
 
     def run(self, args):
-        UTF8Writer = codecs.getwriter('utf8')
-        sys.stdout = UTF8Writer(sys.stdout)
-
         platform=common.get_current_platform()
         logger.debug("installing platform "+platform)
 

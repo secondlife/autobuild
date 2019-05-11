@@ -38,7 +38,12 @@ import pprint
 import re
 import string
 import sys
-from io import StringIO
+try:
+    # this is a mess.  pprint expects bytes in python2 and unicode in python3, so
+    # use the old bytes version of StringIO if its there
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 try:
     from llbase import llsd
 except ImportError:
@@ -383,7 +388,7 @@ class Dependencies(common.Serialized):
             else:
                 self.path = abs_path
         if os.path.isfile(self.path):
-            installed_xml = open(self.path, 'rb').read().decode()
+            installed_xml = open(self.path, 'rb').read()
             if not installed_xml:
                 logger.warn("Installed file '%s' is empty" % self.path)
                 return

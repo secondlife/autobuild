@@ -48,7 +48,7 @@ if __name__ == '__main__':
     rc = autobuild.wait()
     try:
         assert rc == 0, "%s => %s" % (' '.join(command), rc)
-        assert stdout.startswith("autobuild "), \
+        assert stdout.startswith(b"autobuild "), \
                "does not look like autobuild --version output:\n" + stdout
     except AssertionError as err:
         print("***Failed command: %s" % command, file=sys.stderr)

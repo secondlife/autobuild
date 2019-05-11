@@ -41,7 +41,12 @@ import time
 import shutil
 import unittest
 from contextlib import contextmanager
-from io import StringIO
+try:
+    # this is a mess.  print expects bytes in python2 and unicode in python3, so
+    # use the old bytes version of StringIO if its there
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 from autobuild import common
 

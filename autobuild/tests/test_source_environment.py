@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -21,8 +20,10 @@ from __future__ import absolute_import
 # THE SOFTWARE.
 # $/LicenseInfo$
 
+from __future__ import absolute_import
 from builtins import object
 from ast import literal_eval
+from io import StringIO
 import logging
 import os
 import shutil
@@ -207,7 +208,7 @@ for var in $(set | grep '^[^ ]' | cut -s -d= -f 1)
 do export $var
 done
 '%s' -c 'import os, pprint
-pprint.pprint(os.environ)'""" % self.shell_path(sys.executable)))
+pprint.pprint(dict(os.environ))'""" % self.shell_path(sys.executable)).decode())
         # filter out anything inherited from our own environment
         for var, value in os.environ.items():
             if value == vars.get(var):
@@ -220,7 +221,7 @@ pprint.pprint(os.environ)'""" % self.shell_path(sys.executable)))
     def test_remove_switch(self):
         assert_equals(self.source_env_and([], """\
 switches='abc def ghi'
-remove_switch def $switches"""), "abc ghi")
+remove_switch def $switches"""), b"abc ghi")
 
     def test_replace_switch(self):
         # replace_switch makes no guarantees about the order in which the
@@ -228,15 +229,15 @@ remove_switch def $switches"""), "abc ghi")
         assert_equals(set(self.source_env_and([], """\
 switches='abc def ghi'
 replace_switch def xyz $switches""").split()),
-                      set(["abc", "xyz", "ghi"]))
+                      set([b"abc", b"xyz", b"ghi"]))
 
     def test_no_arg_warning(self):
         # autobuild source_environment with no arg
         stdout, stderr = self.autobuild_outputs()
         # ensure that autobuild produced a warning
-        assert_in("no build variables", stderr)
+        assert_in(b"no build variables", stderr)
         # but emitted normal output anyway
-        assert_in("set_build_variables", stdout)
+        assert_in(b"set_build_variables", stdout)
 
     def find_data(self, filename):
         return os.path.join(os.path.dirname(__file__), "data", filename)
@@ -246,16 +247,16 @@ replace_switch def xyz $switches""").split()),
         stdout, stderr = self.autobuild_outputs(self.find_data("empty"))
         # This also verifies that source_environment doesn't produce errors
         # when handed an empty script file.
-        assert_equals(stderr, "")
+        assert_equals(stderr, b"")
 
     def test_var_no_warning(self):
         os.environ["AUTOBUILD_VARIABLES_FILE"] = self.find_data("empty")
         # autobuild source_environment with no arg but AUTOBUILD_VARIABLES_FILE
         stdout, stderr = self.autobuild_outputs()
-        assert_equals(stderr, "")
+        assert_equals(stderr, b"")
 
     def test_no_MAKEFLAGS(self):
-        assert_not_in("MAKEFLAGS", self.autobuild_outputs()[0])
+        assert_not_in(b"MAKEFLAGS", self.autobuild_outputs()[0])
 
     def test_no_file_error(self):
         with exc(atse.SourceEnvError, "can't read.*nonexistent"):

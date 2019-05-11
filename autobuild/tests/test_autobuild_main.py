@@ -1,5 +1,3 @@
-from __future__ import print_function
-from __future__ import absolute_import
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -22,6 +20,8 @@ from __future__ import absolute_import
 # THE SOFTWARE.
 # $/LicenseInfo$
 
+from __future__ import print_function
+from __future__ import absolute_import
 from builtins import object
 import sys
 import unittest
