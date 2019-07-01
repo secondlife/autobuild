@@ -48,7 +48,6 @@ import pprint
 import shutil
 import tempfile
 import argparse
-import appdirs
 
 from .version import AUTOBUILD_VERSION_STRING
 
@@ -544,13 +543,3 @@ def establish_build_id(build_id_arg):
     return str(build_id)
 
 
-def get_cache_dir():
-    """
-    Get a shared cache directory according to the conventions of the current platform.
-    Will create the directory if it does not exist.
-    see https://pypi.org/project/appdirs/
-    """
-    cache_dir_path = appdirs.user_cache_dir('autobuild','Linden Lab')
-    if not os.path.exists(cache_dir_path):
-        os.makedirs(cache_dir_path, mode=0o755)
-    return cache_dir_path
