@@ -23,6 +23,7 @@
 import os
 import sys
 from ast import literal_eval
+from collections import OrderedDict
 import errno
 import itertools
 import logging
@@ -772,11 +773,7 @@ def get_enriched_environment(configuration):
 
 
 def dedup(iterable):
-    seen = set()
-    for item in iterable:
-        if item not in seen:
-            seen.add(item)
-            yield item
+    return iter(OrderedDict((item, 1) for item in iterable))
 
 
 class AutobuildTool(autobuild_base.AutobuildBase):

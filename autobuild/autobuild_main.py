@@ -259,7 +259,9 @@ def main():
 
     logger = logging.getLogger('autobuild')
     try:
-        os.environ['PATH'] = os.environ.get('PATH') + os.pathsep + script_path
+        # Dedup the path after appending script_path in case it's already
+        # present in the PATH string.
+        os.environ['PATH'] = common.dedup_path(os.pathsep.join((os.environ.get('PATH'), script_path)))
         sys.exit(Autobuild().main(sys.argv[1:]))
     except KeyboardInterrupt as e:
         sys.exit("Aborted...")

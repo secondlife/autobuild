@@ -35,16 +35,17 @@ Author : Martin Reddy
 Date   : 2010-04-13
 """
 
-import os
-import sys
-import time
+import argparse
+from collections import OrderedDict
 import itertools
 import logging
+import os
 import platform
 import pprint
 import shutil
+import sys
 import tempfile
-import argparse
+import time
 
 from version import AUTOBUILD_VERSION_STRING
 
@@ -329,6 +330,19 @@ def find_executable(executables, exts=None, path=None):
                 if os.path.isfile(candidate):
                     return candidate
     return None
+
+
+def dedup_path(path, sep=os.pathsep):
+    """
+    Given a path string (directory names separated by os.pathsep), eliminate
+    duplicates from that string while preserving the search order. Since we've
+    observed cases in which both dir and dir/ appear in the same PATH string
+    (or dir and dir\, depending on platform), also remove any trailing slashes.
+
+    Optionally pass a separator, if you want anything other than os.pathsep.
+    """
+    # OrderedDict is just what the doctor, um...
+    return sep.join(OrderedDict((dir.rstrip(r'\/'), 1) for dir in path.split(sep)))
 
 
 def compute_md5(path):

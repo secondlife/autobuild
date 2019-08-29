@@ -43,8 +43,9 @@ logger = logging.getLogger('autobuild.build')
 
 
 # Add autobuild/bin to path.
-os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.normpath(
-    os.path.join(os.path.dirname(__file__), os.pardir, "bin"))])
+os.environ["PATH"] = common.dedup_path(
+    os.pathsep.join([os.environ["PATH"],
+                     os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir, "bin"))]))
 
 
 class BuildError(AutobuildError):
