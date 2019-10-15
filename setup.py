@@ -22,7 +22,6 @@
 # THE SOFTWARE.
 # $/LicenseInfo$
 
-from past.builtins import execfile
 from setuptools import setup
 import sys
 import os.path
@@ -40,8 +39,9 @@ import os.path
 # you (because you already have your package's dependencies installed), but it
 # will wreak havoc upon new users of your package, as they will not be able to
 # install your package without manually installing the dependencies first."
-execfile(os.path.join("autobuild", "version.py"))
-# The previous execfile better have defined AUTOBUILD_VERSION_STRING!
+# Updated for python 3 compat: https://docs.python.org/3.3/whatsnew/3.0.html?highlight=execfile#builtins
+exec(open(os.path.join("autobuild", "version.py")).read())
+# The previous open/read/exec better have defined AUTOBUILD_VERSION_STRING!
 AUTOBUILD_VERSION_STRING                # NameError here means it didn't
 
 PACKAGE_NAME = 'autobuild'
