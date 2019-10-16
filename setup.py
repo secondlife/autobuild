@@ -73,10 +73,6 @@ setup(
     scripts=[],
     license='MIT',
     classifiers=[_f for _f in CLASSIFIERS.split("\n") if _f],
-    # argparse is specifically for Python 2.6 compatibility. If/when we drop
-    # Python 2.6 support, the conditional argparse item can be removed from
-    # install_requires: it's bundled with Python 2.7+.
-    install_requires=['llbase', 'pydot', 'future'] + \
-                     (['argparse'] if sys.version_info[:2] < (2, 7) else []),
+    install_requires=['llbase', 'pydot', 'future'],
     #ext_modules=ext_modules,
     )
