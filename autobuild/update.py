@@ -28,7 +28,6 @@ Includes tools for updating older versions of autobuild configurations to the th
 from __future__ import absolute_import
 
 
-from builtins import object
 from .common import AutobuildError, get_version_tuple
 # Please do NOT import configfile data classes! See comments for _register().
 # or Executable either, which also changes with AUTOBUILD_CONFIG_VERSION

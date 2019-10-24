@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -20,6 +19,8 @@ from __future__ import absolute_import
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 # $/LicenseInfo$
+
+from __future__ import absolute_import
 
 import unittest
 from .baseline_compare import AutobuildBaselineCompare

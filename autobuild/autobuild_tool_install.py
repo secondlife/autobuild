@@ -37,11 +37,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from past.builtins import cmp
 from future import standard_library
 standard_library.install_aliases()
 from builtins import str
-from past.utils import old_div
 import os
 import sys
 import errno
@@ -91,14 +89,11 @@ to represent a platform-independent package.
 """
 
 
-def print_list(label, array):
+def print_list(label, items):
     """
-    Pretty print an array of strings with a given label prefix.
+    Pretty print a sequence strings with a given label prefix.
     """
-    list = ""
-    if array:
-        array.sort()
-        list = ", ".join(array)
+    list = ", ".join(sorted(items))
     print("%s: %s" % (label, list))
     return True
 
@@ -109,10 +104,10 @@ def handle_query_args(options, config_file, installed_file):
     Returns True if an argument was handled.
     """
     if options.list_installed:
-        return print_list("Installed", list(installed_file.dependencies.keys()))
+        return print_list("Installed", installed_file.dependencies.keys())
 
     if options.list_archives:
-        return print_list("Packages", list(config_file.installables.keys()))
+        return print_list("Packages", config_file.installables.keys())
 
     if options.list_licenses:
         if config_file.package_description.license is not None:
@@ -177,7 +172,7 @@ def handle_query_args(options, config_file, installed_file):
 
     if options.list_dirty:
         installed = installed_file.dependencies
-        dirty_pkgs = [installed[package]['package_description']['name'] for package in list(installed.keys())
+        dirty_pkgs = [installed[package]['package_description']['name'] for package in installed.keys()
                       if 'dirty' in  installed[package] and installed[package]['dirty']]
         return print_list("Dirty Packages", dirty_pkgs)
 
@@ -258,7 +253,7 @@ def get_package_file(package_name, package_url, hash_algorithm='md5', expected_h
                 with open(cache_file, 'wb') as cache:
                     max_block_size = 1024*1024 # if this is changed, also change 'MB' in progress message below
                     package_size = int(package_response.headers.get("content-length", 0))
-                    package_blocks = old_div(package_size, max_block_size) if package_size else 0
+                    package_blocks = package_size / max_block_size if package_size else 0
                     if package_blocks < (package_size * max_block_size):
                         package_blocks += 1 
                     logger.debug("response size %d blocks %d" % (package_size, package_blocks))
@@ -269,7 +264,7 @@ def get_package_file(package_name, package_url, hash_algorithm='md5', expected_h
                         if logger.getEffectiveLevel() <= logging.INFO:
                             # use CR and trailing comma to rewrite the same line each time for progress
                             if package_blocks:
-                                print("%d MB / %d MB (%d%%)\r" % (blocks_recvd, package_blocks, int(old_div(100*blocks_recvd,package_blocks))), end=' ')
+                                print("%d MB / %d MB (%d%%)\r" % (blocks_recvd, package_blocks, 100*blocks_recvd/package_blocks), end=' ')
                                 sys.stdout.flush()
                             else:
                                 print("%d\r" % blocks_recvd, end=' ')
@@ -757,7 +752,7 @@ def clean_files(install_dir, files):
     # added to the list when deleting files above.
     while directories:
         parents=set()
-        for dirname in sorted(directories, key=len):
+        for dirname in sorted(directories, key=len, reverse=True):
             dir_path = os.path.join(install_dir, dirname)
             if os.path.exists(dir_path) and not os.listdir(dir_path):
                 os.rmdir(dir_path)
@@ -788,10 +783,10 @@ def install_packages(args, config_file, install_dir, platform, packages):
     if not packages: # no package names were specified on the command line
         if args.local_archives: # one or more --local packages were specified
             logger.warning("Using --local with no package names listed installs only those local packages")
-            local_packages = list(config_file.installables.keys())
+            local_packages = config_file.installables.keys()
         else:
             logger.debug("no package names specified; installing all packages")
-            packages = list(config_file.installables.keys())
+            packages = config_file.installables.keys()
         
     # examine any local archives to match then with package names.
     local_archives = {}

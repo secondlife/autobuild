@@ -42,8 +42,10 @@ import shutil
 import unittest
 from contextlib import contextmanager
 try:
-    # this is a mess.  print expects bytes in python2 and unicode in python3, so
-    # use the old bytes version of StringIO if its there
+    # this is a mess.  pprint expects bytes in python2 and unicode in python3, so
+    # use the old bytes version of StringIO if its there.  note that io.StringIO
+    # is not usable even though it exists in python 2.7 since it returns a unicode
+    # object
     from StringIO import StringIO
 except ImportError:
     from io import StringIO

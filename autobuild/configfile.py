@@ -40,7 +40,9 @@ import string
 import sys
 try:
     # this is a mess.  pprint expects bytes in python2 and unicode in python3, so
-    # use the old bytes version of StringIO if its there
+    # use the old bytes version of StringIO if its there.  note that io.StringIO
+    # is not usable even though it exists in python 2.7 since it returns a unicode
+    # object
     from StringIO import StringIO
 except ImportError:
     from io import StringIO
@@ -127,7 +129,7 @@ class ConfigurationDescription(common.Serialized):
         """
         if platform_name is None:
             platform_name = common.get_current_platform()
-        return list(self.get_platform(platform_name).configurations.values())
+        return self.get_platform(platform_name).configurations.values()
 
     def get_build_configuration(self, build_configuration_name, platform_name=None):
         """
@@ -609,7 +611,7 @@ class PackageDescription(common.Serialized):
 
     def __init_from_dict(self, dictionary):
         platforms = dictionary.pop('platforms', {})
-        for (key, value) in list(platforms.items()):
+        for (key, value) in platforms.items():
             self.platforms[key] = PlatformDescription(value)
         self.update(dictionary)
 
@@ -621,7 +623,7 @@ class PackageDescription(common.Serialized):
                          "%s has no platforms" % self.name)
             return
 
-        # Iterate through items() -- a copy -- so we can update in place
+        # Iterate through list(items()) -- a copy -- so we can update in place
         for key, platform in list(platforms.items()):
             # expand_vars() returns a copy of the original dict rather than
             # modifying it in place, so make a new PlatformDescription
@@ -765,7 +767,7 @@ def pretty_print_string(description):
 def _compact_to_dict(obj):
     if isinstance(obj, dict):
         result = {}
-        for (key, value) in list(obj.items()):
+        for (key, value) in obj.items():
             if value:
                 result[key] = _compact_to_dict(value)
         return result

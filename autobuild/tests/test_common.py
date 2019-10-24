@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -21,6 +20,8 @@ from __future__ import absolute_import
 # THE SOFTWARE.
 # $/LicenseInfo$
 #!/usr/bin/python
+
+from __future__ import absolute_import
 
 import os
 import shutil

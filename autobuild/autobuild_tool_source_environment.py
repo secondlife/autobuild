@@ -238,7 +238,7 @@ def load_vsvars(vsver):
     # only environment variables actually modified by vcvarsall.bat.
     # Use items() rather than iteritems(): capture the list of items up front
     # instead of trying to traverse vcvars while modifying it.
-    for var, value in list(vcvars.items()):
+    for var, value in vcvars.items():
         # Bear in mind that some variables were introduced by vcvarsall.bat and
         # are therefore NOT in our os.environ.
         if os.environ.get(var) == value:
@@ -640,7 +640,7 @@ def internal_source_environment(configurations, varsfile):
                            sys.platform)
         else:
             platform_re = re.compile(r'(.*_BUILD)_%s(.*)$' % platform)
-            # use items() rather than iteritems(): we're modifying as we iterate
+            # use list(items()) rather than items(): we're modifying as we iterate
             for var, value in list(vfvars.items()):
                 match = platform_re.match(var)
                 if match:
@@ -656,7 +656,7 @@ def internal_source_environment(configurations, varsfile):
                 logger.warning("Ignoring extra configurations %s" %
                                ", ".join(configurations[1:]))
             configuration_re = re.compile(r'(.*_BUILD)_%s(.*)$' % configuration)
-            # use items() because we're modifying as we iterate
+            # use list(items()) because we're modifying as we iterate
             for var, value in list(vfvars.items()):
                 match = configuration_re.match(var)
                 if match:

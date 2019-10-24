@@ -35,7 +35,6 @@ Author : Martin Reddy
 Date   : 2010-04-23
 """
 
-from builtins import object
 import os
 import sys
 import difflib

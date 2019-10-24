@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -21,6 +20,7 @@ from __future__ import absolute_import
 # THE SOFTWARE.
 # $/LicenseInfo$
 
+from __future__ import absolute_import
 
 import os
 import sys
@@ -109,7 +109,7 @@ class LocalBase(BaseTest, AutobuildBaselineCompare):
         else:
             assert len(platforms) == 1, \
                    "read_metadata(no platform) ambiguous: " \
-                   "pass one of %s" % ', '.join(list(platforms.keys()))
+                   "pass one of %s" % ', '.join(platforms.keys())
             _, platdata = platforms.popitem()
         return MetadataDescription(os.path.join(platdata.build_directory,
                                                 PACKAGE_METADATA_FILE))

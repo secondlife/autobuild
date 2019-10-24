@@ -1,4 +1,3 @@
-from __future__ import print_function
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -24,7 +23,8 @@ from __future__ import print_function
 # simple test runner, superseded by nose, but might be handy for something
 # built to try out argparse while working with the existing tests
 
-from builtins import object
+from __future__ import print_function
+
 import sys
 import os
 import argparse

@@ -23,7 +23,6 @@
 # Base Class to give autobuild tool modules integration into autobuild
 # and standalone functionality
 
-from builtins import object
 import os
 import argparse
 

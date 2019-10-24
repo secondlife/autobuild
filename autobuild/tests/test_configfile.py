@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -23,6 +22,8 @@ from __future__ import absolute_import
 #
 # Integration test to exercise the config file reading/writing
 #
+
+from __future__ import absolute_import
 
 from builtins import str
 import unittest

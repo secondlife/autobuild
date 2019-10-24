@@ -28,7 +28,6 @@ from __future__ import absolute_import
 
 from future import standard_library
 standard_library.install_aliases()
-from builtins import object
 import os
 import sys
 import errno
@@ -197,7 +196,7 @@ def setUpModule():
             params.pop("params", None)  # may or may not be there yet?
             self.__dict__.update(params)
             # Remember attribute names for copy() implementation
-            self._attrs = list(params.keys())
+            self._attrs = params.keys()
 
         def copy(self):
             # Get a (key, value) pair for each attribute defined in our

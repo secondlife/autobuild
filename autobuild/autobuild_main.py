@@ -247,8 +247,11 @@ class Autobuild(object):
         if tool_to_run != -1:
             tool_to_run.run(args)
         else:
-            # under python2 argparse will do this for us above when we call parse_args.
-            # we imitate that here under python3
+            # under python2 argparse seems to have been doing the right thing by accident
+            # raising a "not enough arguments error" above even though we haven't actually
+            # specified any required positional arguments yet in the case where we have no
+            # subcommand to register.  python3 argparse handles this more correctly, so we
+            # need to print the usage message ourselves
             self.parser.print_help()
             self.parser.error("no subcommand specified")
 

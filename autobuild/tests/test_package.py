@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -24,7 +23,8 @@ from __future__ import absolute_import
 # Integration test to exercise the archive packaging
 #
 
-from builtins import object
+from __future__ import absolute_import
+
 import os
 import sys
 import logging

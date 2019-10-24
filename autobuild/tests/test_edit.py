@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -24,6 +23,7 @@ from __future__ import absolute_import
 # Unit testing of edit subcommand.
 #
 
+from __future__ import absolute_import
 
 import os
 import subprocess
