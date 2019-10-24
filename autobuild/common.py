@@ -134,6 +134,9 @@ def is_system_windows():
     # Windows: http://stackoverflow.com/a/2145582/5533635
     return sys.platform == 'win32' or sys.platform == 'cygwin'
 
+def is_platform_cross_compile():
+    return get_current_platform() in [PLATFORM_DARWIN_IOS]
+
 def check_platform_system_match(platform):
     """
     Confirm that the selected platform is compatibile with the system we're on
