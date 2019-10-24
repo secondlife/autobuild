@@ -675,9 +675,6 @@ def internal_source_environment(configurations, varsfile):
         '32': 'i386',
         '64': 'x86_64',
         }[os.environ["AUTOBUILD_ADDRSIZE"]]
-    if common.is_platform_cross_compile():
-        # for now ios device is all we'll do.  TODO figure out how to handle ios simulator builds
-        exports["AUTOBUILD_CONFIGURE_ARCH"] = "arm64"
 
     if common.is_system_windows():
         try:
@@ -742,10 +739,6 @@ def internal_source_environment(configurations, varsfile):
             # Resetting our PROMPT is a bit heavy-handed. Plus the substitution
             # syntax probably differs.
             vsvars.pop("PROMPT", None)
-
-    if common.is_platform_cross_compile():
-        # when cross compiling we generally can't run the tests easily
-        exports["DISABLE_UNIT_TESTS"] = "1"
 
     return exports, vars, vsvars
 
