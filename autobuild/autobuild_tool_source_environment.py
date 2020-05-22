@@ -633,6 +633,7 @@ def internal_source_environment(configurations, varsfile):
                 win32 ="WINDOWS",
                 cygwin="WINDOWS",
                 darwin="DARWIN",
+                linux="LINUX",
                 linux2="LINUX",
                 )[sys.platform]
         except KeyError:

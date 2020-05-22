@@ -265,14 +265,20 @@ def get_package_file(package_name, package_url, hash_algorithm='md5', expected_h
                             # use CR and trailing comma to rewrite the same line each time for progress
                             if package_blocks:
                                 print("%d MB / %d MB (%d%%)\r" % (blocks_recvd, package_blocks, 100*blocks_recvd/package_blocks), end=' ')
+                                # TODO - replace this .flush() call with flush=True added to the preceding print call
+                                # once we drop python2.7 support
                                 sys.stdout.flush()
                             else:
                                 print("%d\r" % blocks_recvd, end=' ')
+                                # TODO - replace this .flush() call with flush=True added to the preceding print call
+                                # once we drop python2.7 support
                                 sys.stdout.flush()
                         cache.write(block)
                         block = package_response.read(max_block_size)
                 if logger.getEffectiveLevel() <= logging.INFO:
                     print("") # get a new line following progress message
+                    # TODO - replace this .flush() call with flush=True added to the preceding print call
+                    # once we drop python2.7 support
                     sys.stdout.flush()
                 # some failures seem to leave empty cache files... delete and retry
                 if os.path.exists(cache_file) and os.path.getsize(cache_file) == 0:
