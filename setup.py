@@ -39,8 +39,9 @@ import os.path
 # you (because you already have your package's dependencies installed), but it
 # will wreak havoc upon new users of your package, as they will not be able to
 # install your package without manually installing the dependencies first."
-execfile(os.path.join("autobuild", "version.py"))
-# The previous execfile better have defined AUTOBUILD_VERSION_STRING!
+with open(os.path.join("autobuild", "version.py")) as versionf:
+    exec(versionf.read())
+# The exec above better have defined AUTOBUILD_VERSION_STRING!
 AUTOBUILD_VERSION_STRING                # NameError here means it didn't
 
 PACKAGE_NAME = 'autobuild'

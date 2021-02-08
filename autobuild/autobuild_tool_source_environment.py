@@ -232,9 +232,9 @@ def load_vsvars(vsver):
 
     # Now weed out of vcvars anything identical to OUR environment. Retain
     # only environment variables actually modified by vcvarsall.bat.
-    # Use items() rather than iteritems(): capture the list of items up front
-    # instead of trying to traverse vcvars while modifying it.
-    for var, value in vcvars.items():
+    # Capture the list of items up front instead of trying to traverse vcvars
+    # while modifying it.
+    for var, value in list(vcvars.items()):
         # Bear in mind that some variables were introduced by vcvarsall.bat and
         # are therefore NOT in our os.environ.
         if os.environ.get(var) == value:
@@ -257,9 +257,11 @@ def get_vars_from_bat(batpath, *args):
         # First call batpath to update the cmd shell's environment. Then
         # use Python itself -- not just any Python interpreter, but THIS one
         # -- to format the ENTIRE environment into temp_output.name.
+        # In Python 3, os.environ is no longer a simple dict. Explicitly
+        # convert to dict so pprint() will emit a form literal_eval() can read.
         temp_script_content = """\
 call "%s"%s
-"%s" -c "import os, pprint; pprint.pprint(os.environ)" > "%s"
+"%s" -c "import os, pprint; pprint.pprint(dict(os.environ))" > "%s"
 """ % (batpath, ''.join(' '+arg for arg in args), sys.executable, temp_output.name)
         # Specify mode="w" for text mode ("\r\n" newlines); default is binary.
         with tempfile.NamedTemporaryFile(suffix=".cmd", delete=False, mode="w") as temp_script:
