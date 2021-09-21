@@ -25,6 +25,7 @@ import sys
 from ast import literal_eval
 import errno
 import itertools
+import json
 import logging
 from pprint import pformat
 import re
@@ -144,15 +145,22 @@ def load_vsvars(vsver):
         # We can't use the VSxxxCOMNTOOLS dodge as we always used to. Use
         # vswhere.exe instead.
         via = os.path.basename(_VSWHERE_PATH)
-        # Split (e.g.) '150' into '15' and '0', then insert '.'
-        version = '.'.join((vsver[:-1], vsver[-1:]))
-        version_int = int(version[:-2])
-        version = "[{}.0, {}.0)".format(version_int, version_int+1)
+        # Split (e.g.) '155' into '15' and '5'
+        major, minor = vsver[:-1], vsver[-1:]
+        # If user specifies vsver='155', but VS 2017 isn't installed, but VS
+        # 2019 is, s/he isn't going to be satisfied with VS 2019. Limit the
+        # allowable range of responses only to the next version up, e.g.
+        # -version [15.5,16.0)
+        nextver = int(major) + 1
+        version = '[{}.{},{}.0)'.format(major, minor, nextver)
         try:
-            where = subprocess.check_output(
+            # don't pass text=True or universal_newlines=True: we want bytes
+            # to pass to json.loads()
+            raw = subprocess.check_output(
                 [_VSWHERE_PATH, '-version', version, '-products', '*',
                  '-requires', 'Microsoft.Component.MSBuild',
-                 '-property', 'InstallationPath']).rstrip()
+                 '-format', 'json']).rstrip()
+            installs = json.loads(raw)
         except OSError as err:
             if err.errno != errno.ENOENT:
                 raise
@@ -163,13 +171,33 @@ def load_vsvars(vsver):
             # Don't forget that vswhere reports error information on stdout.
             raise SourceEnvError('AUTOBUILD_VSVER={} unsupported: {}:\n{}'
                                  .format(vsver, err, err.output))
-        if not where:
+        except ValueError as err:
+            raise SourceEnvError("Can't parse vswhere output:\n" + raw.decode('utf-8'))
+
+        if not installs:
             # vswhere terminated with 0, yet its output is empty.
             raise SourceEnvError('AUTOBUILD_VSVER={} unsupported, '
                                  'is Visual Studio {} installed? (vswhere couldn\'t find)'
                                  .format(vsver, vsver))
-        # If we get this far, 'where' is the output of the above
-        # vswhere command. Append the rest of the directory path.
+
+        # If we get this far, 'installs' is the output of the above vswhere
+        # command. BUT vswhere treats -version as a lower bound: it reports
+        # every installed VS version >= -version. That's the reason we request
+        # json output, so that for each listed VS install we get the specific
+        # version as well as its install directory. Sort on the version string
+        # and pick the lowest version >= AUTOBUILD_VSVER. This is necessary
+        # because for (e.g.) -version 15.0, the version reported for VS 2017
+        # might be '15.8.2'. But what if you have both 15.5 and 15.8?
+        # We want a numeric sort, not a string sort, so that "10" sorts
+        # later than "8". Since some version components can be reported as
+        # (e.g.) "2+28010", don't just pass to int() -- find every cluster of
+        # decimal digits and build a list of int()s of those. Thus,
+        # "15.8.2+28010.2016" becomes [15, 8, 2, 2810, 2016].
+        installs.sort(key=lambda inst:
+                      [int(found.group(0))
+                       for found in re.finditer('[0-9]+', inst['catalog']['productDisplayVersion'])])
+        where = installs[0]['installationPath']
+        # Append the rest of the directory path.
         VCINSTALLDIR = os.path.join(where, 'VC', 'Auxiliary', 'Build')
 
     else:
@@ -719,7 +747,7 @@ def internal_source_environment(configurations, varsfile):
                     '120': "Visual Studio 12",
                     '140': "Visual Studio 14",
                     '150': "Visual Studio 15",
-                    '160': "Visual Studio 16"
+                    '160': "Visual Studio 16",
                     }[vsver]
             except KeyError:
                 # We don't have a specific mapping for this value of vsver. Take
@@ -730,9 +758,9 @@ def internal_source_environment(configurations, varsfile):
                 # build that actually consumes AUTOBUILD_WIN_CMAKE_GEN.
                 AUTOBUILD_WIN_CMAKE_GEN = "Visual Studio %s" % (vsver[:-1])
             # Of course CMake also needs to know bit width :-P
-            if os.environ["AUTOBUILD_ADDRSIZE"] == "64":
-                if vsver[:-1] != '16':
-                    AUTOBUILD_WIN_CMAKE_GEN += " Win64"
+            # Or at least it used to, until VS 2019.
+            if os.environ["AUTOBUILD_ADDRSIZE"] == "64" and vsver < '160':
+                AUTOBUILD_WIN_CMAKE_GEN += " Win64"
             exports["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
 
             # load vsvars32.bat variables
