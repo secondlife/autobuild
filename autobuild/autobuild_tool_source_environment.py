@@ -146,6 +146,8 @@ def load_vsvars(vsver):
         via = os.path.basename(_VSWHERE_PATH)
         # Split (e.g.) '150' into '15' and '0', then insert '.'
         version = '.'.join((vsver[:-1], vsver[-1:]))
+        version_int = int(version[:-2])
+        version = "[{}.0, {}.0)".format(version_int, version_int+1)
         try:
             where = subprocess.check_output(
                 [_VSWHERE_PATH, '-version', version, '-products', '*',
@@ -717,6 +719,7 @@ def internal_source_environment(configurations, varsfile):
                     '120': "Visual Studio 12",
                     '140': "Visual Studio 14",
                     '150': "Visual Studio 15",
+                    '160': "Visual Studio 16"
                     }[vsver]
             except KeyError:
                 # We don't have a specific mapping for this value of vsver. Take
@@ -728,7 +731,8 @@ def internal_source_environment(configurations, varsfile):
                 AUTOBUILD_WIN_CMAKE_GEN = "Visual Studio %s" % (vsver[:-1])
             # Of course CMake also needs to know bit width :-P
             if os.environ["AUTOBUILD_ADDRSIZE"] == "64":
-                AUTOBUILD_WIN_CMAKE_GEN += " Win64"
+                if vsver[:-1] != '16':
+                    AUTOBUILD_WIN_CMAKE_GEN += " Win64"
             exports["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
 
             # load vsvars32.bat variables
