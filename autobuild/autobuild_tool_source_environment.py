@@ -761,6 +761,14 @@ def internal_source_environment(configurations, varsfile):
             # Or at least it used to, until VS 2019.
             if os.environ["AUTOBUILD_ADDRSIZE"] == "64" and vsver < '160':
                 AUTOBUILD_WIN_CMAKE_GEN += " Win64"
+
+            # If we are building using VS 2019 or later, we elect to invoke
+            # the clang conpiler vs the MS one so mix in appropriate command
+            # line parameters. (Note: using VS 2019 also implies we are
+            # building 64bit)
+            if vsver >= '160':
+                AUTOBUILD_WIN_CMAKE_GEN += " -A x64 -T ClangCL"
+
             exports["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
 
             # load vsvars32.bat variables
