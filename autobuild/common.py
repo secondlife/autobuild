@@ -35,18 +35,19 @@ Author : Martin Reddy
 Date   : 2010-04-13
 """
 
-import os
-import sys
-import time
+import argparse
+from collections import OrderedDict
 import itertools
 import logging
+import os
 import platform
 import pprint
 import shutil
+import sys
 import tempfile
-import argparse
+import time
 
-from version import AUTOBUILD_VERSION_STRING
+from .version import AUTOBUILD_VERSION_STRING
 
 logger = logging.getLogger('autobuild.common')
 
@@ -140,7 +141,7 @@ def check_platform_system_match(platform):
         if not is_system_windows():
             platform_should_be="Windows"
     elif platform in (PLATFORM_LINUX, PLATFORM_LINUX64):
-        if sys.platform != 'linux2':
+        if not sys.platform.startswith('linux'):
             platform_should_be="Linux"
     elif platform in (PLATFORM_DARWIN, PLATFORM_DARWIN64, PLATFORM_DARWIN_IOS):
         if sys.platform != 'darwin':
@@ -171,7 +172,7 @@ def establish_platform(specified_platform=None, addrsize=DEFAULT_ADDRSIZE):
             Platform = PLATFORM_DARWIN64
         else:
             Platform = PLATFORM_DARWIN
-    elif sys.platform == 'linux2':
+    elif sys.platform.startswith('linux'):
         if addrsize == 64:
             Platform = PLATFORM_LINUX64
         else:
@@ -241,7 +242,7 @@ def get_install_cache_dir():
         cache = get_temp_dir("install.cache")
     else:
         if not os.path.exists(cache):
-            os.makedirs(cache, mode=0755)
+            os.makedirs(cache, mode=0o755)
     return cache
 
 
@@ -258,7 +259,7 @@ def get_temp_dir(basename):
     else:
         tmpdir = "/var/tmp/%s/%s" % (user, basename)
     if not os.path.exists(tmpdir):
-        os.makedirs(tmpdir, mode=0755)
+        os.makedirs(tmpdir, mode=0o755)
     return tmpdir
 
 
@@ -311,7 +312,7 @@ def find_executable(executables, exts=None, path=None):
     path should either be None (search os.environ['PATH']) or a sequence of
     directory names to be searched in order.
     """
-    if isinstance(executables, basestring):
+    if isinstance(executables, str):
         executables = [executables]
     if exts is None:
         exts = sys.platform.startswith("win") and [".com", ".exe", ".bat", ".cmd"] or []
@@ -332,14 +333,24 @@ def find_executable(executables, exts=None, path=None):
     return None
 
 
+def dedup_path(path, sep=os.pathsep):
+    """
+    Given a path string (directory names separated by os.pathsep), eliminate
+    duplicates from that string while preserving the search order. Since we've
+    observed cases in which both dir and dir/ appear in the same PATH string
+    (or dir and dir\, depending on platform), also remove any trailing slashes.
+
+    Optionally pass a separator, if you want anything other than os.pathsep.
+    """
+    # OrderedDict is just what the doctor, um...
+    return sep.join(OrderedDict((dir.rstrip(r'\/'), 1) for dir in path.split(sep)))
+
+
 def compute_md5(path):
     """
     Returns the MD5 sum for the given file.
     """
-    try:
-        from hashlib import md5      # Python 2.6
-    except ImportError:
-        from md5 import new as md5   # Python 2.5 and earlier
+    from hashlib import md5
 
     try:
         stream = open(path, 'rb')

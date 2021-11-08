@@ -33,15 +33,15 @@ import pprint
 import re
 import string
 import sys
-from cStringIO import StringIO
+from io import StringIO
 try:
     from llbase import llsd
 except ImportError:
     sys.exit("Failed to import llsd via the llbase module; to install, use:\n"
              "  pip install llbase")
 
-import common
-from executable import Executable
+from . import common
+from .executable import Executable
 import logging
 
 logger = logging.getLogger('autobuild.configfile')
@@ -117,7 +117,7 @@ class ConfigurationDescription(common.Serialized):
         """
         if platform_name is None:
             platform_name = common.get_current_platform()
-        return self.get_platform(platform_name).configurations.values()
+        return list(self.get_platform(platform_name).configurations.values())
 
     def get_build_configuration(self, build_configuration_name, platform_name=None):
         """
@@ -139,7 +139,7 @@ class ConfigurationDescription(common.Serialized):
         if platform_name is None:
             common.get_current_platform()
         return [value
-                for (key, value) in self.get_platform(platform_name).configurations.iteritems()
+                for (key, value) in self.get_platform(platform_name).configurations.items()
                 if value.default]
 
     def get_build_directory(self, configuration, platform_name=None):
@@ -221,11 +221,12 @@ class ConfigurationDescription(common.Serialized):
             raise ConfigurationError("Aborting attempt to save %s with variable expansions" %
                                      self.path)
         logger.debug("Writing configuration file %s" % self.path)
-        file(self.path, 'wb').write(llsd.format_pretty_xml(_compact_to_dict(self)))
+        with open(self.path, 'wb') as f:
+            f.write(llsd.format_pretty_xml(_compact_to_dict(self)))
 
     def __load(self, path):
         # circular imports, sorry, must import update locally
-        import update
+        from . import update
 
         if os.path.isabs(path):
             self.path = path
@@ -237,7 +238,8 @@ class ConfigurationDescription(common.Serialized):
             else:
                 self.path = abs_path
         if os.path.isfile(self.path):
-            autobuild_xml = file(self.path, 'rb').read()
+            with open(self.path, 'rb') as f:
+                autobuild_xml = f.read()
             if not autobuild_xml:
                 logger.warn("Configuration file '%s' is empty" % self.path)
                 return
@@ -272,7 +274,7 @@ class ConfigurationDescription(common.Serialized):
         if package_description is not None:
             self.package_description = PackageDescription(package_description)
         installables = dictionary.pop('installables', {})
-        for (name, package) in installables.iteritems():
+        for (name, package) in installables.items():
             self.installables[name] = PackageDescription(package)
             if name != self.installables[name].name:
                 raise ConfigurationError("installable key '%s' does not match package name '%s'"
@@ -363,7 +365,8 @@ class Dependencies(common.Serialized):
         """
         dict_representation=_compact_to_dict(self)
         del dict_representation['path'] # there's no need for the file to include its own name
-        file(self.path, 'wb').write(llsd.format_pretty_xml(dict_representation))
+        with open(self.path, 'wb') as f:
+            f.write(llsd.format_pretty_xml(dict_representation))
 
     def __load(self, path=None):
         if os.path.isabs(path):
@@ -376,7 +379,8 @@ class Dependencies(common.Serialized):
             else:
                 self.path = abs_path
         if os.path.isfile(self.path):
-            installed_xml = file(self.path, 'rb').read()
+            with open(self.path, 'rb') as f:
+                installed_xml = f.read()
             if not installed_xml:
                 logger.warn("Installed file '%s' is empty" % self.path)
                 return
@@ -391,7 +395,7 @@ class Dependencies(common.Serialized):
                                      + '\nClearing your build directory and rebuilding should correct it.')
 
             dependencies = saved_data.pop('dependencies', {})
-            for (name, package) in dependencies.iteritems():
+            for (name, package) in dependencies.items():
                 self.dependencies[name] = package
             self.update(saved_data)
         elif not os.path.exists(self.path):
@@ -441,7 +445,8 @@ class MetadataDescription(common.Serialized):
         if path:
             self.path = path
             if os.path.isfile(self.path):
-                metadata_xml = file(self.path, 'rb').read()
+                with open(self.path, 'rb') as f:
+                    metadata_xml = f.read()
                 if not metadata_xml:
                     logger.warn("Metadata file '%s' is empty" % self.path)
                     self.dirty=False
@@ -474,14 +479,14 @@ class MetadataDescription(common.Serialized):
             else:
                 raise ConfigurationError("metadata is missing package_description")
             dependencies = parsed_llsd.pop('dependencies', {})
-            for (name, package) in dependencies.iteritems():
+            for (name, package) in dependencies.items():
                 self.dependencies[name] = MetadataDescription(parsed_llsd=package)
             self.manifest = parsed_llsd.pop('manifest', [])
 
     def add_dependencies(self, installed_pathname):
         logger.debug("loading " + installed_pathname)
         dependencies = Dependencies(installed_pathname)
-        for (name, package) in dependencies.dependencies.iteritems():
+        for (name, package) in dependencies.dependencies.items():
             del package['install_dir']
             del package['manifest']
             if 'dirty' in package and package['dirty']:
@@ -494,7 +499,8 @@ class MetadataDescription(common.Serialized):
         Save the metadata.
         """
         if self.path:
-            file(self.path, 'wb').write(llsd.format_pretty_xml(_compact_to_dict(self)))
+            with open(self.path, 'wb') as f:
+                f.write(llsd.format_pretty_xml(_compact_to_dict(self)))
 
 package_selected_platform = None
 
@@ -596,7 +602,7 @@ class PackageDescription(common.Serialized):
 
     def __init_from_dict(self, dictionary):
         platforms = dictionary.pop('platforms', {})
-        for (key, value) in platforms.items():
+        for (key, value) in list(platforms.items()):
             self.platforms[key] = PlatformDescription(value)
         self.update(dictionary)
 
@@ -609,7 +615,7 @@ class PackageDescription(common.Serialized):
             return
 
         # Iterate through items() -- a copy -- so we can update in place
-        for key, platform in platforms.items():
+        for key, platform in list(platforms.items()):
             # expand_vars() returns a copy of the original dict rather than
             # modifying it in place, so make a new PlatformDescription
             platforms[key] = PlatformDescription(expand_vars(platform, vars))
@@ -637,7 +643,7 @@ class PlatformDescription(common.Serialized):
 
     def __init_from_dict(self, dictionary):
         configurations = dictionary.pop('configurations', {})
-        for (key, value) in configurations.iteritems():
+        for (key, value) in configurations.items():
             self.configurations[key] = BuildConfigurationDescription(value)
         archive = dictionary.pop('archive', None)
         if archive is not None:
@@ -752,7 +758,7 @@ def pretty_print_string(description):
 def _compact_to_dict(obj):
     if isinstance(obj, dict):
         result = {}
-        for (key, value) in obj.items():
+        for (key, value) in list(obj.items()):
             if value:
                 result[key] = _compact_to_dict(value)
         return result
@@ -783,7 +789,7 @@ def expand_vars(data, vars=os.environ):
     Return a copy of data with variable references expanded. The original data
     dict is unchanged.
     """
-    if isinstance(data, basestring):
+    if isinstance(data, str):
         # str or unicode: expand
         return _expand_vars_string(data, vars)
 
@@ -791,7 +797,7 @@ def expand_vars(data, vars=os.environ):
         # dict: copy it
         newdata = data.copy()
         # and update the new copy
-        for key, value in data.iteritems():
+        for key, value in data.items():
             newdata[key] = expand_vars(value, vars)
         return newdata
 

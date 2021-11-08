@@ -30,16 +30,16 @@ import sys
 from autobuild import configfile
 from autobuild import common
 from autobuild.autobuild_main import Autobuild
-from baseline_compare import AutobuildBaselineCompare
+from .baseline_compare import AutobuildBaselineCompare
 import autobuild.autobuild_tool_installables as installables
-from basetest import BaseTest, assert_in
+from .basetest import BaseTest, assert_in
 
 
 class TestInstallables(BaseTest, AutobuildBaselineCompare):
     def setUp(self):
         BaseTest.setUp(self)
         os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
-        self.tmp_file = self.get_tmp_file(0)
+        self.tmp_file = self.get_tmp_file()
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         self.datadir = os.path.join(os.path.dirname(__file__), "data")
         
@@ -48,20 +48,20 @@ class TestInstallables(BaseTest, AutobuildBaselineCompare):
         data = ('license=tut', 'license_file=LICENSES/bogus.txt', 'platform=darwin',
             'url='+local_archive)
         installables.add(self.config, 'bogus', None, data)
-        self.assertEquals(len(self.config.installables), 1)
+        self.assertEqual(len(self.config.installables), 1)
         package_description = self.config.installables['bogus']
-        self.assertEquals(package_description.name, 'bogus')
-        self.assertEquals(package_description.license, 'tut')
+        self.assertEqual(package_description.name, 'bogus')
+        self.assertEqual(package_description.license, 'tut')
         assert_in('darwin', package_description.platforms)
         platform_description = package_description.platforms['darwin']
         assert platform_description.archive is not None
         assert platform_description.archive.url.endswith(local_archive)
         edit_data = ('license=Apache', 'platform=darwin', 'hash_algorithm=sha-1')
         installables.edit(self.config, 'bogus', None, edit_data)
-        self.assertEquals(package_description.license, 'Apache')
-        self.assertEquals(platform_description.archive.hash_algorithm, 'sha-1')
+        self.assertEqual(package_description.license, 'Apache')
+        self.assertEqual(platform_description.archive.hash_algorithm, 'sha-1')
         installables.remove(self.config, 'bogus')
-        self.assertEquals(len(self.config.installables), 0)
+        self.assertEqual(len(self.config.installables), 0)
                     
     def tearDown(self):
         self.cleanup_tmp_file()

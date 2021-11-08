@@ -42,13 +42,14 @@ if __name__ == '__main__':
     autobuild = subprocess.Popen(command,
                                  stdout=subprocess.PIPE,
                                  # Use command shell to perform that search.
-                                 shell=sys.platform.startswith("win"))
+                                 shell=sys.platform.startswith("win"),
+                                 universal_newlines=True)
     stdout, stderr = autobuild.communicate()
     rc = autobuild.wait()
     try:
         assert rc == 0, "%s => %s" % (' '.join(command), rc)
         assert stdout.startswith("autobuild "), \
                "does not look like autobuild --version output:\n" + stdout
-    except AssertionError, err:
-        print >>sys.stderr, "***Failed command: %s" % command
+    except AssertionError as err:
+        print("***Failed command: %s" % command, file=sys.stderr)
         raise

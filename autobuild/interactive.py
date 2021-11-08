@@ -31,9 +31,9 @@ See: autobuild_tool_edit.py for usage examples
 """
 
 import sys
-from StringIO import StringIO
-import configfile
-from common import AutobuildError
+from io import StringIO
+from . import configfile
+from .common import AutobuildError
 
 
 class InteractiveCommand(object):
@@ -87,44 +87,44 @@ class InteractiveCommand(object):
         command = '%s' % self.__class__.__name__
         command = command.lower()
         if getattr(self, 'description', ''):
-            print '\n%s' % self.description
+            print('\n%s' % self.description)
 
         action = "Create or update"
         if delete:
             action = "Delete"
-        print "\n%s %s details:" % (action, command)
+        print("\n%s %s details:" % (action, command))
         if getattr(self, 'help', ''):
-            print self.help
-        print "Any fields left blank will remain unchanged."
-        print "Any fields entered as 'none' will clear the existing value."
+            print(self.help)
+        print("Any fields left blank will remain unchanged.")
+        print("Any fields entered as 'none' will clear the existing value.")
 
         input_values = {}
         for argument in self.ARGUMENTS:
             try:
                 helptext = self.ARG_DICT[argument]['help']
-                i = raw_input("    %s> " % helptext)
+                i = input("    %s> " % helptext)
                 if i:
                     if i.lower() == 'none':
                         i = ''
                     input_values[argument] = i
             except EOFError:
-                print ""
+                print("")
                 exit = 'y'
-                exit = raw_input("Do you really want to exit ([y]/n)? ")
+                exit = input("Do you really want to exit ([y]/n)? ")
                 if exit == 'y':
                     sys.exit(0)
 
-        print "These fields will be changed:"
-        print input_values
+        print("These fields will be changed:")
+        print(input_values)
         if delete:
             if self._confirm_delete():
                 self.delete(**input_values)
         else:
-            save = raw_input("Save to config (y/[n])? ")
+            save = input("Save to config (y/[n])? ")
             if save in ['y', 'Y', 'yes', 'Yes', 'YES']:
                 self.run(**input_values)
             else:
-                print "Not saved."
+                print("Not saved.")
     
     @classmethod
     def run_cmd(klass, config, kwargs, delete):
@@ -159,7 +159,7 @@ class InteractiveCommand(object):
         raise AutobuildError("Delete not yet implemented for this command.")
 
     def _confirm_delete(self):
-        really_delete = raw_input("Do you really want to delete this entry (y/[n])? ")
+        really_delete = input("Do you really want to delete this entry (y/[n])? ")
         if really_delete in ['y', 'Y', 'yes', 'Yes', 'YES']:
             return True
         return False

@@ -1,6 +1,8 @@
 *~
 build/
 dist/
+.idea
 *.pyc
 *.swp
+*.egg-info
 virtualenv/

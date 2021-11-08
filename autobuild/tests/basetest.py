@@ -35,10 +35,11 @@ import subprocess
 import time
 import shutil
 import unittest
-from contextlib import contextmanager
-from cStringIO import StringIO
+from contextlib import contextmanager, redirect_stdout
+from io import BytesIO, StringIO
 
 from autobuild import common
+
 
 class BaseTest(unittest.TestCase):
     def setUp(self):
@@ -61,7 +62,7 @@ class BaseTest(unittest.TestCase):
         through.
         """
         command = (self.autobuild_bin,) + args
-        return subprocess.check_output(command, **kwds).rstrip()
+        return subprocess.check_output(command, universal_newlines=True, **kwds).rstrip()
 
     # On Windows, need some retry logic wrapped around removing files (SIGHH)
     if not sys.platform.startswith("win"):
@@ -74,16 +75,16 @@ class BaseTest(unittest.TestCase):
                 tries += 1
                 try:
                     os.remove(path)
-                except OSError, err:
+                except OSError as err:
                     if err.errno == errno.ENOENT:
                         return
                     if err.errno != errno.EACCES:
-                        print "*** Unknown %s (errno %s): %s: %s" % \
-                              (err.__class__.__name__, err.errno, err, path)
+                        print("*** Unknown %s (errno %s): %s: %s" % \
+                              (err.__class__.__name__, err.errno, err, path))
                         sys.stdout.flush()
                         raise
                     if (time.time() - start) > 10:
-                        print "*** remove(%r) timed out after %s retries" % (path, tries)
+                        print("*** remove(%r) timed out after %s retries" % (path, tries))
                         sys.stdout.flush()
                         raise
                     time.sleep(1)
@@ -94,18 +95,18 @@ class BaseTest(unittest.TestCase):
 def clean_file(pathname):
     try:
         os.remove(pathname)
-    except OSError, err:
+    except OSError as err:
         if err.errno != errno.ENOENT:
-            print >>sys.stderr, "*** Can't remove %s: %s" % (pathname, err)
+            print("*** Can't remove %s: %s" % (pathname, err), file=sys.stderr)
             # But no exception, we're still trying to clean up.
 
 def clean_dir(pathname):
     try:
         shutil.rmtree(pathname)
-    except OSError, err:
+    except OSError as err:
         # Nonexistence is fine.
         if err.errno != errno.ENOENT:
-            print >>sys.stderr, "*** Can't remove %s: %s" % (pathname, err)
+            print("*** Can't remove %s: %s" % (pathname, err), file=sys.stderr)
 
 def assert_in(item, container):
     assert item in container, "%r not in %r" % (item, container)
@@ -197,6 +198,19 @@ def ExpectError(errfrag, expectation, exception=common.AutobuildError):
         assert False, "Expected a bad thing to happen"
     """
     return exc(exception, pattern=errfrag, message=expectation)
+
+
+@contextmanager
+def capture_stdout_buffer():
+    """
+    Capture sys.stdout.buffer
+    """
+    _ = StringIO() # Not needed for any tests yet
+    buf = BytesIO()
+    with redirect_stdout(_):
+        sys.stdout.buffer = buf
+        yield buf
+
 
 class CaptureStd(object):
     """

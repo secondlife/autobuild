@@ -38,6 +38,8 @@ Date   : 2010-04-23
 import os
 import sys
 import difflib
+import tempfile
+
 
 class AutobuildBaselineCompare:
     """
@@ -62,14 +64,14 @@ class AutobuildBaselineCompare:
     failed = False
     tmp_file = None
 
-    def get_tmp_file(self, n):
+    def get_tmp_file(self):
         """
         Return a different tmp file for each test, so we can remove
         it if the test passes, or leave it around for debugging if it
         fails.
         """
         self.failed = False
-        self.tmp_file = os.path.join(sys.path[0], "test_output_%d.out" % n)
+        self.tmp_file = tempfile.NamedTemporaryFile(prefix="test_output_", delete=False).name
         return self.tmp_file
 
     def diff_tmp_file_against_baseline(self, baseline):
@@ -79,8 +81,10 @@ class AutobuildBaselineCompare:
         """
         output = self.tmp_file
         baseline = os.path.join(sys.path[0], baseline)
-        output_lines = [x.rstrip() for x in file(output, 'rb').readlines()]
-        baseline_lines = [x.rstrip() for x in file(baseline, 'rb').readlines()]
+        with open(output, 'rb') as f:
+            output_lines = [line.rstrip() for line in f]
+        with open(baseline, 'rb') as f:
+            baseline_lines = [line.rstrip() for line in f]
         udiff = difflib.unified_diff(baseline_lines, output_lines, fromfile=baseline,
                                      tofile=output, lineterm="")
         error = []

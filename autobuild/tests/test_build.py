@@ -28,14 +28,14 @@ import pprint
 import tempfile
 import unittest
 from nose.tools import *                # assert_equals
-from baseline_compare import AutobuildBaselineCompare
+from .baseline_compare import AutobuildBaselineCompare
 from autobuild import autobuild_tool_build as build
 import autobuild.configfile as configfile
-from autobuild.executable import Executable
 import autobuild.common as common
 from autobuild.configfile import PACKAGE_METADATA_FILE, MetadataDescription
 from autobuild.autobuild_tool_build import BuildError, AutobuildTool
-from basetest import BaseTest, clean_dir, exc
+from .basetest import BaseTest, clean_dir, exc
+from .executables import envtest, noop, echo
 
 # ****************************************************************************
 #   TODO
@@ -62,7 +62,7 @@ class LocalBase(BaseTest, AutobuildBaselineCompare):
         os.environ["PATH"] = os.pathsep.join([os.path.abspath(os.path.dirname(__file__)),
                                               os.environ["PATH"]])
         # Create and return a config file appropriate for this test class.
-        self.tmp_file = self.get_tmp_file(0)
+        self.tmp_file = self.get_tmp_file()
         self.tmp_build_dir=tempfile.mkdtemp(prefix=os.path.dirname(self.tmp_file)+"/build-")
         self.config = self.get_config()
         self.config.save()
@@ -83,9 +83,7 @@ class LocalBase(BaseTest, AutobuildBaselineCompare):
         # than an "option" -- but the way Executable is structured, if we pass
         # it as an "argument" then the "build" subcommand gets inserted before
         # it, which thoroughly confuses the Python interpreter.
-        build_configuration.build = \
-            Executable(command=sys.executable,
-                       options=[os.path.join(os.path.dirname(__file__), "noop.py")])
+        build_configuration.build = noop
         build_configuration.default = True
         build_configuration.name = 'Release'
         platform.configurations['Release'] = build_configuration
@@ -108,7 +106,7 @@ class LocalBase(BaseTest, AutobuildBaselineCompare):
         else:
             assert len(platforms) == 1, \
                    "read_metadata(no platform) ambiguous: " \
-                   "pass one of %s" % ', '.join(platforms.keys())
+                   "pass one of %s" % ', '.join(list(platforms.keys()))
             _, platdata = platforms.popitem()
         return MetadataDescription(os.path.join(platdata.build_directory,
                                                 PACKAGE_METADATA_FILE))
@@ -143,9 +141,7 @@ class TestEnvironment(LocalBase):
         # it as an "argument" then the "build" subcommand gets inserted before
         # it, which thoroughly confuses the Python interpreter.
         config.package_description.platforms[common.get_current_platform()] \
-              .configurations["Release"].build = \
-              Executable(command=sys.executable,
-                         options=[os.path.join(os.path.dirname(__file__), "envtest.py")])
+              .configurations["Release"].build = envtest
         return config
 
     def test_env(self):
@@ -245,8 +241,7 @@ class TestSubstitutions(LocalBase):
     def get_config(self):
         config = super(TestSubstitutions, self).get_config()
         config.package_description.platforms[common.get_current_platform()] \
-              .configurations['Release'].build = \
-              Executable("echo", arguments=["foo$AUTOBUILD_ADDRSIZE"])
+              .configurations['Release'].build = echo("foo$AUTOBUILD_ADDRSIZE")
         return config
 
     def test_substitutions(self):
@@ -257,8 +252,7 @@ class TestSubstitutions(LocalBase):
 
     def test_id(self):
         self.config.package_description.platforms[common.get_current_platform()] \
-            .configurations['Release'].build = \
-            Executable("echo", arguments=["foo$AUTOBUILD_BUILD_ID"])
+            .configurations['Release'].build = echo("foo$AUTOBUILD_BUILD_ID")
         self.config.save()
         assert "foo666" in self.autobuild('build', '--config-file=' + self.tmp_file,
                                         '-i', '666')

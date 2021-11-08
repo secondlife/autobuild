@@ -34,12 +34,12 @@ Date   : 2010-10-19
 
 import os
 import sys
-import common
+from . import common
 import logging
-import configfile
-import autobuild_base
-from autobuild_tool_install import uninstall
-from autobuild_tool_source_environment import get_enriched_environment
+from . import configfile
+from . import autobuild_base
+from .autobuild_tool_install import uninstall
+from .autobuild_tool_source_environment import get_enriched_environment
 
 logger = logging.getLogger('autobuild.uninstall')
 

@@ -29,9 +29,9 @@ import sys
 import tempfile
 import unittest
 from autobuild import autobuild_tool_source_environment as atse
-from basetest import *
+from .basetest import *
 from nose.tools import *
-from patch import patch
+from .patch import patch
 from pprint import pformat
 
 def assert_dict_has(d, key, value):
@@ -45,10 +45,10 @@ def assert_dict_has(d, key, value):
 def assert_dict_subset(d, s):
     # Windows insists on capitalizing environment variables, so prepare a copy
     # of d with all-caps keys.
-    dupper = dict((k.upper(), v) for k, v in d.iteritems())
+    dupper = dict((k.upper(), v) for k, v in d.items())
     missing = []
     mismatch = []
-    for key, value in s.iteritems():
+    for key, value in s.items():
         try:
             dval = dupper[key.upper()]
         except KeyError:
@@ -106,7 +106,7 @@ class TestSourceEnvironment(BaseTest):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
-        for var, value in self.restores.iteritems():
+        for var, value in self.restores.items():
             os.environ[var] = value
         for var in self.removes:
             # an individual test might or might not set var
@@ -128,7 +128,8 @@ class TestSourceEnvironment(BaseTest):
         if the child process terminates with nonzero rc.
         """
         autobuild = subprocess.Popen((self.autobuild_bin, "source_environment") + args,
-                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                     universal_newlines=True)
         stdout, stderr = autobuild.communicate()
         rc = autobuild.wait()
         assert rc == 0, "%s source_environment terminated with %s:\n%s" % \
@@ -151,7 +152,7 @@ class TestSourceEnvironment(BaseTest):
     eval "$('%s' source_environment %s)"
     %s""" % (self.autobuild_bin,
              ' '.join("'%s'" % arg for arg in args),
-             commands)]).rstrip()
+             commands)], universal_newlines=True).rstrip()
 
         def shell_path(self, path):
             return path
@@ -205,9 +206,9 @@ for var in $(set | grep '^[^ ]' | cut -s -d= -f 1)
 do export $var
 done
 '%s' -c 'import os, pprint
-pprint.pprint(os.environ)'""" % self.shell_path(sys.executable)))
+pprint.pprint(dict(os.environ))'""" % self.shell_path(sys.executable)))
         # filter out anything inherited from our own environment
-        for var, value in os.environ.iteritems():
+        for var, value in os.environ.items():
             if value == vars.get(var):
                 del vars[var]
         return vars
@@ -293,13 +294,13 @@ replace_switch def xyz $switches""").split()),
         # is our most important platform. The trouble with that is that on any
         # other platform, autobuild source_environment naturally complains
         # that Visual Studio isn't installed! So go for "darwin" instead.
-        with patch(sys, "platform", "darwin"), CaptureStdout() as stdout:
+        with patch(sys, "platform", "darwin"), capture_stdout_buffer() as outbuf:
             # Patching sys.platform of course only affects THIS process.
             # Therefore we must use autobuild_call() rather than any of the
             # methods that run autobuild source_environment as a child
             # process.
             self.autobuild_call(self.find_data("darwin"))
-        stdout = stdout.getvalue()
+        stdout = outbuf.getvalue().decode("utf-8")
         assert_found_assignment("LL_BUILD_DARWIN_RELEASE", "darwin release", stdout)
         assert_found_assignment("LL_BUILD_RELEASE", "darwin release", stdout)
         assert_found_assignment("SOMETHING_ELSE", "something else", stdout)
@@ -315,7 +316,7 @@ replace_switch def xyz $switches""").split()),
         handler = logging.StreamHandler(stream)
         atse.logger.addHandler(handler)
         try:
-            with patch(sys, "platform", "strange"):
+            with patch(sys, "platform", "strange"), capture_stdout_buffer():
                 self.autobuild_call(self.find_data("darwin"))
         finally:
             atse.logger.removeHandler(handler)
@@ -324,17 +325,17 @@ replace_switch def xyz $switches""").split()),
         assert_in("strange", stderr)
 
     def test_config_shorthand(self):
-        with patch(sys, "platform", "darwin"), CaptureStdout() as stdout:
+        with patch(sys, "platform", "darwin"), capture_stdout_buffer() as outbuf:
             self.autobuild_call(self.find_data("darwin"), "RelWithDebInfo")
-        stdout = stdout.getvalue()
+        stdout = outbuf.getvalue().decode("utf-8")
         assert_found_assignment("LL_BUILD_DARWIN_RELEASE", "darwin release", stdout)
         assert_found_assignment("LL_BUILD_RELEASE", "darwin release", stdout)
         assert_found_assignment("SOMETHING_ELSE", "something else", stdout)
         assert_not_found_in(r'^ *LL_BUILD=', stdout)
 
-        with patch(sys, "platform", "darwin"), CaptureStdout() as stdout:
+        with patch(sys, "platform", "darwin"), capture_stdout_buffer() as outbuf:
             self.autobuild_call(self.find_data("darwin"), "Release")
-        stdout = stdout.getvalue()
+        stdout = outbuf.getvalue().decode("utf-8")
         assert_found_assignment("LL_BUILD_DARWIN_RELEASE", "darwin release", stdout)
         assert_found_assignment("LL_BUILD_RELEASE", "darwin release", stdout)
         assert_found_assignment("LL_BUILD", "darwin release", stdout)

@@ -54,18 +54,18 @@ def find_all_tests():
                 module_name = file_name[:-3]
                 main_test_list.append(module_name)
             else:
-                print (text_colours.warning + "warning: file %r does not appear to have test coverage" +
-                       text_colours.end) % file_name
+                print((text_colours.warning + "warning: file %r does not appear to have test coverage" +
+                       text_colours.end) % file_name)
 
 
 # run the tests which have been chosen by the user
 def run_list_of_tests(list, list_to_skip):
     for test_name in list:
         if test_name in list_to_skip:
-            print (text_colours.title + 'Skipping %r' + text_colours.end) % test_name
+            print((text_colours.title + 'Skipping %r' + text_colours.end) % test_name)
         else:
             test_file = 'test_' + test_name
-            print (text_colours.title + 'Running tests for %r in module %r...' + text_colours.end) % (test_name, test_file)
+            print((text_colours.title + 'Running tests for %r in module %r...' + text_colours.end) % (test_name, test_file))
             test_suite = __import__(test_file, globals(), locals(), [], -1)
             suite = unittest.TestLoader().loadTestsFromModule(test_suite)
             unittest.TextTestRunner(verbosity=2).run(suite)

@@ -23,6 +23,7 @@
 import os
 import sys
 from ast import literal_eval
+from collections import OrderedDict
 import errno
 import itertools
 import json
@@ -35,8 +36,8 @@ import string
 import subprocess
 import tempfile
 
-import common
-import autobuild_base
+from . import common
+from . import autobuild_base
 
 logger = logging.getLogger('autobuild.source_environment')
 
@@ -91,7 +92,8 @@ def _available_vsvers():
             [_VSWHERE_PATH, '-all', # '-legacy',
              '-products', '*',
              '-requires', 'Microsoft.Component.MSBuild',
-             '-property', 'installationVersion'])
+             '-property', 'installationVersion'],
+            universal_newlines=True)
     except OSError as err:
         if err.errno != errno.ENOENT:
             raise
@@ -159,7 +161,7 @@ def load_vsvars(vsver):
             raw = subprocess.check_output(
                 [_VSWHERE_PATH, '-version', version, '-products', '*',
                  '-requires', 'Microsoft.Component.MSBuild',
-                 '-format', 'json']).rstrip()
+                 '-format', 'json'], universal_newlines=True).rstrip()
             installs = json.loads(raw)
         except OSError as err:
             if err.errno != errno.ENOENT:
@@ -172,7 +174,7 @@ def load_vsvars(vsver):
             raise SourceEnvError('AUTOBUILD_VSVER={} unsupported: {}:\n{}'
                                  .format(vsver, err, err.output))
         except ValueError as err:
-            raise SourceEnvError("Can't parse vswhere output:\n" + raw.decode('utf-8'))
+            raise SourceEnvError("Can't parse vswhere output:\n" + raw)
 
         if not installs:
             # vswhere terminated with 0, yet its output is empty.
@@ -339,7 +341,7 @@ call "%s"%s
 def cygpath(*args):
     """run cygpath with specified command-line args, returning its output"""
     cmdline = ["cygpath"] + list(args)
-    stdout = subprocess.Popen(cmdline, stdout=subprocess.PIPE) \
+    stdout = subprocess.Popen(cmdline, stdout=subprocess.PIPE, universal_newlines=True) \
                        .communicate()[0].rstrip()
     logger.debug("%s => '%s'" % (cmdline, stdout))
     return stdout
@@ -467,14 +469,6 @@ similar.""")
     else:
         template = '\n'.join((environment_template, windows_template))
 
-        try:
-            # reset stdout in binary mode so sh doesn't get confused by '\r'
-            import msvcrt
-            msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
-        except ImportError:
-            # cygwin gets a pass
-            pass
-
         # We don't know which environment variables might be modified by
         # vsvars32.bat, but one of them is likely to be PATH. Treat PATH
         # specially: when a bash script invokes our load_vsvars() shell
@@ -505,7 +499,7 @@ similar.""")
         # A pathname ending with a backslash (as many do on Windows), when
         # embedded in quotes in a bash script, might inadvertently escape the
         # close quote. Remove all trailing backslashes.
-        vsvarslist = [(k, v.rstrip('\\')) for (k, v) in vsvars.iteritems()]
+        vsvarslist = [(k, v.rstrip('\\')) for (k, v) in vsvars.items()]
 
         # may as well sort by keys
         vsvarslist.sort()
@@ -521,11 +515,12 @@ similar.""")
     # Before expanding template with var_mapping, finalize the 'exports' and
     # 'vars' dicts into var_mapping["vars"] as promised above.
     var_mapping["vars"] = '\n'.join(itertools.chain(
-        (("    export %s='%s'" % (k, v)) for k, v in exports.iteritems()),
-        (("    %s='%s'" % (k, v)) for k, v in vars.iteritems()),
+        (("    export %s='%s'" % (k, v)) for k, v in exports.items()),
+        (("    %s='%s'" % (k, v)) for k, v in vars.items()),
         ))
 
-    sys.stdout.write(template % var_mapping)
+    # Write to stdout buffer to avoid writing CRLF line endings
+    sys.stdout.buffer.write((template % var_mapping).encode("utf-8"))
 
     if get_params:
         # *TODO - run get_params.generate_bash_script()
@@ -661,6 +656,7 @@ def internal_source_environment(configurations, varsfile):
                 win32 ="WINDOWS",
                 cygwin="WINDOWS",
                 darwin="DARWIN",
+                linux="LINUX",
                 linux2="LINUX",
                 )[sys.platform]
         except KeyError:
@@ -669,7 +665,7 @@ def internal_source_environment(configurations, varsfile):
         else:
             platform_re = re.compile(r'(.*_BUILD)_%s(.*)$' % platform)
             # use items() rather than iteritems(): we're modifying as we iterate
-            for var, value in vfvars.items():
+            for var, value in list(vfvars.items()):
                 match = platform_re.match(var)
                 if match:
                     # add a shorthand variable that excludes _PLATFORM
@@ -685,7 +681,7 @@ def internal_source_environment(configurations, varsfile):
                                ", ".join(configurations[1:]))
             configuration_re = re.compile(r'(.*_BUILD)_%s(.*)$' % configuration)
             # use items() because we're modifying as we iterate
-            for var, value in vfvars.items():
+            for var, value in list(vfvars.items()):
                 match = configuration_re.match(var)
                 if match:
                     # add a shorthand variable that excludes _CONFIGURATION
@@ -806,11 +802,7 @@ def get_enriched_environment(configuration):
 
 
 def dedup(iterable):
-    seen = set()
-    for item in iterable:
-        if item not in seen:
-            seen.add(item)
-            yield item
+    return iter(OrderedDict((item, 1) for item in iterable))
 
 
 class AutobuildTool(autobuild_base.AutobuildBase):

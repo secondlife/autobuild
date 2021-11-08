@@ -19,9 +19,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 # $/LicenseInfo$
-
+import importlib
+import importlib.util
 import sys
 import os
+import glob
+from pathlib import Path
 
 # Hide some load-time logic in a throwaway class: don't pollute the
 # module-scope namespace with all these helper variables.
@@ -31,34 +34,25 @@ class _local_scope(object):
     msgind  = max(len(ERROR), len(WARNING))
     vermsg  = "\n%s You are running with Python %s.%s.%s." % \
                ((msgind*' ',) + sys.version_info[:3])
+    if sys.version_info[:2] < (3, 4):
+        sys.exit("%s autobuild 2+ requires Python 3.4" % (ERROR.ljust(msgind)))
 
-    # We have NOT yet tested autobuild with Python 3!
-    if sys.version_info[0] >= 3:
-        print >>sys.stderr, \
-              "%s autobuild is untested with Python 3+, experiment at your own risk.%s" % \
-              (WARNING.ljust(msgind), vermsg)
-
-    # As of autobuild version 0.9, autobuild requires at least Python 2.6.
-    elif sys.version_info[:2] < (2, 6):
-        # Older than Python 2.6 is very likely to produce hard-to-diagnose errors.
-        # Nip that in the bud.
-        sys.exit("%s autobuild now requires Python 2.7.%s" %
-                 (ERROR.ljust(msgind), vermsg))
-
-import common
+from . import common
 import argparse
 import logging
-from common import AutobuildError
+from .common import AutobuildError
 
 ## Environment variable name used for default log level verbosity
 AUTOBUILD_LOGLEVEL = 'AUTOBUILD_LOGLEVEL'
+
+_SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
 class RunHelp(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         parser.parent.search_for_and_import_tools(parser.parent.tools_list)
         parser.parent.register_tools(parser.parent.tools_list)
-        print parser.format_help()
+        print(parser.format_help())
         parser.exit(0)
 
 class Version(argparse.Action):
@@ -81,7 +75,7 @@ class Version(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         formatter = parser._get_formatter()
         formatter.add_text(self.version or parser.version)
-        print formatter.format_help()
+        print(formatter.format_help())
         parser.exit(message="")
 
 class Autobuild(object):
@@ -114,30 +108,23 @@ class Autobuild(object):
             self.register_tool(tool)
     
     def search_for_and_import_tools(self, tools_list):
-        autobuild_package_dir = os.path.dirname(__file__)
-        all_files = self.listdir(autobuild_package_dir)
-        for file_name in all_files:
-            if(file_name.endswith('.py') and
-               file_name != '__init__.py' and
-               file_name.startswith('autobuild_tool_')):
-                module_name = file_name[:-3]
-                possible_tool_module = __import__(module_name, globals(), locals(), [])
-                if getattr(possible_tool_module, 'AutobuildTool', None):
-                    tools_list.append(possible_tool_module)
+        for file_name in glob.glob(os.path.join(_SCRIPT_DIR, 'autobuild_tool_*.py')):
+            module_name = Path(file_name).stem
+            possible_tool_module = importlib.import_module('.{}'.format(module_name), package='autobuild')
+            if hasattr(possible_tool_module, 'AutobuildTool'):
+                tools_list.append(possible_tool_module)
 
     def try_to_import_tool(self, tool, tools_list):
-        autobuild_package_dir = os.path.dirname(__file__)
-        tool_module_name = 'autobuild_tool_' + tool
-        tool_file_name = tool_module_name + '.py'
-        full_tool_path = os.path.join(autobuild_package_dir, tool_file_name)
-        if os.path.exists(full_tool_path):
-            possible_tool_module = __import__(tool_module_name, globals(), locals(), [])
-            if getattr(possible_tool_module, 'AutobuildTool', None):
+        try:
+            possible_tool_module = importlib.import_module('.autobuild_tool_{}'.format(tool), package='autobuild')
+            if hasattr(possible_tool_module, 'AutobuildTool'):
                 tools_list.append(possible_tool_module)
                 instance = self.register_tool(possible_tool_module)
                 return instance
+        except ImportError:
+            pass
         return -1
-        
+
     def get_default_loglevel_from_environment(self):
         """
         Returns a default log level based on the AUTOBUILD_LOGLEVEL environment variable
@@ -248,6 +235,9 @@ class Autobuild(object):
 
         if tool_to_run != -1:
             tool_to_run.run(args)
+        else:
+            self.parser.print_help()
+            self.parser.error("no command specified")
 
         return 0
 
@@ -259,7 +249,9 @@ def main():
 
     logger = logging.getLogger('autobuild')
     try:
-        os.environ['PATH'] = os.environ.get('PATH') + os.pathsep + script_path
+        # Dedup the path after appending script_path in case it's already
+        # present in the PATH string.
+        os.environ['PATH'] = common.dedup_path(os.pathsep.join((os.environ.get('PATH'), script_path)))
         sys.exit(Autobuild().main(sys.argv[1:]))
     except KeyboardInterrupt as e:
         sys.exit("Aborted...")

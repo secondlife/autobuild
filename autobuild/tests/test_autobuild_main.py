@@ -23,7 +23,7 @@
 import sys
 import unittest
 import autobuild.autobuild_main
-from basetest import BaseTest
+from .basetest import BaseTest
 
 captured_stdout = ''
 
@@ -48,7 +48,7 @@ class TestOptions(BaseTest):
         self.autobuild_fixture = autobuild.autobuild_main.Autobuild()
         def mock_exit(value=None, message=None):
             if(message):
-                print message
+                print(message)
             raise EarlyExitException()
         self.autobuild_fixture.exit = mock_exit
         self.autobuild_fixture.parser.exit = mock_exit
@@ -62,7 +62,7 @@ class TestOptions(BaseTest):
         sys.exit = self.old_exit
 
         if(False):
-            print '\nCaptured StdOut:\n****\n' + captured_stdout + '****\n'
+            print('\nCaptured StdOut:\n****\n' + captured_stdout + '****\n')
         pass
         BaseTest.tearDown(self)
 
@@ -72,7 +72,7 @@ class TestOptions(BaseTest):
             ret = self.autobuild_fixture.main([])
             self.fail()
         except EarlyExitException:
-            self.assertNotEquals(-1, captured_stdout.find('usage:'))
+            self.assertNotEqual(-1, captured_stdout.find('usage:'))
         pass
 
     def test_typo_subtool(self):
@@ -81,7 +81,7 @@ class TestOptions(BaseTest):
             ret = self.autobuild_fixture.main(['foobardribble'])
             self.fail()
         except EarlyExitException:
-            self.assertNotEquals(-1, captured_stdout.find('usage:'))
+            self.assertNotEqual(-1, captured_stdout.find('usage:'))
         pass
 
     def test_version(self):
@@ -90,7 +90,7 @@ class TestOptions(BaseTest):
             ret = self.autobuild_fixture.main(['-v'])
             self.fail()
         except EarlyExitException:
-            self.assertNotEquals(-1, captured_stdout.find('autobuild'))
+            self.assertNotEqual(-1, captured_stdout.find('autobuild'))
         pass
 
     def test_tool_register(self):
@@ -99,7 +99,7 @@ class TestOptions(BaseTest):
             ret = self.autobuild_fixture.main(['build', '-h'])
             self.fail()
         except EarlyExitException:
-            self.assertNotEquals(-1, captured_stdout.find("an option to pass to the build command"))
+            self.assertNotEqual(-1, captured_stdout.find("an option to pass to the build command"))
         pass
         
     def test_tool_search_for_tools(self):
@@ -108,7 +108,7 @@ class TestOptions(BaseTest):
             ret = self.autobuild_fixture.main(['--help'])
             self.fail()
         except EarlyExitException:
-            self.assertNotEquals(-1, captured_stdout.find("Builds platform targets."))
+            self.assertNotEqual(-1, captured_stdout.find("Builds platform targets."))
         pass
 
 

@@ -32,9 +32,9 @@ import logging
 from autobuild import configfile
 from autobuild import common
 from autobuild.autobuild_main import Autobuild
-from baseline_compare import AutobuildBaselineCompare
+from .baseline_compare import AutobuildBaselineCompare
 import autobuild.autobuild_tool_manifest as manifest
-from basetest import BaseTest
+from .basetest import BaseTest
 
 logger = logging.getLogger("test_manifest")
 
@@ -42,7 +42,7 @@ class TestManifest(BaseTest, AutobuildBaselineCompare):
     def setUp(self):
         BaseTest.setUp(self)
         os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
-        self.tmp_file = self.get_tmp_file(4)
+        self.tmp_file = self.get_tmp_file()
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         package = configfile.PackageDescription('test')
         package.license = 'Public Domain'

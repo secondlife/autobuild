@@ -37,7 +37,7 @@ from string import Template
 import autobuild.autobuild_tool_package as package
 from autobuild import configfile
 from autobuild import common
-from basetest import BaseTest, ExpectError, CaptureStdout, clean_dir, clean_file
+from .basetest import BaseTest, ExpectError, CaptureStdout, clean_dir, clean_file
         
 
 # ****************************************************************************
@@ -103,14 +103,14 @@ class TestPackaging(BaseTest):
         tarball = tarfile.open(tar, 'r:bz2')
         packaged_files=tarball.getnames()
         packaged_files.sort()
-        self.assertEquals(packaged_files, self.expected_files)
+        self.assertEqual(packaged_files, self.expected_files)
         tarball.close()
 
     def zip_has_expected(self,zip):
         zip_file = ZipFile(zip,'r')
         packaged_files=zip_file.namelist()
         packaged_files.sort()
-        self.assertEquals(packaged_files, self.expected_files)
+        self.assertEqual(packaged_files, self.expected_files)
         zip_file.close()
 
     def test_package(self):

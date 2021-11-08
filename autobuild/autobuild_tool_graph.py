@@ -54,11 +54,11 @@ except ImportError:
 
 import webbrowser
 
-import common
+from . import common
 import logging
-import configfile
-import autobuild_base
-from autobuild_tool_install import extract_metadata_from_package
+from . import configfile
+from . import autobuild_base
+from .autobuild_tool_install import extract_metadata_from_package
 
 logger = logging.getLogger('autobuild.graph')
 
@@ -202,7 +202,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                         pkg_node.set_style('dashed')
                     graph.add_node(pkg_node)
                     if 'dependencies' in pkg:
-                        for dep_pkg in pkg['dependencies'].itervalues():
+                        for dep_pkg in pkg['dependencies'].values():
                             dep_name = dep_pkg['package_description']['name']
                             dep_node = add_depends(graph, dep_pkg)
                             logger.debug(" graph adding dependency %s -> %s" % (dep_name, name))
@@ -218,7 +218,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
             if args.dot_file:
                 try:
-                    dot_file=open(args.dot_file,'wb')
+                    dot_file=open(args.dot_file,'w')
                 except IOError as err:
                     raise GraphError("Unable to open dot file %s: %s" % (args.dot_file, err))
                 dot_file.write(graph.to_string())
@@ -236,7 +236,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 if args.display and not args.graph_file:
                     webbrowser.open('file:'+graph_file)
             else:
-                print "%s" % graph.to_string()
+                print("%s" % graph.to_string())
 
         else:
             raise GraphError("No metadata found")

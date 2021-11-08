@@ -49,15 +49,15 @@ import tarfile
 import getpass
 import glob
 import subprocess
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import re
 from zipfile import ZipFile, ZIP_DEFLATED
 
-import common
+from . import common
 import logging
-import configfile
-import autobuild_base
-from common import AutobuildError
+from . import configfile
+from . import autobuild_base
+from .common import AutobuildError
 
 logger = logging.getLogger('autobuild.package')
 
@@ -221,13 +221,13 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     # printing unconditionally on stdout for backward compatibility
     # the Linden Lab build scripts no longer rely on this
     # (they use the --results-file option instead)
-    print "packing %s" % package_description.name
+    print("packing %s" % package_description.name)
 
     results = None
     if not dry_run:
         if results_file:
             try:
-                results=open(results_file,'wb')
+                results=open(results_file,'w')
             except IOError as err:
                 raise PackageError("Unable to open results file %s:\n%s" % (results_file, err))
             results.write('autobuild_package_name="%s"\n' % package_description.name)
@@ -316,12 +316,13 @@ def _create_tarfile(tarfilename, build_directory, filelist, results):
                 # Make sure permissions are set on Windows.
                 if common.is_system_windows():
                     command = ["CACLS", file, "/T", "/G", getpass.getuser() + ":F"]
-                    CACLS = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                    CACLS = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                             stderr=subprocess.STDOUT, universal_newlines=True)
                     output = CACLS.communicate("Y")[0]
                     rc = CACLS.wait()
                     if rc != 0:
-                        print "error: rc %s from %s:" % (rc, ' '.join(command))
-                    print output
+                        print("error: rc %s from %s:" % (rc, ' '.join(command)))
+                    print(output)
                 tfile.add(file)
                 logger.info('added ' + file)
             except (tarfile.TarError, IOError, OSError) as err:
@@ -333,7 +334,7 @@ def _create_tarfile(tarfilename, build_directory, filelist, results):
     # printing unconditionally on stdout for backward compatibility
     # the Linden Lab build scripts no longer rely on this
     # (they use the --results-file option instead)
-    print "wrote  %s" % tarfilename
+    print("wrote  %s" % tarfilename)
     if results:
         results.write('autobuild_package_filename="%s"\n' % tarfilename)
     _print_hash(tarfilename, results)
@@ -355,7 +356,7 @@ def _create_zip_archive(archive_filename, build_directory, file_list, results):
     # printing unconditionally on stdout for backward compatibility
     # the Linden Lab build scripts no longer rely on this
     # (they use the --results-file option instead)
-    print "wrote  %s" % archive_filename
+    print("wrote  %s" % archive_filename)
     if results:
         results.write('autobuild_package_filename="%s"\n' % archive_filename)
     _print_hash(archive_filename, results)
@@ -393,7 +394,7 @@ def _print_hash(filename, results):
     # printing unconditionally on stdout for backward compatibility
     # the Linden Lab build scripts no longer rely on this
     # (they use the --results-file option instead)
-    print "md5    %s" % m.hexdigest()
+    print("md5    %s" % m.hexdigest())
     if results:
         results.write('autobuild_package_md5="%s"\n' % m.hexdigest())
 

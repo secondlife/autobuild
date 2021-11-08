@@ -38,9 +38,9 @@ except:
 from autobuild import configfile
 from autobuild import common
 from autobuild.autobuild_main import Autobuild
-from baseline_compare import AutobuildBaselineCompare
+from .baseline_compare import AutobuildBaselineCompare
 from autobuild.autobuild_tool_edit import AutobuildTool
-from basetest import BaseTest
+from .basetest import BaseTest
 from nose.tools import *                # assert_equals() et al.
 
 
@@ -48,7 +48,7 @@ class TestEdit(BaseTest, AutobuildBaselineCompare):
     def setUp(self):
         BaseTest.setUp(self)
         os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
-        self.tmp_file = self.get_tmp_file(4)
+        self.tmp_file = self.get_tmp_file()
         self.edit_cmd = AutobuildTool()
 
     def _try_cmd(self, args):
@@ -57,7 +57,8 @@ class TestEdit(BaseTest, AutobuildBaselineCompare):
         Return results.
         """
         self.edit_cmd.main(args)
-        return llsd.parse(file(self.tmp_file, 'rb').read())
+        with open(self.tmp_file, 'rb') as f:
+            return llsd.parse(f.read())
 
     def test_build(self):
         """
@@ -115,7 +116,7 @@ class TestEditCmdLine(BaseTest, AutobuildBaselineCompare):
     def setUp(self):
         BaseTest.setUp(self)
         os.environ["PATH"] = os.pathsep.join([os.environ["PATH"], os.path.abspath(os.path.dirname(__file__))])
-        self.tmp_file = self.get_tmp_file(0)
+        self.tmp_file = self.get_tmp_file()
 
     def test_autobuild_edit(self):
         self.autobuild('edit', '--config-file=' + self.tmp_file, '--help')

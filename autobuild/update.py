@@ -27,10 +27,10 @@ Includes tools for updating older versions of autobuild configurations to the th
 """
 
 
-from common import AutobuildError, get_version_tuple
+from .common import AutobuildError, get_version_tuple
 # Please do NOT import configfile data classes! See comments for _register().
 # or Executable either, which also changes with AUTOBUILD_CONFIG_VERSION
-from configfile import AUTOBUILD_CONFIG_VERSION
+from .configfile import AUTOBUILD_CONFIG_VERSION
 import logging
 import shlex
 
@@ -244,13 +244,13 @@ class _Update_1_1(object):
             self._insert_package_properties(old_package, package_description)
             self._insert_command('configure', old_package.get('configure', {}), package_description)
             self._insert_command('build', old_package.get('build', {}), package_description)
-            for (platform_name, manifest) in old_package.get('manifest', {}).iteritems():
+            for (platform_name, manifest) in old_package.get('manifest', {}).items():
                 self._get_platform(platform_name, package_description)["manifest"] = \
                     manifest.get('files', [])
         else:
             raise UpdateError('no package description')
         if 'installables' in old_config:
-            for (old_package_name, old_package) in old_config['installables'].iteritems():
+            for (old_package_name, old_package) in old_config['installables'].items():
                 package = self.PackageDescription(old_package_name)
                 self._insert_package_properties(old_package, package)
                 self._insert_archives(old_package['archives'], package)
@@ -258,20 +258,20 @@ class _Update_1_1(object):
         return config
 
     def _insert_package_properties(self, old_package, package):
-        for (key, value) in self.package_properties.iteritems():
+        for (key, value) in self.package_properties.items():
             if key in old_package:
                 package[value] = old_package[key]
     
     def _insert_archives(self, old_archives, package):
-        for (platform_name, old_archive) in old_archives.iteritems():
+        for (platform_name, old_archive) in old_archives.items():
             platform = self._get_platform(platform_name, package)
             archive = self.ArchiveDescription()
             platform["archive"] = archive
-            for (key, value) in self.archive_properties.iteritems():
+            for (key, value) in self.archive_properties.items():
                 archive[value] = old_archive[key]
    
     def _insert_command(self, type, old_commands, package):
-        for (platform_name, old_command) in old_commands.iteritems():
+        for (platform_name, old_command) in old_commands.items():
             platform = self._get_platform(platform_name, package)
             #FIXME: find a better way to choose the default configuration.
             default_configuration = 'RelWithDebInfo'

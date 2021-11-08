@@ -6,7 +6,7 @@ listpackages:
 	@echo python-autobuild
 
 build:
-	cd ../../; python setup.py --command-packages=stdeb.command bdist_deb
+	cd ../../; python3 setup.py --command-packages=stdeb.command bdist_deb
 
 deb: build
 	mv ../../deb_dist/*.deb ..

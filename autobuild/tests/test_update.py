@@ -31,8 +31,8 @@ $/LicenseInfo$
 import re
 from unittest import TestCase
 from nose.tools import *                # assert_equals() et al.
-from basetest import exc
-from patch import patch
+from .basetest import exc
+from .patch import patch
 
 from autobuild import update
 

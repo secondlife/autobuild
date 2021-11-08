@@ -34,10 +34,10 @@ import pprint
 import re
 import logging
 
-import common
-import configfile
-import autobuild_base
-from autobuild_tool_install import get_package_file, get_metadata_from_package
+from . import common
+from . import configfile
+from . import autobuild_base
+from .autobuild_tool_install import get_package_file, get_metadata_from_package
 
 logger = logging.getLogger('autobuild.installables')
 
@@ -298,5 +298,5 @@ def _check_name(arg_name, key_values, metadata):
     return package_name
 
 def _warn_unused(data):
-    for (key, value) in data.iteritems():
+    for (key, value) in data.items():
         logger.warning('ignoring unused argument %s=%s' % (key, value))

@@ -26,10 +26,10 @@
 import unittest
 import os
 import sys
-from baseline_compare import AutobuildBaselineCompare
+from .baseline_compare import AutobuildBaselineCompare
 from autobuild import configfile
 from autobuild.executable import Executable
-from basetest import BaseTest
+from .basetest import BaseTest
 
 
 class TestConfigFile(BaseTest, AutobuildBaselineCompare):
@@ -38,7 +38,7 @@ class TestConfigFile(BaseTest, AutobuildBaselineCompare):
         BaseTest.setUp(self)
 
     def fake_config(self):
-        tmp_file = self.get_tmp_file(4)
+        tmp_file = self.get_tmp_file()
         config = configfile.ConfigurationDescription(tmp_file)
         package = configfile.PackageDescription('test')
         config.package_description = package
@@ -60,7 +60,7 @@ class TestConfigFile(BaseTest, AutobuildBaselineCompare):
         assert reloaded.package_description.platforms['common'].configurations['common'].build.get_command() == 'gcc'
 
     def test_configuration_inherit(self):
-        tmp_file = self.get_tmp_file(4)
+        tmp_file = self.get_tmp_file()
         config = configfile.ConfigurationDescription(tmp_file)
         package = configfile.PackageDescription('test')
         config.package_description = package
@@ -109,9 +109,9 @@ class TestExpandVars(BaseTest):
 
     def test_expand_vars_string(self):
         # no substitutions should return string unchanged
-        self.assertEquals(configfile._expand_vars_string("no subs", self.vars), "no subs")
+        self.assertEqual(configfile._expand_vars_string("no subs", self.vars), "no subs")
         # simple substitutions handled by string.Template
-        self.assertEquals(configfile._expand_vars_string("'$one', '${two}'", self.vars),
+        self.assertEqual(configfile._expand_vars_string("'$one', '${two}'", self.vars),
                           "'1', '2'")
 
         # string.Template bad syntax
@@ -134,15 +134,15 @@ class TestExpandVars(BaseTest):
         assert "${jjfjfj" in str(ctx.exception)
 
         # defined variable expands to variable's value
-        self.assertEquals(configfile._expand_vars_string("abc${one|fallback}def", self.vars),
+        self.assertEqual(configfile._expand_vars_string("abc${one|fallback}def", self.vars),
                           "abc1def")
 
         # undefined expands to fallback
-        self.assertEquals(configfile._expand_vars_string("abc${four|fallback}def", self.vars),
+        self.assertEqual(configfile._expand_vars_string("abc${four|fallback}def", self.vars),
                           "abcfallbackdef")
 
         # multiple instances
-        self.assertEquals(
+        self.assertEqual(
             configfile._expand_vars_string(
                 "abc_${one|nope}_def_${four|nofour}_ghi_${five|}_jkl",
                 self.vars),
@@ -162,13 +162,13 @@ class TestExpandVars(BaseTest):
         expanded = configfile.expand_vars(testdict, self.vars)
 
         # should not have messed with testdict
-        self.assertEquals(testdict["t"][1], "$one")
-        self.assertEquals(testdict["l"][0], "$three")
-        self.assertEquals(testdict["d"]["$one"], "$one")
-        self.assertEquals(testdict["d"]["four"]["four"], "${four|4}")
+        self.assertEqual(testdict["t"][1], "$one")
+        self.assertEqual(testdict["l"][0], "$three")
+        self.assertEqual(testdict["d"]["$one"], "$one")
+        self.assertEqual(testdict["d"]["four"]["four"], "${four|4}")
 
         # expanded should have embedded strings expanded
-        self.assertEquals(
+        self.assertEqual(
             expanded,
             dict(
                 f=1.0,
