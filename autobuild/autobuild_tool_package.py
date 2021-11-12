@@ -43,6 +43,7 @@ following metadata in the autobuild.xml file:
 * license_file (assumes LICENSES/<package-name>.txt otherwise)
 """
 
+import io
 import hashlib
 import os
 import tarfile
@@ -227,7 +228,8 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     if not dry_run:
         if results_file:
             try:
-                results=open(results_file,'w')
+                # Do not write carriage returns
+                results=io.open(results_file, 'w', newline="\n")
             except IOError as err:
                 raise PackageError("Unable to open results file %s:\n%s" % (results_file, err))
             results.write('autobuild_package_name="%s"\n' % package_description.name)
