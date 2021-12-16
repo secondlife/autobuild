@@ -160,7 +160,7 @@ def load_vsvars(vsver):
             # to pass to json.loads()
             raw = subprocess.check_output(
                 [_VSWHERE_PATH, '-version', version, '-products', '*',
-                 '-requires', 'Microsoft.Component.MSBuild',
+                 '-requires', 'Microsoft.Component.MSBuild', '-utf8',
                  '-format', 'json'], universal_newlines=True).rstrip()
             installs = json.loads(raw)
         except OSError as err:
