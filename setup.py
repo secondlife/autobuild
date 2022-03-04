@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -22,58 +20,35 @@
 # THE SOFTWARE.
 # $/LicenseInfo$
 
-from setuptools import setup
-import sys
-import os.path
+import setuptools
 
-# most of this is shamelessly cloned from llbase's setup.py
 
-# from http://stackoverflow.com/questions/2058802/how-can-i-get-the-version-defined-in-setup-py-setuptools-in-my-package :
-# "make a version.py in your package with a __version__ line, then read it
-# from setup.py using execfile('mypackage/version.py'), so that it sets
-# __version__ in the setup.py namespace."
-
-# [We actually define AUTOBUILD_VERSION_STRING, but same general idea.]
-
-# "DO NOT import your package from your setup.py... it will seem to work for
-# you (because you already have your package's dependencies installed), but it
-# will wreak havoc upon new users of your package, as they will not be able to
-# install your package without manually installing the dependencies first."
-exec(open(os.path.join('autobuild', 'version.py'), 'rb').read())
-# The previous exec better have defined AUTOBUILD_VERSION_STRING!
-AUTOBUILD_VERSION_STRING                # NameError here means it didn't
-
-PACKAGE_NAME = 'autobuild'
-LLAUTOBUILD_SOURCE = 'autobuild'
-CLASSIFIERS = """\
-Development Status :: 4 - Beta
-Intended Audience :: Developers
-License :: OSI Approved :: MIT License
-Programming Language :: Python
-Topic :: Software Development
-Topic :: Software Development :: Libraries :: Python Modules
-Operating System :: Microsoft :: Windows
-Operating System :: Unix
-"""
-
-ext_modules = []
-
-setup(
-    name=PACKAGE_NAME,
-    version=AUTOBUILD_VERSION_STRING,
-    author='Oz Linden',
-    author_email='oz@lindenlab.com',
+setuptools.setup(
+    name="autobuild",
     url="http://wiki.secondlife.com/wiki/Autobuild",
-    description='Linden Lab Automated Package Management and Build System',
+    description="Linden Lab Automated Package Management and Build System",
     platforms=["any"],
-    package_dir={PACKAGE_NAME:LLAUTOBUILD_SOURCE},
-    packages=[PACKAGE_NAME],
-    entry_points=dict(console_scripts=['autobuild=autobuild.autobuild_main:main']),
-    scripts=[],
-    license='MIT',
-    classifiers=[line for line in CLASSIFIERS.split("\n") if line],
-    install_requires=['llbase', 'pydot'],
+    packages=setuptools.find_packages(exclude=["autobuild.tests*"]),
+    use_scm_version={
+        "write_to": "autobuild/version.py",
+        "write_to_template": 'AUTOBUILD_VERSION_STRING = "{version}"',
+    },
+    setup_requires=["setuptools_scm>=6,<7"],
+    entry_points={
+        "console_scripts": ["autobuild=autobuild.autobuild_main:main"]
+    },
+    license="MIT",
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python",
+        "Topic :: Software Development",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: Unix",
+    ],
+    install_requires=["llbase", "pydot"],
     extras_require={"dev": ["nose"]},
     python_requires=">=3.4",
-    #ext_modules=ext_modules,
-    )
+)

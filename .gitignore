@@ -1,8 +1,10 @@
 *~
+autobuild/version.py
 build/
 dist/
 .idea
 *.pyc
 *.swp
 *.egg-info
+*.eggs/
 virtualenv/
