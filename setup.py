@@ -24,31 +24,31 @@ import setuptools
 
 
 setuptools.setup(
-    name="autobuild",
-    url="http://wiki.secondlife.com/wiki/Autobuild",
-    description="Linden Lab Automated Package Management and Build System",
-    platforms=["any"],
-    packages=setuptools.find_packages(exclude=["autobuild.tests*"]),
+    name='autobuild',
+    url='http://wiki.secondlife.com/wiki/Autobuild',
+    description='Linden Lab Automated Package Management and Build System',
+    platforms=['any'],
+    packages=setuptools.find_packages(exclude=['autobuild.tests*']),
     use_scm_version={
-        "write_to": "autobuild/version.py",
-        "write_to_template": 'AUTOBUILD_VERSION_STRING = "{version}"',
+        'write_to': 'autobuild/version.py',
+        'write_to_template': 'AUTOBUILD_VERSION_STRING = \'{version}\'',
     },
-    setup_requires=["setuptools_scm>=6,<7"],
+    setup_requires=['setuptools_scm>=6,<7'],
     entry_points={
-        "console_scripts": ["autobuild=autobuild.autobuild_main:main"]
+        'console_scripts': ['autobuild=autobuild.autobuild_main:main']
     },
-    license="MIT",
+    license='MIT',
     classifiers=[
-        "Development Status :: 4 - Beta",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python",
-        "Topic :: Software Development",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-        "Operating System :: Microsoft :: Windows",
-        "Operating System :: Unix",
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python',
+        'Topic :: Software Development',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: Unix',
     ],
-    install_requires=["llbase", "pydot"],
-    extras_require={"dev": ["nose"]},
-    python_requires=">=3.4",
+    install_requires=['llbase', 'pydot'],
+    extras_require={'dev': ['nose']},
+    python_requires='>=3.4',
 )
