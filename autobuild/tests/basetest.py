@@ -37,22 +37,58 @@ import shutil
 import unittest
 from contextlib import contextmanager, redirect_stdout
 from io import BytesIO, StringIO
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from autobuild import common
+
+autobuild_dir = Path(__file__).resolve().parent.parent.parent
+
+# Small script used by tests such as test_source_environment's where 
+# autobuild needs to be called from an external script.
+AUTOBUILD_BIN_SCRIPT = """#!/usr/bin/env python
+from autobuild import autobuild_main
+
+if __name__ == "__main__":
+    autobuild_main.main()
+"""
+
+@contextmanager
+def tmp_autobuild_bin():
+    """
+    Create a temporary directory with an autobuild shim script pointing to the
+    autobuild_main in this package. Yields the path to the autobuild script.
+    """
+    with TemporaryDirectory() as tmp_dir:
+        autobuild_bin = str(Path(tmp_dir) / "autobuild")
+
+        # Write AUTOBUILD_BIN_SCRIPT contents into temporary directory
+        with open(autobuild_bin, "w") as f:
+            f.write(AUTOBUILD_BIN_SCRIPT)
+
+        # Make script executable
+        os.chmod(autobuild_bin, 0o775)
+
+        # Insert both the temporary bin directory containing autobuild and local autobuild
+        # python module location into the system path. 
+        sys.path.insert(0, autobuild_dir)
+        sys.path.insert(0, tmp_dir)
+        try:
+            yield autobuild_bin
+        finally:
+            # Cleanup path
+            sys.path.remove(tmp_dir)
+            sys.path.remove(autobuild_dir)
 
 
 class BaseTest(unittest.TestCase):
     def setUp(self):
         self.this_dir = os.path.abspath(os.path.dirname(__file__))
-        # Unfortunately, when we run tests, sys.argv[0] is (e.g.) "nosetests"!
-        # So we can't just call get_autobuild_executable_path(); in fact that
-        # function is untestable. Derive a suitable autobuild command relative
-        # to this module's location. Note that this is OUR bin directory and
-        # OUR autobuild.cmd script -- not anything created by pip.
-        self.autobuild_bin = os.path.abspath(os.path.join(self.this_dir, os.pardir, os.pardir,
-                                                          "bin", "autobuild"))
-        if sys.platform.startswith("win"):
-            self.autobuild_bin += ".cmd"
+    
+    def run(self, result=None):
+        with tmp_autobuild_bin() as autobuild_bin:
+            self.autobuild_bin = autobuild_bin
+            super(BaseTest, self).run(result)
 
     def autobuild(self, *args, **kwds):
         """
