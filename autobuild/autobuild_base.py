@@ -81,6 +81,3 @@ class AutobuildBase:
             args = self.parser.parse_args(args_in)
             self.run(args)
         pass
-
-#if __name__ == "__main__":
-#   sys.exit( autobuild_base_standalone().main( sys.argv[1:] ) )

@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # $LicenseInfo:firstyear=2014&license=mit$
 # Copyright (c) 2014, Linden Research, Inc.
 # 
@@ -240,8 +239,3 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
         else:
             raise GraphError("No metadata found")
-
-
-if __name__ == '__main__':
-    sys.exit("Please invoke this script using 'autobuild %s'" %
-             AutobuildTool().get_details()["name"])

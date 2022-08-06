@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -113,7 +112,3 @@ def print_manifest(config, platform_name):
     else:
         for pattern in config.get_platform(platform_name).manifest:
             print(pattern)
-
-
-if __name__ == "__main__":
-    sys.exit(AutobuildTool().main(sys.argv[1:]))

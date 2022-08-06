@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -955,7 +954,3 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             for install_dir in install_dirs:
                 install_dir = os.path.realpath(install_dir)
                 install_packages(args, bconfig, install_dir, platform, args.package)
-
-if __name__ == '__main__':
-    sys.exit("Please invoke this script using 'autobuild %s'" %
-             AutobuildTool().get_details()["name"])
