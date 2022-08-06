@@ -40,6 +40,7 @@ try:
         g.write_png(os.path.join(d, "graph.png"))
 except (ImportError, FileNotFoundError):
     pytest.skip("pydot not available", allow_module_level=True)
+from unittest import TestCase
 
 import autobuild.common as common
 import autobuild.autobuild_tool_graph as graph

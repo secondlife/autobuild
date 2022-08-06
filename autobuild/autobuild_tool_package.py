@@ -199,7 +199,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
                            "  use 'autobuild install --list-dirty' to see problem packages")
     if not getattr(metadata_file.package_description,'version',None):
         raise PackageError("no version in metadata package_description -- "
-                           "please verify %s version_file and rerun build" %
+                           "please verify %s version_file or git version tag and rerun build" %
                            os.path.basename(config.path))
     if package_description.license_file:
         if package_description.license_file not in files:

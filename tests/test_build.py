@@ -25,10 +25,12 @@ import os
 import logging
 import pprint
 import tempfile
+import pytest
 from .baseline_compare import AutobuildBaselineCompare
 from autobuild import autobuild_tool_build as build
 import autobuild.configfile as configfile
 import autobuild.common as common
+from autobuild.scm.base import has_command, cmd
 from autobuild.configfile import PACKAGE_METADATA_FILE, MetadataDescription
 from autobuild.autobuild_tool_build import BuildError, AutobuildTool
 from .basetest import BaseTest, clean_dir, exc
@@ -154,49 +156,17 @@ class TestMissingPackageNameCurrent(LocalBase):
     def test_autobuild_build(self):
         # Make sure the verbose 'new requirement' message is only produced
         # when the missing key is in fact version_file.
-        with exc(BuildError, "name", without="(?i)new requirement"):
+        with exc(BuildError, "name"):
             build('build', '--config-file=' + self.tmp_file, '--id=123456')
 
-class TestMissingPackageNameOld(LocalBase):
+class TestMissingVersion(LocalBase):
     def get_config(self):
-        config = super(TestMissingPackageNameOld, self).get_config()
-        config.package_description.name = ""
-        config.version = "1.2"
-        return config
-
-    def test_autobuild_build(self):
-        # Make sure the verbose 'new requirement' message is only produced
-        # when the missing key is in fact version_file, especially with an
-        # older version config file.
-        with exc(BuildError, "name", without="(?i)new requirement"):
-            build('build', '--config-file=' + self.tmp_file, '--id=123456')
-
-class TestMissingVersionFileCurrent(LocalBase):
-    def get_config(self):
-        config = super(TestMissingVersionFileCurrent, self).get_config()
+        config = super(TestMissingVersion, self).get_config()
         config.package_description.version_file = ""
         return config
 
     def test_autobuild_build(self):
-        # Make sure the verbose 'new requirement' message isn't produced with
-        # a current format config file.
-        with exc(BuildError, "version_file", without="(?i)new requirement"):
-            build('build', '--config-file=' + self.tmp_file, '--id=123456')
-
-class TestMissingVersionFileOld(LocalBase):
-    def get_config(self):
-        config = super(TestMissingVersionFileOld, self).get_config()
-        config.package_description.version_file = ""
-        config.version = "1.2"
-        return config
-
-    def test_autobuild_build(self):
-        # Make sure the verbose 'new requirement' message is produced when the
-        # missing key is version_file with an older version config file. The
-        # (?s) flag allows '.' to match newline, important because 'new
-        # requirement' may be on a different line of the exception message
-        # than the attribute name version_file.
-        with exc(BuildError, "(?is)version_file.*new requirement"):
+        with exc(BuildError, "No version_file specified in autobuild.xml and no version found in source control"):
             build('build', '--config-file=' + self.tmp_file, '--id=123456')
 
 class TestAbsentVersionFile(LocalBase):
@@ -221,6 +191,26 @@ class TestEmptyVersionFile(LocalBase):
     def test_autobuild_build(self):
         with exc(common.AutobuildError, "version_file"):
             build('build', '--config-file=' + self.tmp_file, '--id=123456')
+
+@pytest.mark.skipif(not has_command("git"), reason="git not present on system")
+class TestSCMVersion(LocalBase):
+    def get_config(self):
+        config = super(TestSCMVersion, self).get_config()
+        # remove version_file from package description
+        del config.package_description["version_file"]
+        # create empty file to check into git
+        with open(os.path.join(self.tmp_build_dir, "empty"), "w"):
+            pass
+        # create a git root and add a version tag
+        cmd("git", "init", cwd=self.tmp_build_dir)
+        cmd("git", "add", "empty", cwd=self.tmp_build_dir)
+        cmd("git", "commit", "-m", "initial", cwd=self.tmp_build_dir)
+        cmd("git", "tag", "v5.0.0", cwd=self.tmp_build_dir)
+        return config
+
+    def test_autobuild_build(self):
+        build('build', '--config-file=' + self.tmp_file, '--id=123456')
+        self.assertEqual(self.read_metadata().package_description.version, "5.0.0")
 
 class TestVersionFileOddWhitespace(LocalBase):
     def get_config(self):
