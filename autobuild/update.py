@@ -162,7 +162,7 @@ https://wiki.lindenlab.com/wiki/Autobuild/Incompatible_Configuration_File_Error"
     for fromver, tover, converter in triples:
         # info message clarifies the context in which a subsequent error might
         # appear
-        logger.warn("Converting %s data from format version %s to version %s..." %
+        logger.warning("Converting %s data from format version %s to version %s..." %
                     (configname, fromver, tover))
         config = converter(config)
         # update the version string in the config data; don't require every

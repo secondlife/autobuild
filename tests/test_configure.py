@@ -20,7 +20,6 @@
 # THE SOFTWARE.
 # $/LicenseInfo$
 
-import unittest
 from .baseline_compare import AutobuildBaselineCompare
 from autobuild import autobuild_tool_configure as configure
 import autobuild.configfile as configfile
@@ -78,7 +77,3 @@ class TestConfigure(BaseTest, AutobuildBaselineCompare):
     def tearDown(self):
         self.cleanup_tmp_file()
         BaseTest.tearDown(self)
-
-if __name__ == '__main__':
-    unittest.main()
-

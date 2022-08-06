@@ -3,8 +3,12 @@ autobuild/version.py
 build/
 dist/
 .idea
+.venv
 *.pyc
 *.swp
 *.egg-info
 *.eggs/
+tests/data/packages-failures-*
+tests/data/packages-install-*
+tests/data/nourl-install-*
 virtualenv/

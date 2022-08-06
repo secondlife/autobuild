@@ -241,7 +241,7 @@ class ConfigurationDescription(common.Serialized):
             with open(self.path, 'rb') as f:
                 autobuild_xml = f.read()
             if not autobuild_xml:
-                logger.warn("Configuration file '%s' is empty" % self.path)
+                logger.warning("Configuration file '%s' is empty" % self.path)
                 return
             try:
                 saved_data = llsd.parse(autobuild_xml)
@@ -256,7 +256,7 @@ class ConfigurationDescription(common.Serialized):
             self.__init_from_dict(saved_data)
             logger.debug("Configuration file '%s'" % self.path)
             if orig_ver:
-                logger.warn("Saving configuration file %s in format %s" %
+                logger.warning("Saving configuration file %s in format %s" %
                             (self.path, AUTOBUILD_CONFIG_VERSION))
                 self.save()
                 # We don't want orig_ver to appear in the saved file: that's
@@ -265,7 +265,7 @@ class ConfigurationDescription(common.Serialized):
                 # read.
                 self["orig_ver"] = orig_ver
         elif not os.path.exists(self.path):
-            logger.warn("Configuration file '%s' not found" % self.path)
+            logger.warning("Configuration file '%s' not found" % self.path)
         else:
             raise ConfigurationError("cannot create configuration file %s" % self.path)
 

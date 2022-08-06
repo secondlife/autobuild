@@ -21,12 +21,6 @@
 # $/LicenseInfo$
 #!/usr/bin/python
 
-import os
-import shutil
-import tarfile
-import tempfile
-import unittest
-from zipfile import ZipFile
 from autobuild import common
 from .basetest import *
 
@@ -44,7 +38,3 @@ class TestCommon(BaseTest):
 
     def tearDown(self):
         BaseTest.tearDown(self)
-
-if __name__ == '__main__':
-    unittest.main()
-

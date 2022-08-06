@@ -28,7 +28,7 @@ import subprocess
 
 # This script is intended to test whether autobuild sets the AUTOBUILD
 # environment variable for its child processes. Its name, envtest.py, is
-# specifically chosen to cause nosetests to fail to recognize it as a test
+# specifically chosen to cause tests to fail to recognize it as a test
 # module. Instead, it is executed by test_build.TestEnvironment.test_env(), by
 # specifying it as the build command in the configuration.
 

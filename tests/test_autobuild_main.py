@@ -21,7 +21,6 @@
 # $/LicenseInfo$
 
 import sys
-import unittest
 import autobuild.autobuild_main
 from .basetest import BaseTest
 
@@ -110,8 +109,3 @@ class TestOptions(BaseTest):
         except EarlyExitException:
             self.assertNotEqual(-1, captured_stdout.find("Builds platform targets."))
         pass
-
-
-if __name__ == '__main__':
-    unittest.main()
-

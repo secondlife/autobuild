@@ -1,5 +1,4 @@
-#!/usr/bin/python
-"""\
+"""
 @file   test_graph.py
 @author Scott Lawrence
 @date   2014-11-23
@@ -32,18 +31,16 @@ import os
 import logging
 import tempfile
 
+import pytest
+
 try:
-    # in case graphviz not installed
-    from pydot import InvocationException
-except ImportError:
-    # in case pydot not installed!
-    InvocationException = None
+    import pydot
+    with tempfile.TemporaryDirectory() as d:
+        g = pydot.graph_from_dot_data('graph g {}')[0]
+        g.write_png(os.path.join(d, "graph.png"))
+except (ImportError, FileNotFoundError):
+    pytest.skip("pydot not available", allow_module_level=True)
 
-from unittest import TestCase
-from nose.tools import *                # assert_equals() et al.
-from nose.plugins.skip import SkipTest
-
-#from autobuild.autobuild_main import Autobuild
 import autobuild.common as common
 import autobuild.autobuild_tool_graph as graph
 from .basetest import *
@@ -96,20 +93,12 @@ class TestGraph(BaseTest):
         assert_in("bingo -> bongo;", output_lines)
 
     def test_output(self):
-        if InvocationException is None:
-            # If we don't even have pydot installed, this test is pretty
-            # pointless.
-            raise SkipTest("pydot not installed, skipping")
         self.tmp_dir = tempfile.mkdtemp()
         try:
             self.options.graph_file = os.path.join(self.tmp_dir, "graph.png")
             self.options.dot_file = os.path.join(self.tmp_dir, "graph.dot")
             self.options.source_file = os.path.join(self.this_dir, "data", "bongo-0.1-common-111.tar.bz2")
-            try:
-                graph.AutobuildTool().run(self.options)
-            except (FileNotFoundError, InvocationException) as err:
-                # don't require that graphviz be installed to pass unit tests
-                raise SkipTest(str(err))
+            graph.AutobuildTool().run(self.options)
             # for now, settle for detecting that the png file was created
             assert os.path.exists(self.options.graph_file)
             assert os.path.exists(self.options.dot_file)
@@ -119,7 +108,3 @@ class TestGraph(BaseTest):
 
     def tearDown(self):
         BaseTest.tearDown(self)
-
-
-if __name__ == '__main__':
-    unittest.main()

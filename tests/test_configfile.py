@@ -23,9 +23,6 @@
 # Integration test to exercise the config file reading/writing
 #
 
-import unittest
-import os
-import sys
 from .baseline_compare import AutobuildBaselineCompare
 from autobuild import configfile
 from autobuild.executable import Executable
@@ -179,6 +176,3 @@ class TestExpandVars(BaseTest):
                    "four" : {"four": "4"},
                   },
             ))
-
-if __name__ == '__main__':
-    unittest.main()
