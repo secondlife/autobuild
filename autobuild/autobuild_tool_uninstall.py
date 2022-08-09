@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
 # 
@@ -157,7 +156,3 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         logger.debug("installed filenames: %s" % installed_filenames)
         for installed_filename in installed_filenames:
             uninstall_packages(args, installed_filename, args.package, args.dry_run)
-
-if __name__ == '__main__':
-    sys.exit("Please invoke this script using 'autobuild %s'" %
-             AutobuildTool().get_details()["name"])
