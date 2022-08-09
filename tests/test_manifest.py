@@ -25,13 +25,10 @@
 
 
 import os
-import sys
-import unittest
 import logging
 
 from autobuild import configfile
 from autobuild import common
-from autobuild.autobuild_main import Autobuild
 from .baseline_compare import AutobuildBaselineCompare
 import autobuild.autobuild_tool_manifest as manifest
 from .basetest import BaseTest
@@ -95,7 +92,3 @@ class TestManifest(BaseTest, AutobuildBaselineCompare):
     def tearDown(self):
         self.cleanup_tmp_file()
         BaseTest.tearDown(self)
-
-
-if __name__ == '__main__':
-    unittest.main()

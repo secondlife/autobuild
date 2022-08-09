@@ -30,7 +30,6 @@ import tempfile
 import unittest
 from autobuild import autobuild_tool_source_environment as atse
 from .basetest import *
-from nose.tools import *
 from .patch import patch
 from pprint import pformat
 
@@ -40,7 +39,7 @@ def assert_dict_has(d, key, value):
     except KeyError:
         raise AssertionError("key %s not in %s" % (key, pformat(d)))
     else:
-        assert_equals(dval, value)
+        self.assertEqual(dval, value)
 
 def assert_dict_subset(d, s):
     # Windows insists on capitalizing environment variables, so prepare a copy
@@ -217,14 +216,14 @@ pprint.pprint(dict(os.environ))'""" % self.shell_path(sys.executable)))
         assert 'environment_template' in dir(atse)
 
     def test_remove_switch(self):
-        assert_equals(self.source_env_and([], """\
+        self.assertEqual(self.source_env_and([], """\
 switches='abc def ghi'
 remove_switch def $switches"""), "abc ghi")
 
     def test_replace_switch(self):
         # replace_switch makes no guarantees about the order in which the
         # switches are returned.
-        assert_equals(set(self.source_env_and([], """\
+        self.assertEqual(set(self.source_env_and([], """\
 switches='abc def ghi'
 replace_switch def xyz $switches""").split()),
                       set(["abc", "xyz", "ghi"]))
@@ -245,13 +244,13 @@ replace_switch def xyz $switches""").split()),
         stdout, stderr = self.autobuild_outputs(self.find_data("empty"))
         # This also verifies that source_environment doesn't produce errors
         # when handed an empty script file.
-        assert_equals(stderr, "")
+        self.assertEqual(stderr, "")
 
     def test_var_no_warning(self):
         os.environ["AUTOBUILD_VARIABLES_FILE"] = self.find_data("empty")
         # autobuild source_environment with no arg but AUTOBUILD_VARIABLES_FILE
         stdout, stderr = self.autobuild_outputs()
-        assert_equals(stderr, "")
+        self.assertEqual(stderr, "")
 
     def test_no_MAKEFLAGS(self):
         assert_not_in("MAKEFLAGS", self.autobuild_outputs()[0])

@@ -28,7 +28,7 @@ setuptools.setup(
     url='http://wiki.secondlife.com/wiki/Autobuild',
     description='Linden Lab Automated Package Management and Build System',
     platforms=['any'],
-    packages=setuptools.find_packages(exclude=['autobuild.tests*']),
+    packages=setuptools.find_packages(exclude=['tests']),
     use_scm_version={
         'write_to': 'autobuild/version.py',
         'write_to_template': 'AUTOBUILD_VERSION_STRING = \'{version}\'',
@@ -49,6 +49,6 @@ setuptools.setup(
         'Operating System :: Unix',
     ],
     install_requires=['llbase', 'pydot'],
-    extras_require={'dev': ['nose']},
+    extras_require={'dev': ['pytest']},
     python_requires='>=3.4',
 )

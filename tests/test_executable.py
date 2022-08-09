@@ -21,8 +21,7 @@
 # $/LicenseInfo$
 
 import sys
-import unittest
-from nose.plugins.skip import SkipTest
+import pytest
 from autobuild.executable import Executable
 from .basetest import BaseTest
 
@@ -45,7 +44,7 @@ class TestExecutable(BaseTest):
         assert otherChildExecutable.get_arguments() == ['foo','.']
         # On Windows, you can't count on grep or egrep.
         if sys.platform.startswith("win"):
-            raise SkipTest("On Windows, can't count on finding grep")
+            pytest.skip("On Windows, can't count on finding grep")
         result = childExecutable()
         assert result == 0, "%s => %s" % (childExecutable._get_all_arguments([]), result)
         result = parentExecutable()
@@ -53,6 +52,3 @@ class TestExecutable(BaseTest):
  
     def tearDown(self):
         BaseTest.tearDown(self)
-
-if __name__ == '__main__':
-    unittest.main()

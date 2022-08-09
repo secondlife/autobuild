@@ -1,5 +1,4 @@
-#!/usr/bin/python
-"""\
+"""
 @file   basetest.py
 @author Nat Goodspeed
 @date   2012-08-24

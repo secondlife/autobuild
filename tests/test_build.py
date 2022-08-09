@@ -22,12 +22,9 @@
 
 
 import os
-import sys
 import logging
 import pprint
 import tempfile
-import unittest
-from nose.tools import *                # assert_equals
 from .baseline_compare import AutobuildBaselineCompare
 from autobuild import autobuild_tool_build as build
 import autobuild.configfile as configfile
@@ -124,7 +121,7 @@ class TestBuild(LocalBase):
         metadata = self.read_metadata()
         assert not metadata.package_description.version_file, \
                "version_file erroneously propagated into metadata"
-        assert_equals(metadata.package_description.version, "1.0")
+        self.assertEqual(metadata.package_description.version, "1.0")
 
     def test_autobuild_build_all(self):
         self.autobuild('build', '--config-file=' + self.tmp_file, '--id=123456', '-a')
@@ -235,7 +232,7 @@ class TestVersionFileOddWhitespace(LocalBase):
 
     def test_autobuild_build(self):
         build('build', '--config-file=' + self.tmp_file, '--id=123456')
-        assert_equals(self.read_metadata().package_description.version, "2.3")
+        self.assertEqual(self.read_metadata().package_description.version, "2.3")
 
 class TestSubstitutions(LocalBase):
     def get_config(self):
@@ -256,6 +253,3 @@ class TestSubstitutions(LocalBase):
         self.config.save()
         assert "foo666" in self.autobuild('build', '--config-file=' + self.tmp_file,
                                         '-i', '666')
-        
-if __name__ == '__main__':
-    unittest.main()

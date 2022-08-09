@@ -24,13 +24,11 @@
 #
 
 import os
-import sys
 import logging
 import re
 import shutil
 import tarfile
 import tempfile
-import unittest
 from zipfile import ZipFile
 from string import Template
 
@@ -221,10 +219,6 @@ $''' % ('test1', re.escape(os.path.join(self.data_dir, "package-test", "autobuil
                                 ,platform_config
                                 ,{'PLATFORM':self.platform})
         self.options.autobuild_filename = platform_config
-        with ExpectError("No files matched manifest specifiers:\n"+'\n'.join(["missing/\*.txt","not_there.txt"]),
+        with ExpectError("No files matched manifest specifiers:\n"+'\n'.join(["missing/\\*.txt","not_there.txt"]),
                          "Missing files not detected"):
             package.AutobuildTool().run(self.options)
-
-
-if __name__ == '__main__':
-    unittest.main()
