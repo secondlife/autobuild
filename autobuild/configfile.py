@@ -44,6 +44,8 @@ from . import common
 from .executable import Executable
 import logging
 
+from autobuild.scm.git import get_version as get_git_version
+
 logger = logging.getLogger('autobuild.configfile')
 
 AUTOBUILD_CONFIG_FILE = os.environ.get("AUTOBUILD_CONFIG_FILE", "autobuild.xml")
@@ -60,6 +62,10 @@ PACKAGE_METADATA_FILE = "autobuild-package.xml"
 
 
 class ConfigurationError(common.AutobuildError):
+    pass
+
+
+class NoVersionFileKeyError(common.AutobuildError):
     pass
 
 
@@ -568,6 +574,12 @@ class PackageDescription(common.Serialized):
             target_platform = self.platforms.get(common.PLATFORM_COMMON)
             logger.info("get_platform No %s configuration found; inheriting common" % (platform))
         return target_platform
+    
+    def read_scm_version(self, build_directory):
+        version = get_git_version(build_directory)
+        if version is None:
+            raise LookupError("Unable to find version information in SCM (git)")
+        return version
 
     def read_version_file(self, build_directory):
         """
@@ -585,7 +597,7 @@ class PackageDescription(common.Serialized):
         if not self.version_file:
             # should never hit this because caller should have already called
             # check_package_attributes(), but suspenders and belt
-            raise common.AutobuildError("Missing version_file key")
+            raise NoVersionFileKeyError("Missing version_file key")
 
         version_file = os.path.join(build_directory, self.version_file)
         try:

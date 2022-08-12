@@ -50,5 +50,5 @@ setuptools.setup(
     ],
     install_requires=['llbase', 'pydot'],
     extras_require={'dev': ['pytest']},
-    python_requires='>=3.4',
+    python_requires='>=3.7',
 )
