@@ -19,6 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 # $/LicenseInfo$
+from __future__ import annotations
 
 """
 If a version_file attribute is not present in autobuild.xml then autobuild will
