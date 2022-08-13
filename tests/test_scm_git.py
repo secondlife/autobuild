@@ -29,6 +29,7 @@ import pytest
 
 from autobuild.scm.base import has_command, cmd, date
 from autobuild.scm.git import get_version
+from tests.basetest import chdir
 
 
 pytestmark = pytest.mark.skipif(not has_command("git"), reason="git not found")
@@ -43,7 +44,9 @@ def git_repo():
         .
         ├── dir
         │   └── file
-        └── file
+        ├── file
+        ├── .gitignore
+        └── stage
     """
     owd = os.getcwd()
     try:
@@ -54,6 +57,9 @@ def git_repo():
             os.mkdir(os.path.join(root, "dir"))
             with open(os.path.join(root, "dir", "file"), "w"):
                 pass
+            os.mkdir(os.path.join(root, "stage"))
+            with open(os.path.join(root, ".gitignore"), "w") as f:
+                f.write("stage")
             cmd("git", "init")
             cmd("git", "add", "-A")
             cmd("git", "commit", "-m", "Initial")
@@ -75,6 +81,11 @@ class GitTests(TestCase):
     def test_no_distance_clean(self):
         version = get_version(self.repo)
         self.assertEqual(version, "1.0.0")
+
+    def test_no_distance_clean_from_stage(self):
+        with chdir(os.path.join(self.repo, "stage")):
+            version = get_version(self.repo)
+            self.assertEqual(version, "1.0.0")
 
     def test_no_distance_clean_child(self):
         # Test that SCM searches for .git dir in parent directories

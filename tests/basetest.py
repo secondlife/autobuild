@@ -279,3 +279,13 @@ class CaptureStdout(CaptureStd):
 class CaptureStderr(CaptureStd):
     def __init__(self):
         super(CaptureStderr, self).__init__("stderr")
+
+
+@contextmanager
+def chdir(dir: str):
+    owd = os.getcwd()
+    os.chdir(dir)
+    try:
+        yield
+    finally:
+        os.chdir(owd)
