@@ -78,17 +78,19 @@ class GitMeta(NamedTuple):
     version: Semver
 
 
-def _find_git_dir(start: str, level: int = 0) -> str | None:
+def _find_repo_dir(start: Path, level: int = 0) -> Path | None:
     """Walk up path to find .git directory"""
     if level >= MAX_GIT_SEARCH_DEPTH:
         return None
-    dir = Path(start) / ".git"
-    if dir.is_dir(): 
-        return str(dir)
+    if (start / ".git").is_dir():
+        return start
     # Allow user to disable searching parent directories
     if is_env_disabled("AUTOBUILD_SCM_SEARCH"):
         return None
-    return _find_git_dir(dir.parent.parent, level + 1)
+    if start.parent == start:
+        # At the root, can't walk up any more.
+        return None
+    return _find_repo_dir(start.parent, level + 1)
 
 
 def _parse_describe(describe: str) -> GitMeta:
@@ -111,15 +113,19 @@ def _parse_describe(describe: str) -> GitMeta:
 
 
 class Git:
-    git_dir: str
+    repo_dir: Path | None 
 
     def __init__(self, root: str):
-        self.git_dir = _find_git_dir(root) 
+        self.repo_dir = _find_repo_dir(Path(root))
 
     def _git(self, *args) -> subprocess.CompletedProcess[str]:
         """Run git subcommand against the active git directory"""
         log.debug(f'running git command: {" ".join(args)}')
-        return cmd("git", "--git-dir", self.git_dir, *args)
+        return cmd(
+            "git",
+            "-C", str(self.repo_dir),
+            *args,
+        )
     
     def describe(self) -> str:
         # from https://github.com/pypa/setuptools_scm/blob/main/src/setuptools_scm/git.py
@@ -127,8 +133,8 @@ class Git:
         return p.stdout
     
     def version(self) -> str | None:
-        # If git_dir is not set then we were unable to find a .git directory
-        if not self.git_dir:
+        # If repo_dir is not set then we were unable to find a .git directory
+        if not self.repo_dir:
             log.debug("no git root found, returning null version")
             return None
         meta = _parse_describe(self.describe())
