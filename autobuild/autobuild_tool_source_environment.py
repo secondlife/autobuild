@@ -41,27 +41,6 @@ from . import autobuild_base
 
 logger = logging.getLogger('autobuild.source_environment')
 
-# for the time being, we expect that we're checked out side-by-side with
-# parabuild buildscripts, so back up a level to find $helper.
-get_params = None
-helper = os.path.join(os.path.dirname(__file__),
-                      os.pardir,
-                      os.pardir,
-                      'buildscripts/hg/bin')
-if os.path.exists(helper):
-    # Append helper to sys.path.
-    _helper_idx = len(sys.path)
-    sys.path.append(helper)
-    assert sys.path[_helper_idx] == helper
-
-    try:
-        import get_params
-        logger.info("found get_params: '%s'" % get_params.__file__)
-    except ImportError:
-        # restore original sys.path value
-        assert sys.path[_helper_idx] == helper
-        del sys.path[_helper_idx]
-
 class SourceEnvError(common.AutobuildError):
     pass
 
@@ -521,10 +500,6 @@ similar.""")
 
     # Write to stdout buffer to avoid writing CRLF line endings
     sys.stdout.buffer.write((template % var_mapping).encode("utf-8"))
-
-    if get_params:
-        # *TODO - run get_params.generate_bash_script()
-        pass
 
 
 def internal_source_environment(configurations, varsfile):
