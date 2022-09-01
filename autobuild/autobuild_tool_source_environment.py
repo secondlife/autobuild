@@ -751,9 +751,6 @@ def internal_source_environment(configurations, varsfile):
                 AUTOBUILD_WIN_CMAKE_GEN += " Win64"
             # cmake -G "$AUTOBUILD_WIN_CMAKE_GEN"
             exports["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
-            # cmake -A "$AUTOBUILD_WIN_CMAKE_ARCH"
-            exports["AUTOBUILD_WIN_CMAKE_ARCH"] = (
-                "Win32" if os.environ["AUTOBUILD_ADDRSIZE"] == 32 else "x64")
 
             # load vsvars32.bat variables
             vsvars = load_vsvars(vsver)
