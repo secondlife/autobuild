@@ -24,7 +24,6 @@ import os
 import sys
 from ast import literal_eval
 from collections import OrderedDict
-import errno
 import itertools
 import json
 import logging
@@ -73,11 +72,10 @@ def _available_vsvers():
              '-requires', 'Microsoft.Component.MSBuild',
              '-property', 'installationVersion'],
             universal_newlines=True)
-    except OSError as err:
-        if err.errno != errno.ENOENT:
-            raise
+    except FileNotFoundError:
         # Nonexistence of the vswhere.exe utility is normal for older VS
         # installs.
+        pass
     except subprocess.CalledProcessError as err:
         # We were able to find it, but it was unsuccessful. vswhere reports
         # important error information on stdout, captured as err.output.
@@ -142,9 +140,7 @@ def load_vsvars(vsver):
                  '-requires', 'Microsoft.Component.MSBuild', '-utf8',
                  '-format', 'json'], universal_newlines=True).rstrip()
             installs = json.loads(raw)
-        except OSError as err:
-            if err.errno != errno.ENOENT:
-                raise
+        except FileNotFoundError:
             raise SourceEnvError('AUTOBUILD_VSVER={} unsupported, '
                                  'is Visual Studio {} installed? (%s not found)'
                                  .format(vsver, vsver, _VSWHERE_PATH))
@@ -173,7 +169,7 @@ def load_vsvars(vsver):
         # later than "8". Since some version components can be reported as
         # (e.g.) "2+28010", don't just pass to int() -- find every cluster of
         # decimal digits and build a list of int()s of those. Thus,
-        # "15.8.2+28010.2016" becomes [15, 8, 2, 2810, 2016].
+        # "15.8.2+28010.2016" becomes [15, 8, 2, 28010, 2016].
         installs.sort(key=lambda inst:
                       [int(found.group(0))
                        for found in re.finditer('[0-9]+', inst['catalog']['productDisplayVersion'])])
@@ -183,18 +179,26 @@ def load_vsvars(vsver):
 
     else:
         # Older Visual Studio versions use the VSxxxCOMNTOOLS environment
-        # variable.
-        key = _VSxxxCOMNTOOLS_st % vsver
-        via = key
-        logger.debug("vsver %s, key %s" % (vsver, key))
-        try:
-            # We've seen traceback output from this if vsver doesn't match an
-            # environment variable. Produce a reasonable error message instead.
-            VSxxxCOMNTOOLS = os.environ[key]
-        except KeyError:
+        # variable. If the user sets "145", *is* there a VS145COMNTOOLS, or
+        # would the relevant variable still be VS140COMNTOOLS? (Does anyone
+        # care any more?)
+        # If the user specifies "140" but it's not found, we'll try it twice.
+        # Extra code to avoid that seems pointless: it's just a dict lookup...
+        for try_vsver in vsver, vsver[:2] + '0':
+            key = _VSxxxCOMNTOOLS_st % try_vsver
+            via = key
+            logger.debug("vsver %s, key %s" % (try_vsver, key))
+            try:
+                VSxxxCOMNTOOLS = os.environ[key]
+            except KeyError:
+                continue
+            else:
+                vsver = try_vsver
+                break
+        else:
             candidates = _available_vsvers()
-            explain = " (candidates: %s)" % ", ".join(candidates) if candidates \
-                      else ""
+            explain = (" (candidates: %s)" % ", ".join(candidates) if candidates
+                      else "")
             raise SourceEnvError('AUTOBUILD_VSVER=%s unsupported, '
                                  'is Visual Studio %s installed?%s' %
                                  (vsver, vsver, explain))
@@ -285,7 +289,7 @@ call "%s"%s
             # which would confuse our invoker, who wants to parse OUR stdout.
             cmdline = ['cmd', '/Q', '/C', temp_script_name]
             logger.debug(cmdline)
-            script = subprocess.Popen(cmdline,
+            script = subprocess.Popen(cmdline, text=True,
                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             logger.debug(script.communicate()[0].rstrip())
             rc = script.wait()
@@ -514,8 +518,7 @@ def internal_source_environment(configurations, varsfile):
     os.environ['AUTOBUILD_VSVER'] indirectly indicates a Visual Studio
     vcvarsall.bat script from which to load variables. Its values are e.g.
     '100' for Visual Studio 2010 (VS 10), '120' for Visual Studio 2013 (VS 12)
-    and so on. A correct value nnn for the running system will identify a
-    corresponding VSnnnCOMNTOOLS environment variable.
+    and so on.
 
     Returns a triple of dicts (exports, vars, vsvars):
 
@@ -541,6 +544,16 @@ def internal_source_environment(configurations, varsfile):
                 logger.warning("No Visual Studio install detected -- "
                                "certain configuration variables will not be available")
                 vsver = None
+            else:
+                # SL-17226: It's useful to set AUTOBUILD_VSVER for subprocesses.
+                # We've decided, though, that implicitly setting (e.g.)
+                # AUTOBUILD_VSVER='163' isn't in the user's best interest. The
+                # most visible effect of AUTOBUILD_VSVER is the Windows viewer
+                # build tree name build-vc$AUTOBUILD_VSVER-$AUTOBUILD_ADDRSIZE.
+                # That isolates build products from different Visual Studio
+                # versions (desirable) - but would we really want to distinguish
+                # build-vc161-64 from build-vc163-64?
+                os.environ['AUTOBUILD_VSVER'] = vsver[:2] + '0'
 
     # OPEN-259: it turns out to be important that if AUTOBUILD is already set
     # in the environment, we should LEAVE IT ALONE. So if it exists, use the
@@ -714,12 +727,16 @@ def internal_source_environment(configurations, varsfile):
             # lookup dict. That dict should not be replicated into each 3p repo,
             # it should be central. It should be here.
             try:
+                # vsver might have been set by reading vswhere output, and
+                # vswhere might have reported (e.g.) "158" or "161". Ignore
+                # the minor version when choosing the CMake generator.
                 AUTOBUILD_WIN_CMAKE_GEN = {
-                    '120': "Visual Studio 12",
-                    '140': "Visual Studio 14",
-                    '150': "Visual Studio 15",
-                    '160': "Visual Studio 16",
-                    }[vsver]
+                    '12': "Visual Studio 12",
+                    '14': "Visual Studio 14",
+                    '15': "Visual Studio 15",
+                    '16': "Visual Studio 16",
+                    '17': "Visual Studio 17 2022",
+                    }[vsver[:-1]]
             except KeyError:
                 # We don't have a specific mapping for this value of vsver. Take
                 # a wild guess. If we guess wrong, CMake will complain, and the
@@ -732,7 +749,11 @@ def internal_source_environment(configurations, varsfile):
             # Or at least it used to, until VS 2019.
             if os.environ["AUTOBUILD_ADDRSIZE"] == "64" and vsver < '160':
                 AUTOBUILD_WIN_CMAKE_GEN += " Win64"
+            # cmake -G "$AUTOBUILD_WIN_CMAKE_GEN"
             exports["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
+            # cmake -A "$AUTOBUILD_WIN_CMAKE_ARCH"
+            exports["AUTOBUILD_WIN_CMAKE_ARCH"] = (
+                "Win32" if os.environ["AUTOBUILD_ADDRSIZE"] == 32 else "x64")
 
             # load vsvars32.bat variables
             vsvars = load_vsvars(vsver)
