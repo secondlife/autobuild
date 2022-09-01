@@ -531,6 +531,7 @@ def internal_source_environment(configurations, varsfile):
     vsvars contains variables set by the relevant Visual Studio vcvarsall.bat
     script. It is an empty dict on any platform but Windows.
     """
+    init_exports = {}
     if not common.is_system_windows():
         vsver = None                    # N/A
     else:
@@ -554,6 +555,8 @@ def internal_source_environment(configurations, varsfile):
                 # versions (desirable) - but would we really want to distinguish
                 # build-vc161-64 from build-vc163-64?
                 os.environ['AUTOBUILD_VSVER'] = vsver[:2] + '0'
+        # On Windows, always export AUTOBUILD_VSVER, inherited or deduced.
+        init_exports['AUTOBUILD_VSVER'] = os.environ['AUTOBUILD_VSVER']
 
     # OPEN-259: it turns out to be important that if AUTOBUILD is already set
     # in the environment, we should LEAVE IT ALONE. So if it exists, use the
@@ -568,7 +571,7 @@ def internal_source_environment(configurations, varsfile):
     # before expanding environment_template populates 'exports' and 'vars'
     # into var_mapping["vars"]. We defer it that long so that conditional
     # logic below can, if desired, add to either 'exports' or 'vars' first.
-    exports = dict(
+    exports = dict(init_exports,
         AUTOBUILD=AUTOBUILD,
         AUTOBUILD_VERSION_STRING=common.AUTOBUILD_VERSION_STRING,
         AUTOBUILD_PLATFORM=common.get_current_platform(),
@@ -778,11 +781,10 @@ def get_enriched_environment(configuration):
     On Windows, os.environ['AUTOBUILD_VSVER'] indirectly indicates a Visual
     Studio vcvarsall.bat script from which to load variables. Its values are
     e.g. '100' for Visual Studio 2010 (VS 10), '120' for Visual Studio 2013
-    (VS 12) and so on. A correct value nnn for the running system will
-    identify a corresponding VSnnnCOMNTOOLS environment variable.
+    (VS 12) and so on.
 
     On Windows, if AUTOBUILD_VSVER isn't set, a value will be inferred from
-    the available VSnnnCOMNTOOLS environment variables.
+    vswhere.exe or the available VSnnnCOMNTOOLS environment variables.
     """
     result = common.get_autobuild_environment()
     exports, vars, vsvars = internal_source_environment(
