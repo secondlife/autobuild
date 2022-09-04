@@ -26,7 +26,10 @@ jobs:
           pip install .[dev,build]
 
       - name: Run tests
-        run: pytest -vv
+        run: |
+          git config --global user.email "github-actions@example.com"
+          git config --global user.name "Github Actions"
+          pytest -vv
 
       - name: Build python package
         run: python -m build
