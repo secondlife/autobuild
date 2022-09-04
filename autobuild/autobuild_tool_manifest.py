@@ -27,12 +27,7 @@ Manifests specify by platform the files that should be bundled into
 an archive when packaging the build product.
 """
 
-import sys
-import os
-
-from . import autobuild_base
-from . import common
-from . import configfile
+from autobuild import autobuild_base, common, configfile
 
 
 class AutobuildTool(autobuild_base.AutobuildBase):

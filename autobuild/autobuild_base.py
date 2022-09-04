@@ -23,8 +23,8 @@
 # Base Class to give autobuild tool modules integration into autobuild
 # and standalone functionality
 
-import os
 import argparse
+import os
 
 
 # Main tool functionality

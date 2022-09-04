@@ -27,8 +27,8 @@ THE SOFTWARE.
 $/LicenseInfo$
 """
 
-import os
 import logging
+import os
 import tempfile
 
 import pytest
@@ -42,8 +42,9 @@ except (ImportError, FileNotFoundError):
     pytest.skip("pydot not available", allow_module_level=True)
 from unittest import TestCase
 
-import autobuild.common as common
 import autobuild.autobuild_tool_graph as graph
+import autobuild.common as common
+
 from .basetest import *
 
 logger = logging.getLogger("test_graph")

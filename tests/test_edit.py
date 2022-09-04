@@ -25,20 +25,13 @@
 
 
 import os
-import sys
 
-try:
-    from llbase import llsd
-except:
-    sys.exit("Failed to import llsd via the llbase module; to install, use:\n"
-             +"  pip install llbase")
+from llbase import llsd
 
 from autobuild import configfile
-from autobuild import common
-from autobuild.autobuild_main import Autobuild
-from .baseline_compare import AutobuildBaselineCompare
 from autobuild.autobuild_tool_edit import AutobuildTool
-from .basetest import BaseTest
+from tests.baseline_compare import AutobuildBaselineCompare
+from tests.basetest import BaseTest
 
 
 class TestEdit(BaseTest, AutobuildBaselineCompare):

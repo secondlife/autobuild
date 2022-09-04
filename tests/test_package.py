@@ -23,20 +23,18 @@
 # Integration test to exercise the archive packaging
 #
 
-import os
 import logging
+import os
 import re
 import shutil
 import tarfile
 import tempfile
-from zipfile import ZipFile
 from string import Template
+from zipfile import ZipFile
 
 import autobuild.autobuild_tool_package as package
-from autobuild import configfile
-from autobuild import common
-from .basetest import BaseTest, ExpectError, CaptureStdout, clean_dir, clean_file
-        
+from autobuild import common, configfile
+from tests.basetest import BaseTest, CaptureStdout, ExpectError, clean_dir, clean_file
 
 # ****************************************************************************
 #   TODO

@@ -26,10 +26,10 @@
 
 import os
 
-from autobuild import configfile
-from .baseline_compare import AutobuildBaselineCompare
 import autobuild.autobuild_tool_installables as installables
-from .basetest import BaseTest, assert_in
+from autobuild import configfile
+from tests.baseline_compare import AutobuildBaselineCompare
+from tests.basetest import BaseTest, assert_in
 
 
 class TestInstallables(BaseTest, AutobuildBaselineCompare):

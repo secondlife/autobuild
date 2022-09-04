@@ -34,9 +34,9 @@ Author : Martin Reddy
 Date   : 2010-04-23
 """
 
+import difflib
 import os
 import sys
-import difflib
 import tempfile
 
 

@@ -26,13 +26,13 @@
 # THE SOFTWARE.
 # $/LicenseInfo$
 
-import os
-import sys
 import errno
+import os
 import re
-import subprocess
-import time
 import shutil
+import subprocess
+import sys
+import time
 import unittest
 from contextlib import contextmanager, redirect_stdout
 from io import BytesIO, StringIO

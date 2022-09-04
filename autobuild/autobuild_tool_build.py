@@ -24,19 +24,16 @@
 Builds the source for a package.
 """
 
+import copy
+import logging
 import os
 import re
-import logging
-import copy
 
 # autobuild modules:
-from . import common
-from . import autobuild_base
-from . import configfile
-from .common import AutobuildError
-from .autobuild_tool_configure import _configure_a_configuration
-from .autobuild_tool_source_environment import get_enriched_environment
-
+from autobuild import autobuild_base, common, configfile
+from autobuild.autobuild_tool_configure import _configure_a_configuration
+from autobuild.autobuild_tool_source_environment import get_enriched_environment
+from autobuild.common import AutobuildError
 
 logger = logging.getLogger('autobuild.build')
 

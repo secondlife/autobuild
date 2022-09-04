@@ -31,14 +31,12 @@ Author : Nat Goodspeed
 Date   : 2010-10-19
 """
 
-import os
-import sys
-from . import common
 import logging
-from . import configfile
-from . import autobuild_base
-from .autobuild_tool_install import uninstall
-from .autobuild_tool_source_environment import get_enriched_environment
+import os
+
+from autobuild import autobuild_base, common, configfile
+from autobuild.autobuild_tool_install import uninstall
+from autobuild.autobuild_tool_source_environment import get_enriched_environment
 
 logger = logging.getLogger('autobuild.uninstall')
 

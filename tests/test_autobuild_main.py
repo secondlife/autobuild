@@ -21,8 +21,9 @@
 # $/LicenseInfo$
 
 import sys
+
 import autobuild.autobuild_main
-from .basetest import BaseTest
+from tests.basetest import BaseTest
 
 captured_stdout = ''
 

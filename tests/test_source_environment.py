@@ -20,7 +20,6 @@
 # THE SOFTWARE.
 # $/LicenseInfo$
 
-from ast import literal_eval
 import logging
 import os
 import shutil
@@ -28,18 +27,13 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from autobuild import autobuild_tool_source_environment as atse
-from .basetest import *
-from .patch import patch
+from ast import literal_eval
 from pprint import pformat
 
-def assert_dict_has(d, key, value):
-    try:
-        dval = d[key]
-    except KeyError:
-        raise AssertionError("key %s not in %s" % (key, pformat(d)))
-    else:
-        self.assertEqual(dval, value)
+from autobuild import autobuild_tool_source_environment as atse
+from tests.basetest import *
+from tests.patch import patch
+
 
 def assert_dict_subset(d, s):
     # Windows insists on capitalizing environment variables, so prepare a copy

@@ -27,10 +27,9 @@ from unittest import TestCase
 
 import pytest
 
-from autobuild.scm.base import has_command, cmd, date
+from autobuild.scm.base import cmd, date, has_command
 from autobuild.scm.git import get_version
 from tests.basetest import chdir
-
 
 pytestmark = pytest.mark.skipif(not has_command("git"), reason="git not found")
 

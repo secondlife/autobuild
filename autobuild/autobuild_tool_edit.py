@@ -29,14 +29,14 @@ Build configuration includes:
     - parameterize the package that is built
 """
 
+import argparse
 import sys
 from io import StringIO
-import argparse
 
-from . import configfile
-from .autobuild_base import AutobuildBase
-from .common import AutobuildError, get_current_platform
-from .interactive import InteractiveCommand
+from autobuild import configfile
+from autobuild.autobuild_base import AutobuildBase
+from autobuild.common import AutobuildError, get_current_platform
+from autobuild.interactive import InteractiveCommand
 
 CONFIG_NAME_DEFAULT = 'default'
 DEFAULT_CONFIG_CMD = ''

@@ -28,13 +28,13 @@ Author : Alan Linden
 Date   : 2010-09-29
 """
 
-import os
-import sys
-import subprocess
-import re
-
-from . import common
 import logging
+import os
+import re
+import subprocess
+import sys
+
+from autobuild import common
 
 logger = logging.getLogger('autobuild.executable')
 

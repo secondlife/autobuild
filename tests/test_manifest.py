@@ -24,14 +24,13 @@
 #
 
 
-import os
 import logging
+import os
 
-from autobuild import configfile
-from autobuild import common
-from .baseline_compare import AutobuildBaselineCompare
 import autobuild.autobuild_tool_manifest as manifest
-from .basetest import BaseTest
+from autobuild import common, configfile
+from tests.baseline_compare import AutobuildBaselineCompare
+from tests.basetest import BaseTest
 
 logger = logging.getLogger("test_manifest")
 

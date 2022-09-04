@@ -19,8 +19,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 # $/LicenseInfo$
-from . import configfile
-from .autobuild_base import AutobuildBase
+from autobuild import configfile
+from autobuild.autobuild_base import AutobuildBase
 
 
 class AutobuildTool(AutobuildBase):

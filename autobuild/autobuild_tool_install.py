@@ -32,24 +32,19 @@ Author : Martin Reddy
 Date   : 2010-04-19
 """
 
-import os
-import sys
 import errno
-import pprint
 import logging
+import os
+import pprint
+import sys
 import tarfile
+import urllib.error
+import urllib.parse
+import urllib.request
 import zipfile
-import urllib.request, urllib.error, urllib.parse
-import subprocess
-import socket
-import itertools
-import codecs
 
-from . import common
-from . import configfile
-from . import autobuild_base
-from . import hash_algorithms
-from .autobuild_tool_source_environment import get_enriched_environment
+from autobuild import autobuild_base, common, configfile, hash_algorithms
+from autobuild.autobuild_tool_source_environment import get_enriched_environment
 
 logger = logging.getLogger('autobuild.install')
 

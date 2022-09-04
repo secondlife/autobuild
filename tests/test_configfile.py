@@ -23,10 +23,10 @@
 # Integration test to exercise the config file reading/writing
 #
 
-from .baseline_compare import AutobuildBaselineCompare
 from autobuild import configfile
 from autobuild.executable import Executable
-from .basetest import BaseTest
+from tests.baseline_compare import AutobuildBaselineCompare
+from tests.basetest import BaseTest
 
 
 class TestConfigFile(BaseTest, AutobuildBaselineCompare):

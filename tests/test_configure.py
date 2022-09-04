@@ -20,13 +20,14 @@
 # THE SOFTWARE.
 # $/LicenseInfo$
 
-from .baseline_compare import AutobuildBaselineCompare
-from autobuild import autobuild_tool_configure as configure
-import autobuild.configfile as configfile
-import autobuild.common as common
 import os
-from .basetest import BaseTest
-from .executables import echo, noop
+
+import autobuild.common as common
+import autobuild.configfile as configfile
+from autobuild import autobuild_tool_configure as configure
+from tests.baseline_compare import AutobuildBaselineCompare
+from tests.basetest import BaseTest
+from tests.executables import echo, noop
 
 
 class TestConfigure(BaseTest, AutobuildBaselineCompare):

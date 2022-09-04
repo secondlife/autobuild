@@ -27,12 +27,13 @@ Includes tools for updating older versions of autobuild configurations to the th
 """
 
 
-from .common import AutobuildError, get_version_tuple
-# Please do NOT import configfile data classes! See comments for _register().
-# or Executable either, which also changes with AUTOBUILD_CONFIG_VERSION
-from .configfile import AUTOBUILD_CONFIG_VERSION
 import logging
 import shlex
+
+# Please do NOT import configfile data classes! See comments for _register().
+# or Executable either, which also changes with AUTOBUILD_CONFIG_VERSION
+from autobuild.common import AutobuildError, get_version_tuple
+from autobuild.configfile import AUTOBUILD_CONFIG_VERSION
 
 logger = logging.getLogger('autobuild.update')
 

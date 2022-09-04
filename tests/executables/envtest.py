@@ -22,9 +22,9 @@
 # $/LicenseInfo$
 
 import os
-import sys
 import re
 import subprocess
+import sys
 
 # This script is intended to test whether autobuild sets the AUTOBUILD
 # environment variable for its child processes. Its name, envtest.py, is

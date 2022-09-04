@@ -21,9 +21,12 @@
 # $/LicenseInfo$
 
 import sys
+
 import pytest
+
 from autobuild.executable import Executable
-from .basetest import BaseTest
+from tests.basetest import BaseTest
+
 
 class TestExecutable(BaseTest):
     def setUp(self):

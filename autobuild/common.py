@@ -35,21 +35,19 @@ Author : Martin Reddy
 Date   : 2010-04-13
 """
 
-import argparse
-from collections import OrderedDict
 import itertools
 import logging
 import os
 import platform
 import pprint
-import shutil
 import sys
 import tempfile
 import time
+from collections import OrderedDict
 
 from .version import AUTOBUILD_VERSION_STRING
 
-logger = logging.getLogger('autobuild.common')
+logger = logging.getLogger(__name__)
 
 
 class AutobuildError(RuntimeError):

@@ -42,22 +42,19 @@ following metadata in the autobuild.xml file:
 * license_file (assumes LICENSES/<package-name>.txt otherwise)
 """
 
-import io
-import hashlib
-import os
-import tarfile
 import getpass
 import glob
-import subprocess
-import urllib.request, urllib.error, urllib.parse
-import re
-from zipfile import ZipFile, ZIP_DEFLATED
-
-from . import common
+import hashlib
+import io
 import logging
-from . import configfile
-from . import autobuild_base
-from .common import AutobuildError
+import os
+import re
+import subprocess
+import tarfile
+from zipfile import ZIP_DEFLATED, ZipFile
+
+from autobuild import autobuild_base, common, configfile
+from autobuild.common import AutobuildError
 
 logger = logging.getLogger('autobuild.package')
 

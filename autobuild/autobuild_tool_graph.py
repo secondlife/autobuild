@@ -30,18 +30,15 @@ Author : Scott Lawrence / Logan Dethrow
 Date   : 2014-05-09
 """
 
+import logging
 import os
-import sys
 import tempfile
-
-import pydot
 import webbrowser
 
-from . import common
-import logging
-from . import configfile
-from . import autobuild_base
-from .autobuild_tool_install import extract_metadata_from_package
+import pydot
+
+from autobuild import autobuild_base, common, configfile
+from autobuild.autobuild_tool_install import extract_metadata_from_package
 
 logger = logging.getLogger('autobuild.graph')
 

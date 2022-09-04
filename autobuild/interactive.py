@@ -32,8 +32,9 @@ See: autobuild_tool_edit.py for usage examples
 
 import sys
 from io import StringIO
-from . import configfile
-from .common import AutobuildError
+
+from autobuild import configfile
+from autobuild.common import AutobuildError
 
 
 class InteractiveCommand(object):

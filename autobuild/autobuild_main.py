@@ -19,28 +19,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 # $/LicenseInfo$
+import argparse
+import glob
 import importlib
 import importlib.util
-import sys
+import logging
 import os
-import glob
+import sys
 from pathlib import Path
 
-# Hide some load-time logic in a throwaway class: don't pollute the
-# module-scope namespace with all these helper variables.
-class _local_scope(object):
-    ERROR   = "*** ERROR:"
-    WARNING = "WARNING:"
-    msgind  = max(len(ERROR), len(WARNING))
-    vermsg  = "\n%s You are running with Python %s.%s.%s." % \
-               ((msgind*' ',) + sys.version_info[:3])
-    if sys.version_info[:2] < (3, 4):
-        sys.exit("%s autobuild 2+ requires Python 3.4" % (ERROR.ljust(msgind)))
-
-from . import common
-import argparse
-import logging
-from .common import AutobuildError
+from autobuild import common
+from autobuild.common import AutobuildError
 
 ## Environment variable name used for default log level verbosity
 AUTOBUILD_LOGLEVEL = 'AUTOBUILD_LOGLEVEL'
@@ -265,3 +254,7 @@ def main():
                 msg.append(" --verbose or")
             msg.append(" --debug")
         sys.exit(''.join(msg))
+
+
+if __name__ == "__main__":
+    main()

@@ -25,20 +25,21 @@
 
 
 
-import os
-import shutil
 import logging
-import tempfile
-import urllib.request, urllib.parse, urllib.error
-import urllib.parse
+import os
 import posixpath
-from .basetest import *
+import shutil
+import tempfile
+import urllib.error
+import urllib.parse
+import urllib.request
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 from string import Template
 from threading import Thread
 from unittest import TestCase
-from http.server import HTTPServer
-from http.server import SimpleHTTPRequestHandler
+
 from autobuild import autobuild_tool_install, autobuild_tool_uninstall, common
+from tests.basetest import *
 
 # ****************************************************************************
 #   TODO

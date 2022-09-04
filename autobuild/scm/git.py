@@ -54,13 +54,12 @@ variables to a falsey value (0, f, no, false)
 - AUTOBUILD_SCM_SEARCH - disable walking up parent directories to search for SCM root
 """
 
-import subprocess
 import logging
+import subprocess
 from pathlib import Path
 from typing import NamedTuple
 
-from autobuild.scm.base import cmd, has_command, date, is_env_disabled, Semver
-
+from autobuild.scm.base import Semver, cmd, date, has_command, is_env_disabled
 
 __all__ = ["get_version"]
 

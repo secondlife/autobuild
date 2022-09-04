@@ -22,7 +22,7 @@
 
 import pytest
 
-from autobuild.scm.base import Semver 
+from autobuild.scm.base import Semver
 
 
 @pytest.mark.parametrize("input,want", [

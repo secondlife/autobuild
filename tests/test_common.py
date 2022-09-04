@@ -22,7 +22,8 @@
 #!/usr/bin/python
 
 from autobuild import common
-from .basetest import *
+from tests.basetest import *
+
 
 class TestCommon(BaseTest):
     def setUp(self):

@@ -20,23 +20,20 @@
 # THE SOFTWARE.
 # $/LicenseInfo$
 
-import os
-import sys
-from ast import literal_eval
-from collections import OrderedDict
 import itertools
 import json
 import logging
-from pprint import pformat
+import os
 import re
-import shutil
-import stat
 import string
 import subprocess
+import sys
 import tempfile
+from ast import literal_eval
+from collections import OrderedDict
+from pprint import pformat
 
-from . import common
-from . import autobuild_base
+from autobuild import autobuild_base, common
 
 logger = logging.getLogger('autobuild.source_environment')
 

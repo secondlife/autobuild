@@ -21,20 +21,23 @@
 # $/LicenseInfo$
 
 
-import os
 import logging
+import os
 import pprint
 import tempfile
+
 import pytest
-from .baseline_compare import AutobuildBaselineCompare
-from autobuild import autobuild_tool_build as build
-import autobuild.configfile as configfile
+
 import autobuild.common as common
-from autobuild.scm.base import has_command, cmd
+import autobuild.configfile as configfile
+from autobuild import autobuild_tool_build as build
+from autobuild.autobuild_tool_build import AutobuildTool, BuildError
 from autobuild.configfile import PACKAGE_METADATA_FILE, MetadataDescription
-from autobuild.autobuild_tool_build import BuildError, AutobuildTool
-from .basetest import BaseTest, clean_dir, exc
-from .executables import envtest, noop, echo
+from autobuild.scm.base import cmd, has_command
+from tests.basetest import BaseTest, clean_dir, exc
+from tests.executables import echo, envtest, noop
+
+from .baseline_compare import AutobuildBaselineCompare
 
 # ****************************************************************************
 #   TODO

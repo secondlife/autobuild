@@ -19,21 +19,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 # $/LicenseInfo$
-
-
 """
 Configures source in preparation for building.
 """
-
-from . import autobuild_base
 import copy
-from . import common
-from .common import AutobuildError
-from .autobuild_tool_source_environment import get_enriched_environment
-from . import configfile
-import os
 import logging
+import os
 
+from autobuild import autobuild_base, common, configfile
+from autobuild.autobuild_tool_source_environment import get_enriched_environment
+from autobuild.common import AutobuildError
 
 logger = logging.getLogger('autobuild.configure')
 
