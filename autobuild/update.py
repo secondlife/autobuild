@@ -1,17 +1,17 @@
 #!/usr/bin/python
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -262,7 +262,7 @@ class _Update_1_1(object):
         for (key, value) in self.package_properties.items():
             if key in old_package:
                 package[value] = old_package[key]
-    
+
     def _insert_archives(self, old_archives, package):
         for (platform_name, old_archive) in old_archives.items():
             platform = self._get_platform(platform_name, package)
@@ -270,7 +270,7 @@ class _Update_1_1(object):
             platform["archive"] = archive
             for (key, value) in self.archive_properties.items():
                 archive[value] = old_archive[key]
-   
+
     def _insert_command(self, type, old_commands, package):
         for (platform_name, old_command) in old_commands.items():
             platform = self._get_platform(platform_name, package)
@@ -285,7 +285,7 @@ class _Update_1_1(object):
             if 'command' in old_command:
                 tokens = shlex.split(old_command['command'])
                 command = tokens.pop(0)
-                # It is pretty much impossible to infer where the options end and the arguments 
+                # It is pretty much impossible to infer where the options end and the arguments
                 # begin since we don't know which options take values, so make everything an
                 # argument. Parent options will come before arguments so things should probably work
                 # as expected.
@@ -293,7 +293,7 @@ class _Update_1_1(object):
                 build_configuration["default"] = True
             if 'directory' in old_command:
                 platform["build_directory"] = old_command['directory']
-    
+
     def _get_platform(self, platform_name, package):
         if platform_name in package["platforms"]:
             return package["platforms"][platform_name]

@@ -1,17 +1,17 @@
 #!/usr/bin/python
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -175,7 +175,7 @@ def establish_platform(specified_platform=None, addrsize=DEFAULT_ADDRSIZE):
             Platform = PLATFORM_LINUX64
         else:
             Platform = PLATFORM_LINUX
-    elif is_system_windows():  
+    elif is_system_windows():
         if addrsize == 64:
             Platform = PLATFORM_WINDOWS64
         else:
@@ -191,7 +191,7 @@ def establish_platform(specified_platform=None, addrsize=DEFAULT_ADDRSIZE):
 
     logger.debug("Specified platform %s address-size %d: result %s" \
                  % (specified_platform, specified_addrsize, Platform))
-    
+
     return Platform
 
 def get_version_tuple(version_string):
@@ -232,7 +232,7 @@ def get_autobuild_environment():
 
 def get_install_cache_dir():
     """
-    In general, the package archives do not change much, so find a 
+    In general, the package archives do not change much, so find a
     host/user specific location to cache files.
     """
     cache = os.getenv('AUTOBUILD_INSTALLABLE_CACHE')
@@ -522,7 +522,7 @@ def select_configurations(args, config, verb):
 
 def establish_build_id(build_id_arg):
     """determine and return a build_id based on (in preference order):
-       the --id argument, 
+       the --id argument,
        the AUTOBUILD_BUILD_ID environment variable,
        the date/time
     If we reach the date fallback, a warning is logged

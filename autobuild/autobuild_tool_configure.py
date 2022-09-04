@@ -1,16 +1,16 @@
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -41,7 +41,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
     def get_details(self):
         return dict(name='configure',
                     description="Configures platform targets.")
-     
+
     def register(self, parser):
         parser.usage = "%(prog)s [-h] [--dry-run] [-c CONFIGURATION][-a][--config-file FILE] [-- OPT [OPT ...]]"
         parser.description = "configure the build directory to prepare for either the 'autobuild build' command or a manual build. (not all packages will require this step)"
@@ -49,7 +49,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             dest='config_file',
                             default=configfile.AUTOBUILD_CONFIG_FILE,
                             help='(defaults to $AUTOBUILD_CONFIG_FILE or "autobuild.xml")')
-        parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
+        parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations',
                             help="build a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
@@ -109,7 +109,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 ##    """
 ##    Execute the platform configure command for the named build configuration.
 ##
-##    The special 'common' platform may be defined which can provide parent commands for the configure 
+##    The special 'common' platform may be defined which can provide parent commands for the configure
 ##    command using the inheritence mechanism described in the 'executable' package.  The working
 ##    platform's build configuration will be matched to the build configuration in common with the
 ##    same name if it exists.  To be configured, a build configuration must be defined in the working
@@ -137,7 +137,7 @@ def _configure_a_configuration(config, build_configuration, extra_arguments, dry
     # see if the specified configuration exists; if so, use it
     if build_configuration.configure is not None:
         configure_executable = copy.copy(build_configuration.configure)
-        configure_executable.parent = common_configure 
+        configure_executable.parent = common_configure
 
     # if the specified configuration doesn't exist, and common does, use common
     elif common_configure is not None:

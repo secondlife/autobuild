@@ -570,7 +570,7 @@ class PackageDescription(common.Serialized):
             target_platform = self.platforms.get(common.PLATFORM_COMMON)
             logger.info("get_platform No %s configuration found; inheriting common" % (platform))
         return target_platform
-    
+
     def read_scm_version(self, build_directory):
         version = get_git_version(build_directory)
         if version is None:

@@ -6,17 +6,17 @@
 """
 # $LicenseInfo:firstyear=2012&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -43,7 +43,7 @@ from autobuild import common
 
 autobuild_dir = Path(__file__).resolve().parent.parent.parent
 
-# Small script used by tests such as test_source_environment's where 
+# Small script used by tests such as test_source_environment's where
 # autobuild needs to be called from an external script.
 AUTOBUILD_BIN_SCRIPT = """#!/usr/bin/env python
 from autobuild import autobuild_main
@@ -69,7 +69,7 @@ def tmp_autobuild_bin():
         os.chmod(autobuild_bin, 0o775)
 
         # Insert both the temporary bin directory containing autobuild and local autobuild
-        # python module location into the system path. 
+        # python module location into the system path.
         sys.path.insert(0, autobuild_dir)
         sys.path.insert(0, tmp_dir)
         try:
@@ -83,7 +83,7 @@ def tmp_autobuild_bin():
 class BaseTest(unittest.TestCase):
     def setUp(self):
         self.this_dir = os.path.abspath(os.path.dirname(__file__))
-    
+
     def run(self, result=None):
         with tmp_autobuild_bin() as autobuild_bin:
             self.autobuild_bin = autobuild_bin

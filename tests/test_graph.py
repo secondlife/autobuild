@@ -63,7 +63,7 @@ class TestGraph(BaseTest):
     def setUp(self):
         BaseTest.setUp(self)
         self.options=GraphOptions()
-        
+
     def test_nometa(self):
         with ExpectError("No metadata found", "no error detected when archive does not have metadata"):
             self.options.source_file = os.path.join(self.this_dir, "data", "nometa-0.1-common-111.tar.bz2")

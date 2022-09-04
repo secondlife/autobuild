@@ -1,17 +1,17 @@
 #!/usr/bin/python
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -27,7 +27,7 @@ Classes and methods to support use of interactive mode commands.
 Inherit from the InteractiveCommand class for some basic defaults.
 You may find that you prefer to overload the class methods, rather than extend using 'super'.
 
-See: autobuild_tool_edit.py for usage examples 
+See: autobuild_tool_edit.py for usage examples
 """
 
 import sys
@@ -53,7 +53,7 @@ class InteractiveCommand(object):
     def __init__(self, config):
         """
         This default __init__ for an interactive command has the following characteristics:
-        
+
         config      an instance of configfile.ConfigurationDescription()
 
         description prints out the current configuration for a user to examine prior to modification
@@ -72,7 +72,7 @@ class InteractiveCommand(object):
         kwargs is a dict of keyword arguments
         """
         pass
-    
+
     def interactive_mode(self, delete=False):
         """
         Utility to run a command in interactive mode.
@@ -126,14 +126,14 @@ class InteractiveCommand(object):
                 self.run(**input_values)
             else:
                 print("Not saved.")
-    
+
     @classmethod
     def run_cmd(klass, config, kwargs, delete):
         """
         Method to be invoked by parser upon invocation of specific command.
         """
         self = klass(config)
-        
+
         if kwargs:
             if delete:
                 if self._confirm_delete():

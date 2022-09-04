@@ -1,16 +1,16 @@
 # $LicenseInfo:firstyear=2022&license=mit$
 # Copyright (c) 2022, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -73,7 +73,7 @@ MAX_GIT_SEARCH_DEPTH = 20
 class GitMeta(NamedTuple):
     dirty: bool
     distance: int
-    commit: str # Short commit hash 
+    commit: str # Short commit hash
     version: Semver
 
 
@@ -112,7 +112,7 @@ def _parse_describe(describe: str) -> GitMeta:
 
 
 class Git:
-    repo_dir: Path | None 
+    repo_dir: Path | None
 
     def __init__(self, root: str):
         self.repo_dir = _find_repo_dir(Path(root))
@@ -125,12 +125,12 @@ class Git:
             "-C", str(self.repo_dir),
             *args,
         )
-    
+
     def describe(self) -> str:
         # from https://github.com/pypa/setuptools_scm/blob/main/src/setuptools_scm/git.py
         p = self._git("describe", "--dirty", "--tags", "--long", "--match", "*[0-9]*")
         return p.stdout
-    
+
     def version(self) -> str | None:
         # If repo_dir is not set then we were unable to find a .git directory
         if not self.repo_dir:

@@ -1,9 +1,9 @@
 import shutil
-from setuptools_scm import get_version
 from distutils.core import Command
 from pathlib import Path
 
 from cx_Freeze import Executable, setup
+from setuptools_scm import get_version
 
 ROOT_DIR = Path(__file__).parent.absolute()
 COPY_TO_ZIP = ["LICENSE"]
@@ -26,7 +26,7 @@ class FinalizeCommand(Command):
                 for to_copy in COPY_TO_ZIP:
                     shutil.copy(ROOT_DIR / to_copy, path / to_copy)
                 platform = path.stem[4:path.stem.rfind("-")]
-                zip_path = ROOT_DIR / f"dist/autobuild-{platform}-{version}" 
+                zip_path = ROOT_DIR / f"dist/autobuild-{platform}-{version}"
                 shutil.make_archive(zip_path, "zip", path)
 
 

@@ -1,16 +1,16 @@
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -48,17 +48,17 @@ class AutobuildTool(AutobuildBase):
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
                     description="Manage build and package configuration.")
-     
+
     def register(self, parser):
         parser.description = "edit the definition of the current package, for specifying the commands to run for the various build steps (configure and build subcommands), versioning and licensing information (package subcommand), etc."
         subparsers = parser.add_subparsers(title='subcommands', dest='subparser_name')
 
         for (cmd, callable) in self._get_command_callables().items():
             parser = subparsers.add_parser(cmd, help=callable.HELP, formatter_class=argparse.RawTextHelpFormatter)
-            parser.add_argument('argument', 
+            parser.add_argument('argument',
                                 nargs='*',
                                 help=_arg_help_str(callable.ARGUMENTS, callable.ARG_DICT))
-            parser.add_argument('--delete', 
+            parser.add_argument('--delete',
                                 action='store_true')
             parser.add_argument('--config-file',
                                 dest='config_file',
@@ -93,7 +93,7 @@ class AutobuildTool(AutobuildBase):
 
 def _arg_help_str(args, arg_dict):
     s = []
-    for key in args: 
+    for key in args:
         s.append('%s%s' % (key.ljust(20), arg_dict[key]['help']))
     return '\n'.join(s)
 
@@ -114,7 +114,7 @@ class _config(InteractiveCommand):
     def __init__(self, config):
         stream = StringIO()
         stream.write("Current configure and build settings:\n")
-        configfile.pretty_print(config.get_all_platforms(), stream) 
+        configfile.pretty_print(config.get_all_platforms(), stream)
         self.description = stream.getvalue()
         stream.close()
         stream = StringIO()
@@ -125,7 +125,7 @@ class _config(InteractiveCommand):
     def _create_build_config_desc(self, config, name, platform, build, configure):
         if not name:
             raise AutobuildError('build configuration name not given')
-        
+
         init_dict = dict({'build': build, 'configure': configure, 'name': name})
         build_config_desc = configfile.BuildConfigurationDescription(init_dict)
         try:
@@ -148,7 +148,7 @@ class _config(InteractiveCommand):
             build_config_desc = self._create_build_config_desc(self.config, name, platform, build, configure)
         if default is not None:
             build_config_desc.default = default
-        return build_config_desc 
+        return build_config_desc
 
     def delete(self, name='', platform='', **kwargs):
         """
@@ -177,7 +177,7 @@ class Build(_config):
         new_command = {'command':   command,
                        'options':   listify_str(options),
                        'arguments': listify_str(arguments)}
-        build_config_desc = self.create_or_update_build_config_desc(name, platform, default=default, build=new_command) 
+        build_config_desc = self.create_or_update_build_config_desc(name, platform, default=default, build=new_command)
 
     def delete(self, name='', platform='', **kwargs):
         """
@@ -249,7 +249,7 @@ class Platform(InteractiveCommand):
         Configure basic platform details.
         """
         self._create_or_update_platform(name, build_directory)
-        
+
     def delete(self, name='', **kwargs):
         """
         Delete the named config value.
@@ -299,7 +299,7 @@ class Archive(InteractiveCommand):
         Configure platform archive details.
         """
         self._create_or_update_platform_archive(platform, format, hash_algorithm)
-        
+
     def delete(self, platform=get_current_platform(), **kwargs):
         """
         Delete the named config value.
@@ -330,7 +330,7 @@ class _package(InteractiveCommand):
             package_desc.update(kwargs)
         except AttributeError:
             package_desc = configfile.PackageDescription(kwargs)
-        return package_desc 
+        return package_desc
 
     def run(self, **kwargs):
         """
