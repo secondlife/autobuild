@@ -166,7 +166,7 @@ class TestMissingVersion(LocalBase):
         return config
 
     def test_autobuild_build(self):
-        with exc(BuildError, "No version_file specified in autobuild.xml and no version found in source control"):
+        with exc(configfile.NoVersionFileKeyError):
             build('build', '--config-file=' + self.tmp_file, '--id=123456')
 
 class TestAbsentVersionFile(LocalBase):
@@ -196,8 +196,8 @@ class TestEmptyVersionFile(LocalBase):
 class TestSCMVersion(LocalBase):
     def get_config(self):
         config = super(TestSCMVersion, self).get_config()
-        # remove version_file from package description
-        del config.package_description["version_file"]
+        # Enable SCM version discovery
+        config.package_description.use_scm_version = True
         # create empty file to check into git
         with open(os.path.join(self.tmp_build_dir, "empty"), "w"):
             pass

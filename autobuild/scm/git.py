@@ -154,10 +154,7 @@ def get_version(root: str) -> str | None:
     """
     Attempt to resolve package version from git commit data.
     """
-    if is_env_disabled("AUTOBUILD_SCM"):
-        log.debug("SCM version detection disabled, skipping")
-        return None
     if not has_command("git"):
-        log.debug("git command not available, skipping git version detection")
+        log.warning("git command not available, skipping git version detection")
         return None
     return Git(root).version()

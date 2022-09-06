@@ -102,11 +102,12 @@ class InteractiveCommand(object):
         for argument in self.ARGUMENTS:
             try:
                 helptext = self.ARG_DICT[argument]['help']
+                converter = self.ARG_DICT[argument].get("converter", str)
                 i = input("    %s> " % helptext)
                 if i:
                     if i.lower() == 'none':
                         i = ''
-                    input_values[argument] = i
+                    input_values[argument] = converter(i)
             except EOFError:
                 print("")
                 exit = 'y'

@@ -43,6 +43,10 @@ DEFAULT_CONFIG_CMD = ''
 DEFAULT_BUILD_CMD = ''
 
 
+def truthy_str(val: str) -> bool:
+    return val.lower() in {'1', 't', 'true', 'yes', 'y'}
+
+
 class AutobuildTool(AutobuildBase):
 
     def get_details(self):
@@ -346,7 +350,7 @@ class _package(InteractiveCommand):
 class Package(_package):
 
     ARGUMENTS = ['name', 'description', 'copyright', 'license', 'license_file',
-                 'version_file', ]
+                 'version_file', 'use_scm_version', ]
 
     ARG_DICT = {'name':             {'help': 'Name of package'},
                 'description':      {'help': 'Package description'},
@@ -354,6 +358,7 @@ class Package(_package):
                 'license':          {'help': 'Type of license (as appropriate for your package)'},
                 'license_file':     {'help': 'Path to license file relative to package root, if known'},
                 'version_file':     {'help': 'Path to version file relative to build_directory'},
+                'use_scm_version':  {'help': 'Use version information from SCM metadata such as git tags (y/[n])', 'converter': truthy_str},
                 }
 
     HELP = "Information about the package"
