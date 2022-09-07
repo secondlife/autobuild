@@ -1,16 +1,16 @@
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -19,28 +19,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 # $/LicenseInfo$
+import glob
 import importlib
 import importlib.util
-import sys
 import os
-import glob
+import sys
 from pathlib import Path
-
-# Hide some load-time logic in a throwaway class: don't pollute the
-# module-scope namespace with all these helper variables.
-class _local_scope(object):
-    ERROR   = "*** ERROR:"
-    WARNING = "WARNING:"
-    msgind  = max(len(ERROR), len(WARNING))
-    vermsg  = "\n%s You are running with Python %s.%s.%s." % \
-               ((msgind*' ',) + sys.version_info[:3])
-    if sys.version_info[:2] < (3, 4):
-        sys.exit("%s autobuild 2+ requires Python 3.4" % (ERROR.ljust(msgind)))
-
-from . import common
 import argparse
 import logging
-from .common import AutobuildError
+
+from autobuild import common
+from autobuild.common import AutobuildError
 
 ## Environment variable name used for default log level verbosity
 AUTOBUILD_LOGLEVEL = 'AUTOBUILD_LOGLEVEL'
@@ -82,7 +71,7 @@ class Autobuild(object):
     def __init__(self):
         self.parser = argparse.ArgumentParser(
             description='Autobuild', prog='autobuild', add_help=False)
-        
+
         self.parser.add_argument('-V', '--version', action=Version,
                                  version='%%(prog)s %s' % common.AUTOBUILD_VERSION_STRING)
 
@@ -106,7 +95,7 @@ class Autobuild(object):
     def register_tools(self, tools_list):
         for tool in tools_list:
             self.register_tool(tool)
-    
+
     def search_for_and_import_tools(self, tools_list):
         for file_name in glob.glob(os.path.join(_SCRIPT_DIR, 'autobuild_tool_*.py')):
             module_name = Path(file_name).stem
@@ -130,7 +119,7 @@ class Autobuild(object):
         Returns a default log level based on the AUTOBUILD_LOGLEVEL environment variable
 
         This may be used directly by the user, but in combination with the
-        set_recursive_loglevel method below also ensures 
+        set_recursive_loglevel method below also ensures
         that any recursive invocation of autobuild inherits the same level as the
         parent, even if intervening commands do not pass it through.
         """
@@ -170,18 +159,18 @@ class Autobuild(object):
             raise common.AutobuildError("invalid effective log level %s" % logging.getLevelName(level))
 
     def main(self, args_in):
-    
+
         logger = logging.getLogger('autobuild')
         logger.addHandler(logging.StreamHandler())
-        default_loglevel = self.get_default_loglevel_from_environment() 
+        default_loglevel = self.get_default_loglevel_from_environment()
 
         self.tools_list = []
-        
+
         self.parser.parent = self
         self.parser.add_argument('-h', '--help',
                                  help='find all valid Autobuild Tools and show help', action=RunHelp,
                                  nargs='?', default=argparse.SUPPRESS)
-        
+
         argdefs = (
             (('-n', '--dry-run',),
                 dict(help='run tool in dry run mode if available', action='store_true')),
@@ -208,7 +197,7 @@ class Autobuild(object):
         )
         for args, kwds in argdefs:
             self.parser.add_argument(*args, **kwds)
-            
+
         tool_to_run = -1
 
         for arg in args_in:

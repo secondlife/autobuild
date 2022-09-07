@@ -1,16 +1,16 @@
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,14 +24,14 @@
 #
 
 
-import os
 import logging
+import os
 
-from autobuild import configfile
-from autobuild import common
-from .baseline_compare import AutobuildBaselineCompare
 import autobuild.autobuild_tool_manifest as manifest
-from .basetest import BaseTest
+from autobuild import common, configfile
+
+from tests.baseline_compare import AutobuildBaselineCompare
+from tests.basetest import BaseTest
 
 logger = logging.getLogger("test_manifest")
 
@@ -56,17 +56,17 @@ class TestManifest(BaseTest, AutobuildBaselineCompare):
         common_manifest = self.config.get_platform('common').manifest
         assert ('*.cpp' in common_manifest) and ('*.h' in common_manifest) and ('*.py' in common_manifest)
         assert len(common_manifest) == 3
-   
+
     def test_remove(self):
         manifest.add(self.config, 'common', '*.cpp')
         manifest.add(self.config, 'common', '*.h')
         manifest.add(self.config, 'common', '*.py')
         manifest.remove(self.config, 'common', '*.cpp')
         common_manifest = self.config.get_platform('common').manifest
-        assert (not '*.cpp' in common_manifest) 
+        assert (not '*.cpp' in common_manifest)
         assert ('*.h' in common_manifest) and ('*.py' in common_manifest)
         assert len(common_manifest) == 2
-   
+
     def test_clear(self):
         manifest.add(self.config, 'common', '*.cpp')
         manifest.add(self.config, 'common', '*.h')
@@ -86,9 +86,9 @@ class TestManifest(BaseTest, AutobuildBaselineCompare):
                        '-p', 'common', 'remove', '*.cpp')
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         common_manifest = self.config.get_platform('common').manifest
-        assert (not '*.cpp' in common_manifest) 
+        assert (not '*.cpp' in common_manifest)
         assert ('*.h' in common_manifest) and ('*.py' in common_manifest)
-        
+
     def tearDown(self):
         self.cleanup_tmp_file()
         BaseTest.tearDown(self)

@@ -28,8 +28,8 @@ THE SOFTWARE.
 $/LicenseInfo$
 """
 
-from . import common
-from .common import AutobuildError
+from autobuild import common
+from autobuild.common import AutobuildError
 
 # Valid configfile.ArchiveDescription.hash_algorithm values are registered
 # here by means of the @hash_algorithm decorator.

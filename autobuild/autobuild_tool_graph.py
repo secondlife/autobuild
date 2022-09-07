@@ -1,16 +1,16 @@
 # $LicenseInfo:firstyear=2014&license=mit$
 # Copyright (c) 2014, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,25 +23,22 @@
 """
 Graph the dependencies of a package.
 
-This autobuild sub-command will read an autobuild metadata file and produce a graph of 
+This autobuild sub-command will read an autobuild metadata file and produce a graph of
 the dependencies of the project.
 
 Author : Scott Lawrence / Logan Dethrow
 Date   : 2014-05-09
 """
 
+import logging
 import os
-import sys
 import tempfile
-
-import pydot
 import webbrowser
 
-from . import common
-import logging
-from . import configfile
-from . import autobuild_base
-from .autobuild_tool_install import extract_metadata_from_package
+import pydot
+
+from autobuild import autobuild_base, common, configfile
+from autobuild.autobuild_tool_install import extract_metadata_from_package
 
 logger = logging.getLogger('autobuild.graph')
 
@@ -72,7 +69,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
     def register(self, parser):
         parser.description = "Graph package dependencies."
-        parser.add_argument('source_file', 
+        parser.add_argument('source_file',
                             nargs="?",
                             default=None,
                             help='package or metadata file.')
@@ -80,7 +77,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             dest='config_filename',
                             default=configfile.AUTOBUILD_CONFIG_FILE,
                             help="The file used to describe what should be installed and built\n  (defaults to $AUTOBUILD_CONFIG_FILE or \"autobuild.xml\").")
-        parser.add_argument('--configuration', '-c', 
+        parser.add_argument('--configuration', '-c',
                             dest='configuration',
                             help="specify build configuration\n(may be specified in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
@@ -112,7 +109,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         metadata = None
         incomplete = ''
         if not args.source_file:
-            # no file specified, so assume we are in a build tree and find the 
+            # no file specified, so assume we are in a build tree and find the
             # metadata in the current build directory
             logger.info("searching for metadata in the current build tree")
             config_filename = args.config_filename
@@ -152,7 +149,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 metadata = configfile.MetadataDescription(stream=metadata_stream)
                 if not metadata:
                     raise GraphError("No metadata found in archive '%s'" % args.file)
-            
+
         if metadata:
             graph = pydot.Dot(label=metadata['package_description']['name']+incomplete+' dependencies for '+platform, graph_type='digraph')
             graph.set('overlap', 'false')
@@ -166,14 +163,14 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
             def add_depends(graph, pkg):
                 name = pkg['package_description']['name']
-                got = graph.get_node(name) # can return a single Node instance, a list of Nodes, or None 
+                got = graph.get_node(name) # can return a single Node instance, a list of Nodes, or None
                 try:
                     pkg_node = got if got is None or isinstance(got, pydot.Node) else got[0]
                 except IndexError: # some versions of pydot may return an empty list instead of None
                     pkg_node = None
                 if pkg_node is None:
                     logger.debug(" graph adding package %s" % name)
-                    # can't use the dict .get to supply an empty string default for these, 
+                    # can't use the dict .get to supply an empty string default for these,
                     # because the value in the dict is None.
                     pkg_version = pkg['package_description']['version'] if pkg['package_description']['version'] else "";
                     pkg_build_id = pkg['build_id'] if pkg['build_id'] else "";
@@ -206,13 +203,13 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                     raise GraphError("Unable to open dot file %s: %s" % (args.dot_file, err))
                 dot_file.write(graph.to_string())
                 dot_file.close()
-                
+
             if args.display or args.graph_file:
                 if args.graph_file:
                     graph_file = args.graph_file
                 else:
-                    graph_file = os.path.join(tempfile.gettempdir(), 
-                                              metadata['package_description']['name'] + "_graph_" 
+                    graph_file = os.path.join(tempfile.gettempdir(),
+                                              metadata['package_description']['name'] + "_graph_"
                                               + args.graph_type + '.png')
                 logger.info("writing %s" % graph_file)
                 graph.write_png(graph_file, prog=args.graph_type)

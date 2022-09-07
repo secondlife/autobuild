@@ -1,16 +1,16 @@
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,20 +25,22 @@
 
 
 
-import os
-import shutil
 import logging
-import tempfile
-import urllib.request, urllib.parse, urllib.error
-import urllib.parse
+import os
 import posixpath
-from .basetest import *
+import shutil
+import tempfile
+import urllib.error
+import urllib.parse
+import urllib.request
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 from string import Template
 from threading import Thread
 from unittest import TestCase
-from http.server import HTTPServer
-from http.server import SimpleHTTPRequestHandler
+
 from autobuild import autobuild_tool_install, autobuild_tool_uninstall, common
+
+from tests.basetest import *
 
 # ****************************************************************************
 #   TODO
@@ -247,7 +249,7 @@ class DownloadServer(SimpleHTTPRequestHandler):
         # For present purposes, we don't want the request splattered onto
         # stderr, as it would upset devs watching the test run
         pass
-  
+
     def log_error(self, format, *args):
         # Suppress error output as well
         pass
@@ -288,7 +290,7 @@ class BaseTest(TestCase):
         template_file.close()
         content=template.substitute(changes)
         tmp_dest.write(content)
-        
+
     def localizedConfig(self, template):
         temp_config_basename=os.path.splitext(os.path.basename(template))[0]
         temp_config_fd, config_filename=tempfile.mkstemp(prefix=os.path.join(mydir, "data", temp_config_basename+"-"),suffix="-local.xml")
@@ -360,9 +362,9 @@ class TestInstallArchive(BaseTest):
         # Absence of that exception means AutobuildTool().run() didn't even try
         # to fetch the tarball -- which should mean it realized this package
         # is already up-to-date.
-        # An earlier version of this test had both cleaned the cache and removed the 
+        # An earlier version of this test had both cleaned the cache and removed the
         # tarball from the server, expecting that the mere presence of the installed
-        # archive would be sufficient to keep it from being installed again; we 
+        # archive would be sufficient to keep it from being installed again; we
         # now require that the file be validated against at least a cached file.
         logger.debug("attempt reinstall with cached file")
         autobuild_tool_install.AutobuildTool().run(self.options)
@@ -378,7 +380,7 @@ class TestInstallArchive(BaseTest):
         # Get ready to update with newer version of same package name
         self.server_tarball = self.copyto(os.path.join(mydir, "data", "bogus-0.2-common-222.tar.bz2"), SERVER_DIR)
         self.options=FakeOptions(install_filename=self.localizedConfig("package-update-install.xml"))
-        self.options.package=["bogus"]                                 
+        self.options.package=["bogus"]
         autobuild_tool_install.AutobuildTool().run(self.options)
         # verify that the update actually updated a file still in package
         assert_in("0.2", open(os.path.join(INSTALL_DIR, "include", "bogus.h")).read())
@@ -582,7 +584,7 @@ class TestInstallLocalArchive(BaseTest):
             self.options.list_dirty=True
             autobuild_tool_install.AutobuildTool().run(self.options)
         self.assertEqual(stream.getvalue(), 'Dirty Packages: bogus\n')
-            
+
     def test_only_local(self):
         self.options.local_archives=[os.path.join(mydir, "data", "bogus-0.1-common-111.tar.bz2")]
         self.options.package=[]
@@ -595,7 +597,7 @@ class TestInstallLocalArchive(BaseTest):
         # the usual rules that not specifying packages means install all
         # should not happen
         assert not os.path.exists(os.path.join(self.options.select_dir, "LICENSES", "argparse.txt"))
-            
+
 
 # -------------------------------------  -------------------------------------
 class TestDownloadFail(BaseTest):

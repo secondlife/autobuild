@@ -1,16 +1,16 @@
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,19 +24,15 @@
 Builds the source for a package.
 """
 
+import copy
+import logging
 import os
 import re
-import logging
-import copy
 
-# autobuild modules:
-from . import common
-from . import autobuild_base
-from . import configfile
-from .common import AutobuildError
-from .autobuild_tool_configure import _configure_a_configuration
-from .autobuild_tool_source_environment import get_enriched_environment
-
+from autobuild import autobuild_base, common, configfile
+from autobuild.autobuild_tool_configure import _configure_a_configuration
+from autobuild.autobuild_tool_source_environment import get_enriched_environment
+from autobuild.common import AutobuildError
 
 logger = logging.getLogger('autobuild.build')
 
@@ -49,7 +45,7 @@ os.environ["PATH"] = common.dedup_path(
 
 class BuildError(AutobuildError):
     pass
-    
+
 boolopt=re.compile("true$",re.I)
 
 class AutobuildTool(autobuild_base.AutobuildBase):
@@ -74,7 +70,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="an option to pass to the build command")
         parser.add_argument('--all', '-a', dest='all', default=False, action="store_true",
                             help="build all configurations")
-        parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations', 
+        parser.add_argument('--configuration', '-c', nargs='?', action="append", dest='configurations',
                             help="build a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
@@ -94,7 +90,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         parser.add_argument('--installed-manifest',
                             default=configfile.INSTALLED_CONFIG_FILE,
                             dest='installed_filename',
-                            help='The file used to record what is installed.') 
+                            help='The file used to record what is installed.')
 
     def run(self, args):
         platform = common.get_current_platform()
@@ -102,7 +98,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                                                              # and stores in the AUTOBUILD_BUILD_ID environment variable
         config = configfile.ConfigurationDescription(args.config_file)
         package_errors = configfile.check_package_attributes(config)
-                                                
+
         if package_errors:
             raise BuildError(''.join((package_errors,
                                       "\n    in configuration ", args.config_file)))

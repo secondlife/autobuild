@@ -1,16 +1,16 @@
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,10 +26,11 @@
 
 import os
 
-from autobuild import configfile
-from .baseline_compare import AutobuildBaselineCompare
 import autobuild.autobuild_tool_installables as installables
-from .basetest import BaseTest, assert_in
+from autobuild import configfile
+
+from tests.baseline_compare import AutobuildBaselineCompare
+from tests.basetest import BaseTest, assert_in
 
 
 class TestInstallables(BaseTest, AutobuildBaselineCompare):
@@ -39,7 +40,7 @@ class TestInstallables(BaseTest, AutobuildBaselineCompare):
         self.tmp_file = self.get_tmp_file()
         self.config = configfile.ConfigurationDescription(self.tmp_file)
         self.datadir = os.path.join(os.path.dirname(__file__), "data")
-        
+
     def test_add_edit_remove(self):
         local_archive=os.path.join(self.datadir,'bogus-0.1-common-111.tar.bz2')
         data = ('license=tut', 'license_file=LICENSES/bogus.txt', 'platform=darwin',
@@ -59,7 +60,7 @@ class TestInstallables(BaseTest, AutobuildBaselineCompare):
         self.assertEqual(platform_description.archive.hash_algorithm, 'sha-1')
         installables.remove(self.config, 'bogus')
         self.assertEqual(len(self.config.installables), 0)
-                    
+
     def tearDown(self):
         self.cleanup_tmp_file()
         BaseTest.tearDown(self)

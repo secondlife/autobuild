@@ -1,16 +1,16 @@
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -27,16 +27,13 @@ Installables are package descriptions which describe dowloadable archives
 that may installed by autobuild.
 """
 
-import sys
-import os
+import logging
 import pprint
 import re
-import logging
+import sys
 
-from . import common
-from . import configfile
-from . import autobuild_base
-from .autobuild_tool_install import get_package_file, get_metadata_from_package
+from autobuild import autobuild_base, common, configfile
+from autobuild.autobuild_tool_install import get_metadata_from_package, get_package_file
 
 logger = logging.getLogger('autobuild.installables')
 
@@ -53,7 +50,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
     def get_details(self):
         return dict(name=self.name_from_file(__file__),
                     description="Manipulate installable package entries in the autobuild configuration.")
-     
+
     def register(self, parser):
         parser.description = "specify installables as dependencies of the current pacakge for use by the 'autobuild install' command."
         parser.add_argument('--config-file',
@@ -78,7 +75,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
   autobuild add foo platform=linux hash=d3b07384d113edec49eaa6238ad5ff00 \
             url=http://downloads.example.com/packages/foo-2.3.4-linux-12345.zip
      Adds the specified package url using explicit package name, platform, and hash values.
-     The specified values must agree with the metadata in the package if it is present, 
+     The specified values must agree with the metadata in the package if it is present,
      and with the construction of the package file name."""
 
 
@@ -115,7 +112,7 @@ def _dict_from_key_value_arguments(arguments):
 def _get_new_metadata(config, args_name, args_archive, arguments):
     # Get any name/value pairs from the command line
     key_values=_dict_from_key_value_arguments(arguments)
-    
+
     if args_archive and 'url' in key_values:
       raise InstallablesError("--archive (%s) and url (%s) may not both be specified" \
                               % (args_archive, key_values['url']))
@@ -131,7 +128,7 @@ def _get_new_metadata(config, args_name, args_archive, arguments):
             archive_url = archive_path
         else:
             archive_url = 'file://'+config.absolute_path(archive_path)
-        archive_file = get_package_file(args_name, archive_url, 
+        archive_file = get_package_file(args_name, archive_url,
                                         hash_algorithm=key_values.get('hash_algorithm','md5'),
                                         expected_hash=key_values.get('hash',None))
         if archive_file:
@@ -162,11 +159,11 @@ def _get_new_metadata(config, args_name, args_archive, arguments):
               and metadata.package_description[description_key] is not None \
               and key_values[description_key] != metadata.package_description[description_key]:
                 raise InstallablesError("command line %s (%s) does not match archive %s (%s)" \
-                                        % (description_key, key_values[description_key], 
+                                        % (description_key, key_values[description_key],
                                            description_key, metadata.package_description[description_key]))
             else:
                 metadata.package_description[description_key] = key_values.pop(description_key)
-        
+
     for archive_key in _ARCHIVE_ATTRIBUTES:
         if archive_key in key_values:
             if archive_key in metadata.archive \
@@ -227,7 +224,7 @@ def edit(config, args_name, args_archive, arguments):
         raise InstallablesError('package %s does not exist, use add instead' % package_name)
     if args_name and args_name != package_name:
         raise InstallablesError('name argument (%s) does not match package name (%s)' % (args_name, package_name))
-        
+
     installed_package_description = config.installables[package_name]
     for element in _PACKAGE_ATTRIBUTES:
         if element in metadata.package_description \
@@ -247,7 +244,7 @@ def edit(config, args_name, args_archive, arguments):
           and metadata.archive[element] is not None:
             installed_package_description.platforms[platform_name].archive[element] = metadata.archive[element]
 
-    
+
 
 def remove(config, installable_name):
     """

@@ -1,16 +1,16 @@
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,8 +23,8 @@
 # Base Class to give autobuild tool modules integration into autobuild
 # and standalone functionality
 
-import os
 import argparse
+import os
 
 
 # Main tool functionality
@@ -56,7 +56,7 @@ class AutobuildBase:
         # when run from autobuild 'description' forms the help for this subcommand
         # when run standalone it forms the tool desciption
         return dict(name='', description='')
-    
+
     def register(self, parser):
         pass
 
@@ -70,10 +70,10 @@ class AutobuildBase:
         details = self.get_details()
         self.parser = argparse.ArgumentParser(description=details['description'])
         self.register(self.parser)
-        
+
         #need some way to get the global options building up in autobuild_main - maybe split them into another .py
         self.parser.add_argument('-n', '--dry-run', action='store_true', help='Dry run only')
-    
+
     def main(self, args_in):
         if len(args_in) < 1:
             self.parser.print_usage()
