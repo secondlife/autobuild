@@ -166,22 +166,20 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                     configfile.PackageDescription(bconfig.package_description)
                 # A metadata package_description has a version attribute
                 # instead of a version_file attribute.
-                try:
-                    metadata_file.package_description.version = \
-                        metadata_file.package_description.read_version_file(build_directory)
-                    del metadata_file.package_description["version_file"]
-                except configfile.NoVersionFileKeyError:
-                    # If no version_file attribute is specified then look for a version tag reference
-                    # in the package's version control. This means that a user must intentionally
-                    # remove the version_file attribute from their autobuild.xml to enable SCM
-                    # version resolution.
+                if config.package_description.use_scm_version:
                     try:
                         metadata_file.package_description.version = \
                             metadata_file.package_description.read_scm_version(build_directory)
                     except LookupError:
                         raise BuildError(
-                            "No version_file specified in autobuild.xml and no version found in source control (git)."
+                            'use_scm_version specified in autobuild.xml but no version found in source control (git).'
                         )
+                else:
+                    if 'version_file' not in metadata_file.package_description:
+                        raise BuildError('No version_file specified in autobuild.xml.')
+                    metadata_file.package_description.version = \
+                        metadata_file.package_description.read_version_file(build_directory)
+                    del metadata_file.package_description["version_file"]
                 logger.info("built %s version %s" %
                             (metadata_file.package_description.name,
                              metadata_file.package_description.version))

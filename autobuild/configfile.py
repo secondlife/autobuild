@@ -544,6 +544,7 @@ class PackageDescription(common.Serialized):
         self.copyright = None
         self.version = None
         self.version_file = None
+        self.use_scm_version = False
         self.name = None
         self.install_dir = None
         if isinstance(arg, dict):
