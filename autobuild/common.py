@@ -1,26 +1,3 @@
-#!/usr/bin/python
-# $LicenseInfo:firstyear=2010&license=mit$
-# Copyright (c) 2010, Linden Research, Inc.
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
-# $/LicenseInfo$
-
 """
 Low-level autobuild functionality common to all modules.
 
@@ -30,9 +7,6 @@ other autobuild module.
 
 Importing this module will also guarantee that certain dependencies
 are available, such as llbase
-
-Author : Martin Reddy
-Date   : 2010-04-13
 """
 
 import itertools
@@ -336,7 +310,7 @@ def dedup_path(path, sep=os.pathsep):
     Given a path string (directory names separated by os.pathsep), eliminate
     duplicates from that string while preserving the search order. Since we've
     observed cases in which both dir and dir/ appear in the same PATH string
-    (or dir and dir\, depending on platform), also remove any trailing slashes.
+    (or dir and dir/, depending on platform), also remove any trailing slashes.
 
     Optionally pass a separator, if you want anything other than os.pathsep.
     """
