@@ -1,3 +1,4 @@
+import platform
 import shutil
 from distutils.core import Command
 from pathlib import Path
@@ -7,6 +8,17 @@ from setuptools_scm import get_version
 
 ROOT_DIR = Path(__file__).parent.absolute()
 COPY_TO_ZIP = ["LICENSE"]
+SYSTEM_ALIASES = {"Darwin": "macos"}
+ARCH_ALIASES = {"64bit": "x64"}
+
+def get_system():
+    default_sys = platform.system()
+    return SYSTEM_ALIASES.get(default_sys, default_sys).lower()
+
+
+def get_arch():
+    default_arch = platform.architecture()[0]
+    return ARCH_ALIASES.get(default_arch, default_arch).lower()
 
 
 class FinalizeCommand(Command):
@@ -25,8 +37,9 @@ class FinalizeCommand(Command):
             if path.name.startswith("exe.") and path.is_dir():
                 for to_copy in COPY_TO_ZIP:
                     shutil.copy(ROOT_DIR / to_copy, path / to_copy)
-                platform = path.stem[4:path.stem.rfind("-")]
-                zip_path = ROOT_DIR / f"dist/autobuild-{platform}-{version}"
+                system = get_system()
+                arch = get_arch()
+                zip_path = ROOT_DIR / f"dist/autobuild-{system}-{arch}-v{version}"
                 shutil.make_archive(zip_path, "zip", path)
 
 
