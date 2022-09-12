@@ -4,7 +4,6 @@ from llbase import llsd
 
 from autobuild import configfile
 from autobuild.autobuild_tool_edit import AutobuildTool
-
 from tests.baseline_compare import AutobuildBaselineCompare
 from tests.basetest import BaseTest
 

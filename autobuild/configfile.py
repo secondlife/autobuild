@@ -1,18 +1,17 @@
 import itertools
+import logging
 import os
 import pprint
 import re
 import string
 import sys
 from io import StringIO
-import logging
 
 from llbase import llsd
 
-from autobuild.scm.git import get_version as get_git_version
-
 from autobuild import common
 from autobuild.executable import Executable
+from autobuild.scm.git import get_version as get_git_version
 
 logger = logging.getLogger('autobuild.configfile')
 

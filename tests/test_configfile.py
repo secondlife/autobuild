@@ -1,6 +1,5 @@
 from autobuild import configfile
 from autobuild.executable import Executable
-
 from tests.baseline_compare import AutobuildBaselineCompare
 from tests.basetest import BaseTest
 

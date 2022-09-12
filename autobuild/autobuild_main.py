@@ -1,11 +1,11 @@
+import argparse
 import glob
 import importlib
 import importlib.util
+import logging
 import os
 import sys
 from pathlib import Path
-import argparse
-import logging
 
 from autobuild import common
 from autobuild.common import AutobuildError

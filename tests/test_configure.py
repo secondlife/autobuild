@@ -3,7 +3,6 @@ import os
 import autobuild.common as common
 import autobuild.configfile as configfile
 from autobuild import autobuild_tool_configure as configure
-
 from tests.baseline_compare import AutobuildBaselineCompare
 from tests.basetest import BaseTest
 from tests.executables import echo, noop

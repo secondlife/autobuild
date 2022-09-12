@@ -1,7 +1,6 @@
 import sys
 
 import autobuild.autobuild_main
-
 from tests.basetest import BaseTest
 
 captured_stdout = ''

@@ -2,7 +2,6 @@ import os
 
 import autobuild.autobuild_tool_installables as installables
 from autobuild import configfile
-
 from tests.baseline_compare import AutobuildBaselineCompare
 from tests.basetest import BaseTest, assert_in
 

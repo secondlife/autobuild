@@ -3,7 +3,6 @@ import os
 
 import autobuild.autobuild_tool_manifest as manifest
 from autobuild import common, configfile
-
 from tests.baseline_compare import AutobuildBaselineCompare
 from tests.basetest import BaseTest
 

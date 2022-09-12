@@ -12,7 +12,6 @@ from threading import Thread
 from unittest import TestCase
 
 from autobuild import autobuild_tool_install, autobuild_tool_uninstall, common
-
 from tests.basetest import *
 
 # ****************************************************************************
