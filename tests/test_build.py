@@ -9,9 +9,8 @@ import autobuild.common as common
 import autobuild.configfile as configfile
 from autobuild import autobuild_tool_build as build
 from autobuild.autobuild_tool_build import AutobuildTool, BuildError
+from autobuild.common import cmd, has_cmd
 from autobuild.configfile import PACKAGE_METADATA_FILE, MetadataDescription
-from autobuild.util import cmd, has_cmd 
-
 from tests.baseline_compare import AutobuildBaselineCompare
 from tests.basetest import BaseTest, clean_dir, exc
 from tests.executables import echo, envtest, noop

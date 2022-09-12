@@ -12,7 +12,7 @@ from io import BytesIO, StringIO
 from pathlib import Path
 
 from autobuild import common
-from autobuild.util import cmd
+from autobuild.common import cmd
 
 autobuild_dir = Path(__file__).resolve().parent.parent.parent
 
@@ -311,6 +311,6 @@ def git_repo():
             cmd("git", "add", "-A")
             cmd("git", "commit", "-m", "Initial")
             cmd("git", "tag", "v1.0.0")
-            yield root 
+            yield root
     finally:
         os.chdir(owd)

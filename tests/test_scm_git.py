@@ -5,7 +5,7 @@ from unittest import TestCase
 
 import pytest
 
-from autobuild.util import cmd, has_cmd
+from autobuild.common import cmd, has_cmd
 from autobuild.scm.base import date
 from autobuild.scm.git import get_version
 from tests.basetest import chdir, git_repo

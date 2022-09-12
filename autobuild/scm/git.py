@@ -38,8 +38,8 @@ import subprocess
 from pathlib import Path
 from typing import NamedTuple
 
+from autobuild.common import cmd, has_cmd, is_env_disabled
 from autobuild.scm.base import Semver, date
-from autobuild.util import cmd, has_cmd, is_env_disabled
 
 __all__ = ["get_version"]
 
