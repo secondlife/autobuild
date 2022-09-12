@@ -9,7 +9,6 @@ from ast import literal_eval
 from pprint import pformat
 
 from autobuild import autobuild_tool_source_environment as atse
-
 from tests.basetest import *
 from tests.patch import patch
 

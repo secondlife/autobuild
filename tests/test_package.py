@@ -9,7 +9,6 @@ from zipfile import ZipFile
 
 import autobuild.autobuild_tool_package as package
 from autobuild import common, configfile
-
 from tests.basetest import BaseTest, CaptureStdout, ExpectError, clean_dir, clean_file
 
 # ****************************************************************************

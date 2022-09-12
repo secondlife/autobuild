@@ -14,7 +14,6 @@ except (ImportError, FileNotFoundError):
 
 import autobuild.autobuild_tool_graph as graph
 import autobuild.common as common
-
 from tests.basetest import *
 
 logger = logging.getLogger("test_graph")

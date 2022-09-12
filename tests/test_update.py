@@ -1,7 +1,6 @@
 from unittest import TestCase
 
 from autobuild import update
-
 from tests.basetest import exc
 from tests.patch import patch
 

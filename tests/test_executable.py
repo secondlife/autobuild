@@ -3,7 +3,6 @@ import sys
 import pytest
 
 from autobuild.executable import Executable
-
 from tests.basetest import BaseTest
 
 
