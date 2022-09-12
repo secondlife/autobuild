@@ -27,8 +27,8 @@ THE SOFTWARE.
 $/LicenseInfo$
 """
 
-import os
 import logging
+import os
 import tempfile
 
 import pytest
@@ -40,11 +40,11 @@ try:
         g.write_png(os.path.join(d, "graph.png"))
 except (ImportError, FileNotFoundError):
     pytest.skip("pydot not available", allow_module_level=True)
-from unittest import TestCase
 
-import autobuild.common as common
 import autobuild.autobuild_tool_graph as graph
-from .basetest import *
+import autobuild.common as common
+
+from tests.basetest import *
 
 logger = logging.getLogger("test_graph")
 
@@ -62,7 +62,7 @@ class TestGraph(BaseTest):
     def setUp(self):
         BaseTest.setUp(self)
         self.options=GraphOptions()
-        
+
     def test_nometa(self):
         with ExpectError("No metadata found", "no error detected when archive does not have metadata"):
             self.options.source_file = os.path.join(self.this_dir, "data", "nometa-0.1-common-111.tar.bz2")

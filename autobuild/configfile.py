@@ -27,24 +27,21 @@ API to access the autobuild configuration file.
 Author : Alain Linden
 """
 
-import os
 import itertools
+import os
 import pprint
 import re
 import string
 import sys
 from io import StringIO
-try:
-    from llbase import llsd
-except ImportError:
-    sys.exit("Failed to import llsd via the llbase module; to install, use:\n"
-             "  pip install llbase")
-
-from . import common
-from .executable import Executable
 import logging
 
+from llbase import llsd
+
 from autobuild.scm.git import get_version as get_git_version
+
+from autobuild import common
+from autobuild.executable import Executable
 
 logger = logging.getLogger('autobuild.configfile')
 
@@ -575,7 +572,7 @@ class PackageDescription(common.Serialized):
             target_platform = self.platforms.get(common.PLATFORM_COMMON)
             logger.info("get_platform No %s configuration found; inheriting common" % (platform))
         return target_platform
-    
+
     def read_scm_version(self, build_directory):
         version = get_git_version(build_directory)
         if version is None:

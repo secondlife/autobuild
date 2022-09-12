@@ -1,16 +1,16 @@
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,20 +21,23 @@
 # $/LicenseInfo$
 
 
-import os
 import logging
+import os
 import pprint
 import tempfile
+
 import pytest
-from .baseline_compare import AutobuildBaselineCompare
-from autobuild import autobuild_tool_build as build
-import autobuild.configfile as configfile
+
 import autobuild.common as common
-from autobuild.scm.base import has_command, cmd
+import autobuild.configfile as configfile
+from autobuild import autobuild_tool_build as build
+from autobuild.autobuild_tool_build import AutobuildTool, BuildError
 from autobuild.configfile import PACKAGE_METADATA_FILE, MetadataDescription
-from autobuild.autobuild_tool_build import BuildError, AutobuildTool
-from .basetest import BaseTest, clean_dir, exc
-from .executables import envtest, noop, echo
+from autobuild.scm.base import cmd, has_command
+
+from tests.baseline_compare import AutobuildBaselineCompare
+from tests.basetest import BaseTest, clean_dir, exc
+from tests.executables import echo, envtest, noop
 
 # ****************************************************************************
 #   TODO

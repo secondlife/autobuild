@@ -28,10 +28,11 @@ $/LicenseInfo$
 """
 
 from unittest import TestCase
-from .basetest import exc
-from .patch import patch
 
 from autobuild import update
+
+from tests.basetest import exc
+from tests.patch import patch
 
 
 def test_register():

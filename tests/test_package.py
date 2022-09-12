@@ -1,16 +1,16 @@
 # $LicenseInfo:firstyear=2010&license=mit$
 # Copyright (c) 2010, Linden Research, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,20 +23,19 @@
 # Integration test to exercise the archive packaging
 #
 
-import os
 import logging
+import os
 import re
 import shutil
 import tarfile
 import tempfile
-from zipfile import ZipFile
 from string import Template
+from zipfile import ZipFile
 
 import autobuild.autobuild_tool_package as package
-from autobuild import configfile
-from autobuild import common
-from .basetest import BaseTest, ExpectError, CaptureStdout, clean_dir, clean_file
-        
+from autobuild import common, configfile
+
+from tests.basetest import BaseTest, CaptureStdout, ExpectError, clean_dir, clean_file
 
 # ****************************************************************************
 #   TODO
@@ -120,7 +119,7 @@ class TestPackaging(BaseTest):
     def test_results(self):
         logger.setLevel(logging.DEBUG)
         results_output=tempfile.mktemp()
-        package.package(self.config, self.config.get_build_directory(None, 'common'), 
+        package.package(self.config, self.config.get_build_directory(None, 'common'),
                         'common', archive_format='tbz2', results_file=results_output)
         expected_results_regex='''\
 autobuild_package_name="%s"
