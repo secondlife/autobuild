@@ -32,7 +32,7 @@ setuptools.setup(
         'write_to': 'autobuild/version.py',
         'write_to_template': 'AUTOBUILD_VERSION_STRING = \'{version}\'',
     },
-    setup_requires=['setuptools_scm>=6,<7'],
+    setup_requires=['setuptools_scm'],
     entry_points={
         'console_scripts': ['autobuild=autobuild.autobuild_main:main']
     },
@@ -48,6 +48,9 @@ setuptools.setup(
         'Operating System :: Unix',
     ],
     install_requires=['llbase', 'pydot'],
-    extras_require={'dev': ['pytest']},
+    extras_require={
+        'dev': ['pytest'],
+        'build': ['build', 'cx-Freeze', 'setuptools_scm'],
+    },
     python_requires='>=3.7',
 )
