@@ -5,45 +5,12 @@ from unittest import TestCase
 
 import pytest
 
-from autobuild.scm.base import cmd, date, has_command
+from autobuild.util import cmd, has_cmd
+from autobuild.scm.base import date
 from autobuild.scm.git import get_version
-from tests.basetest import chdir
+from tests.basetest import chdir, git_repo
 
-pytestmark = pytest.mark.skipif(not has_command("git"), reason="git not found")
-
-
-@contextmanager
-def git_repo():
-    """
-    Initialize a new git repository in a temporary directory, yield its path, clean after context exit.
-
-    Layout:
-        .
-        ├── dir
-        │   └── file
-        ├── file
-        ├── .gitignore
-        └── stage
-    """
-    owd = os.getcwd()
-    try:
-        with tempfile.TemporaryDirectory() as root:
-            os.chdir(root)
-            with open(os.path.join(root, "file"), "w"):
-                pass
-            os.mkdir(os.path.join(root, "dir"))
-            with open(os.path.join(root, "dir", "file"), "w"):
-                pass
-            os.mkdir(os.path.join(root, "stage"))
-            with open(os.path.join(root, ".gitignore"), "w") as f:
-                f.write("stage")
-            cmd("git", "init")
-            cmd("git", "add", "-A")
-            cmd("git", "commit", "-m", "Initial")
-            cmd("git", "tag", "v1.0.0")
-            yield root
-    finally:
-        os.chdir(owd)
+pytestmark = pytest.mark.skipif(not has_cmd("git"), reason="git not found")
 
 
 class GitTests(TestCase):

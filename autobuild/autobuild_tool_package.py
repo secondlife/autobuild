@@ -257,12 +257,10 @@ def _generate_archive_name(package_description, build_id, platform_name, suffix=
     # related split_tarname() method.
     package_name = package_description.name.replace('-', '_')
     platform_name = platform_name.replace('/', '_').replace('-', '_')
-    name = package_name \
-           + '-' + package_description.version \
-           + '-' + platform_name \
-           + '-' + build_id \
-           + suffix
-    return name
+    if package_description.version == build_id:
+        return "-".join([package_name, platform_name, build_id]) + suffix
+    else:
+        return "-".join([package_name, package_description.version, platform_name, build_id]) + suffix
 
 
 def _get_file_list(platform_description, build_directory):

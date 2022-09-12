@@ -40,10 +40,9 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="an option to pass to the configuration command")
 
     def run(self, args):
-        platform=common.get_current_platform()
-        common.establish_build_id(args.build_id)  # sets id (even if not specified),
-                                                  # and stores in the AUTOBUILD_BUILD_ID environment variable
+        platform = common.get_current_platform()
         config = configfile.ConfigurationDescription(args.config_file)
+        common.establish_build_id(args.build_id, config)
         package_errors = configfile.check_package_attributes(config)
         if package_errors:
             raise ConfigurationError("%s\n    in configuration %s" \

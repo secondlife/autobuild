@@ -38,7 +38,8 @@ import subprocess
 from pathlib import Path
 from typing import NamedTuple
 
-from autobuild.scm.base import Semver, cmd, date, has_command, is_env_disabled
+from autobuild.scm.base import Semver, date
+from autobuild.util import cmd, has_cmd, is_env_disabled
 
 __all__ = ["get_version"]
 
@@ -132,7 +133,7 @@ def get_version(root: str) -> str | None:
     """
     Attempt to resolve package version from git commit data.
     """
-    if not has_command("git"):
+    if not has_cmd("git"):
         log.warning("git command not available, skipping git version detection")
         return None
     return Git(root).version()

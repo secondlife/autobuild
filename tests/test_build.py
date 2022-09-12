@@ -10,7 +10,7 @@ import autobuild.configfile as configfile
 from autobuild import autobuild_tool_build as build
 from autobuild.autobuild_tool_build import AutobuildTool, BuildError
 from autobuild.configfile import PACKAGE_METADATA_FILE, MetadataDescription
-from autobuild.scm.base import cmd, has_command
+from autobuild.util import cmd, has_cmd 
 
 from tests.baseline_compare import AutobuildBaselineCompare
 from tests.basetest import BaseTest, clean_dir, exc
@@ -172,7 +172,7 @@ class TestEmptyVersionFile(LocalBase):
         with exc(common.AutobuildError, "version_file"):
             build('build', '--config-file=' + self.tmp_file, '--id=123456')
 
-@pytest.mark.skipif(not has_command("git"), reason="git not present on system")
+@pytest.mark.skipif(not has_cmd("git"), reason="git not present on system")
 class TestSCMVersion(LocalBase):
     def get_config(self):
         config = super(TestSCMVersion, self).get_config()

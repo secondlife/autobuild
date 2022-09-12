@@ -72,9 +72,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
     def run(self, args):
         platform = common.get_current_platform()
-        build_id = common.establish_build_id(args.build_id)  # sets id (even if not specified),
-                                                             # and stores in the AUTOBUILD_BUILD_ID environment variable
         config = configfile.ConfigurationDescription(args.config_file)
+        build_id = common.establish_build_id(args.build_id, config)
         package_errors = configfile.check_package_attributes(config)
 
         if package_errors:
