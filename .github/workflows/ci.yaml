@@ -22,12 +22,15 @@ jobs:
           python-version: 3.x
 
       - name: Install python dependencies
-        run: |
-          pip install .[dev,build]
+        run: pip install .[dev,build]
 
       - name: Run tests
         if: matrix.os != 'windows-latest'
-        run: pytest -vv
+        run: |
+          # Set up git user for git command to work with tests
+          git config --global user.name "tests"
+          git config --global user.email "tests@example.com"
+          pytest -vv
 
       - name: Build python package
         run: python -m build
