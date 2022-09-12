@@ -10,6 +10,7 @@ import re
 from autobuild import autobuild_base, common, configfile
 from autobuild.autobuild_tool_configure import _configure_a_configuration
 from autobuild.autobuild_tool_source_environment import get_enriched_environment
+from autobuild.build_id import establish_build_id
 from autobuild.common import AutobuildError
 
 logger = logging.getLogger('autobuild.build')
@@ -72,9 +73,8 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
     def run(self, args):
         platform = common.get_current_platform()
-        build_id = common.establish_build_id(args.build_id)  # sets id (even if not specified),
-                                                             # and stores in the AUTOBUILD_BUILD_ID environment variable
         config = configfile.ConfigurationDescription(args.config_file)
+        build_id = establish_build_id(args.build_id, config)
         package_errors = configfile.check_package_attributes(config)
 
         if package_errors:

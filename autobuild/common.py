@@ -8,15 +8,16 @@ other autobuild module.
 Importing this module will also guarantee that certain dependencies
 are available, such as llbase
 """
+from __future__ import annotations
 
 import itertools
 import logging
 import os
 import platform
 import pprint
+import subprocess
 import sys
 import tempfile
-import time
 from collections import OrderedDict
 
 from autobuild.version import AUTOBUILD_VERSION_STRING
@@ -494,29 +495,27 @@ def select_configurations(args, config, verb):
     return configurations
 
 
-def establish_build_id(build_id_arg):
-    """determine and return a build_id based on (in preference order):
-       the --id argument,
-       the AUTOBUILD_BUILD_ID environment variable,
-       the date/time
-    If we reach the date fallback, a warning is logged
-    In addition to returning the id value, this sets the AUTOBUILD_BUILD_ID environment
-    variable for any descendent processes so that recursive invocations will have access
-    to the same value.
-    """
-
-    if build_id_arg:
-        build_id = build_id_arg
-    elif 'AUTOBUILD_BUILD_ID' in os.environ:
-        build_id = os.environ['AUTOBUILD_BUILD_ID']
-    else:
-        # construct a timestamp that will fit into a signed 32 bit integer:
-        #   <two digit year><three digit day of year><two digit hour><two digit minute>
-        build_id = time.strftime("%y%j%H%M", time.gmtime())
-        logger.warn("Warning: no --id argument or AUTOBUILD_BUILD_ID environment variable specified;\n    using a value from the UTC date and time (%s), which may not be unique" % build_id)
-
-    logger.debug("Build id %s" % build_id)
-    os.environ['AUTOBUILD_BUILD_ID'] = str(build_id)
-    return str(build_id)
+def is_env_disabled(key: str) -> bool:
+    """Check whether an envvar has an explicit falsey value. Useful for opt-out behavior."""
+    return os.environ.get(key, "true").lower() in {"false", "0", "f", "no"}
 
 
+def is_env_enabled(key: str) -> bool:
+    """Check whether an envvar has an explicit truthy value. Useful for opt-in behavior."""
+    return os.environ.get(key, "false").lower() in {"true", "1", "t", "yes"}
+
+
+def cmd(*cmd, **kwargs) -> subprocess.CompletedProcess[str]:
+    """Shorthand subprocess.run"""
+    p = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, text=True, **kwargs)
+    p.stdout = p.stdout.rstrip("\n")
+    return p
+
+
+def has_cmd(name) -> bool:
+    """Check whether an executable exists by attempting to run its 'help' subcommand"""
+    try:
+        p = cmd(name, "help")
+    except OSError:
+        return False
+    return not p.returncode

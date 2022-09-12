@@ -1,32 +1,11 @@
 from __future__ import annotations
 
-import os
-import subprocess
 from datetime import datetime
 from typing import NamedTuple, Union
 
 
-def cmd(*cmd, **kwargs) -> subprocess.CompletedProcess[str]:
-    p = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, text=True, **kwargs)
-    p.stdout = p.stdout.rstrip("\n")
-    return p
-
-
-def has_command(name) -> bool:
-    try:
-        p = cmd(name, "help")
-    except OSError:
-        return False
-    return not p.returncode
-
-
 def date() -> str:
     return datetime.now().strftime("%Y%m%d")
-
-
-def is_env_disabled(key: str) -> bool:
-    """Check whether an envvar has an explicit falsey value. Useful for opt-out behavior."""
-    return os.environ.get(key, "true") in {"false", "0", "f", "no"}
 
 
 class Semver(NamedTuple):

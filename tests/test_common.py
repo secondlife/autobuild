@@ -1,6 +1,5 @@
 from autobuild import common
-
-from tests.basetest import *
+from tests.basetest import BaseTest
 
 
 class TestCommon(BaseTest):
