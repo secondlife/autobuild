@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 import glob
 import importlib
@@ -233,3 +234,7 @@ def main():
                 msg.append(" --verbose or")
             msg.append(" --debug")
         sys.exit(''.join(msg))
+
+
+if __name__ == "__main__":
+    main()
