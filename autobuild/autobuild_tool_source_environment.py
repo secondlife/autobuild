@@ -241,6 +241,13 @@ def get_vars_from_bat(batpath, *args):
     # ways. Bypass that by not commingling our desired output into stdout.
     temp_output = tempfile.NamedTemporaryFile(suffix=".pydata", delete=False)
     temp_output.close()
+
+    # Determine python interpreter to use
+    python = sys.executable
+    if getattr(sys, 'frozen', False):
+        # running in cx_freeze'd autobuild
+        python = 'python'
+
     try:
         # Write a little temp batch file to set variables from batpath and
         # regurgitate them in a form we can parse.
@@ -252,7 +259,7 @@ def get_vars_from_bat(batpath, *args):
         temp_script_content = """\
 call "%s"%s
 "%s" -c "import os, pprint; pprint.pprint(dict(os.environ))" > "%s"
-""" % (batpath, ''.join(' '+arg for arg in args), sys.executable, temp_output.name)
+""" % (batpath, ''.join(' '+arg for arg in args), python, temp_output.name)
         # Specify mode="w" for text mode ("\r\n" newlines); default is binary.
         with tempfile.NamedTemporaryFile(suffix=".cmd", delete=False, mode="w") as temp_script:
             temp_script.write(temp_script_content)
