@@ -1,6 +1,4 @@
 import os
-import tempfile
-from contextlib import contextmanager
 from unittest import TestCase
 
 import pytest
