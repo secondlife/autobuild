@@ -13,6 +13,7 @@ class Semver(NamedTuple):
     minor: int
     patch: int
     prerelease: str
+    meta: str
 
     @property
     def next(self) -> "Semver":
@@ -21,12 +22,16 @@ class Semver(NamedTuple):
             minor=self.minor,
             patch=self.patch if self.prerelease else self.patch + 1,
             prerelease=None,
+            meta=None,
         )
 
     def __str__(self) -> str:
+        s = f"{self.major}.{self.minor}.{self.patch}"
         if self.prerelease:
-            return f"{self.major}.{self.minor}.{self.patch}-{self.prerelease}"
-        return f"{self.major}.{self.minor}.{self.patch}"
+            s += f"-{self.prerelease}"
+        if self.meta:
+            s += f"+{self.meta}"
+        return s
 
     @staticmethod
     def parse(v: str) -> Union[None, "Semver"]:
@@ -34,6 +39,16 @@ class Semver(NamedTuple):
             v = v[1:]
 
         split = v.split(".")
+
+        # Extract meta
+        last = split[-1]
+        meta = None
+        try:
+            meta_idx = last.index("+")
+            meta = last[meta_idx+1:]
+            split[-1] = last[:meta_idx]
+        except ValueError:
+            pass
 
         # Extract pre-release
         last = split[-1]
@@ -56,5 +71,6 @@ class Semver(NamedTuple):
             minor=minor,
             patch=patch,
             prerelease=prerelease,
+            meta=meta,
         )
 
