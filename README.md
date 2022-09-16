@@ -25,6 +25,8 @@ For more information, see [Autobuild's wiki page][wiki].
 | AUTOBUILD_BUILD_ID | - | Build identifier |
 | AUTOBUILD_CONFIGURATION | - | Target build configuration |
 | AUTOBUILD_CONFIG_FILE | autobuild.xml | Autobuild configuration filename |
+| AUTOBUILD_GITHUB_TOKEN | - | GitHub HTTP authorization token to use during package download |
+| AUTOBUILD_GITLAB_TOKEN | - | GitLab HTTP authorization token to use during package download |
 | AUTOBUILD_INSTALLABLE_CACHE | - | Location of local download cache |
 | AUTOBUILD_LOGLEVEL | WARNING | Log level |
 | AUTOBUILD_PLATFORM | - | Target platform |

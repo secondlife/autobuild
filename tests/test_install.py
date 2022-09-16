@@ -10,8 +10,10 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from string import Template
 from threading import Thread
 from unittest import TestCase
+from unittest.mock import MagicMock, patch
 
 from autobuild import autobuild_tool_install, autobuild_tool_uninstall, common
+from autobuild.autobuild_tool_install import CredentialsNotFoundError
 from tests.basetest import *
 
 # ****************************************************************************
@@ -739,3 +741,37 @@ class TestInstall(BaseTest):
             self.options.list_archives=True
             autobuild_tool_install.AutobuildTool().run(self.options)
         self.assertEqual(set_from_stream(stream), set(("argparse", "bogus")))
+
+# -------------------------------------  -------------------------------------
+class TestDownloadPackage(unittest.TestCase):
+    @patch("urllib.request.urlopen")
+    def test_download(self, mock_urlopen: MagicMock):
+        mock_urlopen.return_value = None
+        with envvar("AUTOBUILD_GITHUB_TOKEN", None):
+            autobuild_tool_install.download_package("https://example.org/foo.tar.bz2")
+            mock_urlopen.assert_called()
+
+    @patch("urllib.request.urlopen")
+    def test_download_github(self, mock_urlopen: MagicMock):
+        mock_urlopen.return_value = None
+        with envvar("AUTOBUILD_GITHUB_TOKEN", "token-123"):
+            autobuild_tool_install.download_package("https://example.org/foo.tar.bz2", creds="github")
+            mock_urlopen.assert_called()
+            got_req = mock_urlopen.mock_calls[0].args[0]
+            self.assertEqual(got_req.headers["Authorization"], "Bearer token-123")
+
+    @patch("urllib.request.urlopen")
+    def test_download_gitlab(self, mock_urlopen: MagicMock):
+        mock_urlopen.return_value = None
+        with envvar("AUTOBUILD_GITLAB_TOKEN", "token-123"):
+            autobuild_tool_install.download_package("https://example.org/foo.tar.bz2", creds="gitlab")
+            mock_urlopen.assert_called()
+            got_req = mock_urlopen.mock_calls[0].args[0]
+            self.assertEqual(got_req.headers["Authorization"], "Bearer token-123")
+
+    @patch("urllib.request.urlopen")
+    def test_download_github_without_creds(self, mock_urlopen: MagicMock):
+        mock_urlopen.return_value = None
+        with envvar("AUTOBUILD_GITHUB_TOKEN", None):
+            with self.assertRaises(CredentialsNotFoundError):
+                autobuild_tool_install.download_package("https://example.org/foo.tar.bz2", creds="github")

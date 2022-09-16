@@ -25,7 +25,6 @@ from autobuild.version import AUTOBUILD_VERSION_STRING
 
 logger = logging.getLogger(__name__)
 
-
 class AutobuildError(RuntimeError):
     pass
 

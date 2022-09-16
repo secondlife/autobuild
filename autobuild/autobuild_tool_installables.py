@@ -74,7 +74,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
 
 
 _PACKAGE_ATTRIBUTES = ['description', 'copyright', 'license', 'license_file', 'version']
-_ARCHIVE_ATTRIBUTES = ['hash', 'hash_algorithm', 'url']
+_ARCHIVE_ATTRIBUTES = ['hash', 'hash_algorithm', 'url', 'creds']
 
 
 def _dict_from_key_value_arguments(arguments):
@@ -108,7 +108,8 @@ def _get_new_metadata(config, args_name, args_archive, arguments):
             archive_url = 'file://'+config.absolute_path(archive_path)
         archive_file = get_package_file(args_name, archive_url,
                                         hash_algorithm=key_values.get('hash_algorithm','md5'),
-                                        expected_hash=key_values.get('hash',None))
+                                        expected_hash=key_values.get('hash'),
+                                        creds=key_values.get('creds'))
         if archive_file:
             metadata = get_metadata_from_package(archive_file)
             metadata.archive = configfile.ArchiveDescription()

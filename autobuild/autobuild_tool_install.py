@@ -8,6 +8,7 @@ to specify all the files that have been installed.
 """
 
 import errno
+import http.client
 import logging
 import os
 import pprint
@@ -23,8 +24,19 @@ from autobuild.autobuild_tool_source_environment import get_enriched_environment
 
 logger = logging.getLogger('autobuild.install')
 
+CREDENTIAL_ENVVARS = {
+    'github': 'AUTOBUILD_GITHUB_TOKEN',
+    'gitlab': 'AUTOBUILD_GITLAB_TOKEN',
+}
+
+
 class InstallError(common.AutobuildError):
     pass
+
+
+class CredentialsNotFoundError(common.AutobuildError):
+    pass
+
 
 __help = """\
 This autobuild command fetches and installs package archives.
@@ -179,7 +191,31 @@ def package_cache_path(package):
     """
     return os.path.join(common.get_install_cache_dir(), os.path.basename(package))
 
-def get_package_file(package_name, package_url, hash_algorithm='md5', expected_hash=None):
+
+def download_package(package_url: str, timeout=120, creds=None, package_name="") -> http.client.HTTPResponse:
+    headers = {}
+    if creds:
+
+        try:
+            token_var = CREDENTIAL_ENVVARS[creds]
+        except KeyError:
+            logger.warning(f"Unrecognized creds={creds} value")
+
+        token = os.environ.get(token_var)
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        else:
+            raise CredentialsNotFoundError(
+                f"Package {package_name} is set to use '{creds}' credentials type but no {token_var} "
+                "environment variable is set"
+            )
+
+    req = urllib.request.Request(package_url, headers=headers)
+
+    return urllib.request.urlopen(req, data=None, timeout=timeout)
+
+
+def get_package_file(package_name, package_url, hash_algorithm='md5', expected_hash=None, creds=None):
     """
     Get the package file in the cache, downloading if needed.
     Validate the cache file using the hash (removing it if needed)
@@ -209,11 +245,14 @@ def get_package_file(package_name, package_url, hash_algorithm='md5', expected_h
             # Attempt to download the remote file
             logger.info("downloading %s:\n  %s\n     to %s" % (package_name, package_url, cache_file))
             try:
-                package_response = urllib.request.urlopen(package_url, None, download_timeout_seconds)
+                package_response = download_package(package_url, timeout=download_timeout_seconds, creds=creds, package_name=package_name)
             except urllib.error.URLError as err:
                 logger.error("error: %s\n  downloading package %s" % (err, package_url))
                 package_response = None
                 cache_file = None
+            except CredentialsNotFoundError as err:
+                logger.error(err)
+                return None
 
             if package_response is not None:
                 with open(cache_file, 'wb') as cache:
