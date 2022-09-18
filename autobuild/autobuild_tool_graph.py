@@ -9,8 +9,8 @@ import logging
 import os
 import tempfile
 import webbrowser
-
-import pydot
+from io import StringIO
+from typing import NamedTuple
 
 from autobuild import autobuild_base, common, configfile
 from autobuild.autobuild_tool_install import extract_metadata_from_package
@@ -34,6 +34,17 @@ You may either:
 The --rebuild-from <package-name> option prints an ordered list of packages that
 must be rebuilt if the specified package is updated.
 """
+
+class MermaidBracket(NamedTuple):
+    """Mermaid graph bracket type"""
+    start: str
+    end: str
+
+
+class MermaidBrackets:
+    Stadium = MermaidBracket('([', '])')
+    Hexagon = MermaidBracket('{{', '}}')
+    Box = MermaidBracket('[', ']')
 
 
 # define the entry point to this autobuild tool
@@ -59,7 +70,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             default=self.configurations_from_environment())
         parser.add_argument('-t', '--type',
                             dest='graph_type',
-                            choices=["dot", "circo", "neato", "twopi", "fdp", "sfdp"],
+                            choices=["dot", "circo", "neato", "twopi", "fdp", "sfdp", "mermaid"],
                             default='dot',
                             help='which graphviz tool should be used to draw the graph')
         parser.add_argument('--install-dir',
@@ -125,7 +136,52 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 if not metadata:
                     raise GraphError("No metadata found in archive '%s'" % args.file)
 
-        if metadata:
+        if not metadata:
+            raise GraphError("No metadata found")
+
+        if args.graph_type == 'mermaid':
+            sb = StringIO()
+            sb.write('graph TB')
+
+            connections = set()
+            def add_depends(sb: StringIO, pkg, root = False):
+                name = pkg['package_description']['name']
+                version = pkg['package_description']['version'] if pkg['package_description']['version'] else ""
+                build_id = pkg['build_id'] if pkg['build_id'] else ""
+                dirty = pkg.get('dirty', False) in ('True', True)
+                id = hash(name)
+
+                if dirty:
+                    bracket = MermaidBrackets.Stadium
+                elif root:
+                    bracket = MermaidBrackets.Hexagon
+                else:
+                    bracket = MermaidBrackets.Box
+
+                sb.write(f'\n    {id}{bracket.start}"{name}<br />{version}<br />{build_id}"{bracket.end}')
+
+                archive = pkg.get('archive')
+                if archive:
+                    # Link to the archive URL
+                    url = pkg['archive']['url']
+                    sb.write(f'\n    click {id} "{url}"')
+
+                for dep_pkg in pkg.get('dependencies', {}).values():
+                    dep_name = dep_pkg['package_description']['name']
+                    dep_id = hash(dep_name)
+                    dep_dirty = dep_pkg.get('dirty', False) in ('True', True)
+                    # Draw dirty connections with dotted line
+                    arrow = '-.->' if dep_dirty else '-->'
+                    connection = f"{dep_id}-{pkg['build_id']}"
+                    if connection not in connections:
+                        add_depends(sb, dep_pkg)
+                        sb.write(f'\n    {dep_id}{arrow}{id}')
+                        connections.add(connection)
+
+            add_depends(sb, metadata, root=True)
+            print(sb.getvalue())
+        else:
+            import pydot
             graph = pydot.Dot(label=metadata['package_description']['name']+incomplete+' dependencies for '+platform, graph_type='digraph')
             graph.set('overlap', 'false')
             graph.set('splines', 'true')
@@ -184,14 +240,11 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                     graph_file = args.graph_file
                 else:
                     graph_file = os.path.join(tempfile.gettempdir(),
-                                              metadata['package_description']['name'] + "_graph_"
-                                              + args.graph_type + '.png')
+                                                metadata['package_description']['name'] + "_graph_"
+                                                + args.graph_type + '.png')
                 logger.info("writing %s" % graph_file)
                 graph.write_png(graph_file, prog=args.graph_type)
                 if args.display and not args.graph_file:
                     webbrowser.open('file:'+graph_file)
             else:
                 print("%s" % graph.to_string())
-
-        else:
-            raise GraphError("No metadata found")
