@@ -10,6 +10,7 @@ class AutobuildTool(AutobuildBase):
 
     def register(self, parser):
         parser.description = "provide a human-readable view of the package definition in the current package."
+        parser.add_argument('--json', action='store_true', default=False, help='print config file contents using JSON')
         parser.add_argument('--config-file',
                             dest='config_file',
                             default=configfile.AUTOBUILD_CONFIG_FILE,
@@ -17,4 +18,4 @@ class AutobuildTool(AutobuildBase):
 
     def run(self, args):
         config = configfile.ConfigurationDescription(args.config_file)
-        configfile.pretty_print(config)
+        configfile.pretty_print(config, format='json' if args.json else 'pprint')

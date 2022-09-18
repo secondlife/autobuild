@@ -1,4 +1,5 @@
 import itertools
+import json
 import logging
 import os
 import pprint
@@ -717,11 +718,16 @@ def compact_to_dict(description):
     return _compact_to_dict(description)
 
 
-def pretty_print(description, stream=sys.stdout):
+def pretty_print(description, stream=sys.stdout, format='pprint'):
     """
     Pretty prints a compact version of any description to a stream.
     """
-    pprint.pprint(compact_to_dict(description), stream, 1, 80)
+    if format == 'pprint':
+        pprint.pprint(compact_to_dict(description), stream, 1, 80)
+    elif format == 'json':
+        stream.write(json.dumps(compact_to_dict(description), indent=4))
+    else:
+        raise ValueError(f'Unrecognized format {format}. Expected "json" or "pprint"')
 
 
 def pretty_print_string(description):
