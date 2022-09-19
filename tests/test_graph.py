@@ -9,14 +9,16 @@ try:
     with tempfile.TemporaryDirectory() as d:
         g = pydot.graph_from_dot_data('graph g {}')[0]
         g.write_png(os.path.join(d, "graph.png"))
+        pydot_available = True
 except (ImportError, FileNotFoundError):
-    pytest.skip("pydot not available", allow_module_level=True)
+    pydot_available = False
 
 import autobuild.autobuild_tool_graph as graph
 import autobuild.common as common
 from tests.basetest import *
 
-logger = logging.getLogger("test_graph")
+logger = logging.getLogger(__name__)
+
 
 class GraphOptions(object):
     def __init__(self):
@@ -28,6 +30,8 @@ class GraphOptions(object):
         self.platform=None
         self.addrsize=common.DEFAULT_ADDRSIZE
 
+
+@pytest.mark.skipif(not pydot_available, reason="pydot not available")
 class TestGraph(BaseTest):
     def setUp(self):
         BaseTest.setUp(self)
@@ -76,6 +80,25 @@ class TestGraph(BaseTest):
 
         finally:
             clean_dir(self.tmp_dir)
+
+    def tearDown(self):
+        BaseTest.tearDown(self)
+
+
+class TestMermaidGraph(BaseTest):
+    def setUp(self):
+        BaseTest.setUp(self)
+        self.options=GraphOptions()
+        self.options.graph_type = 'mermaid'
+
+    def test_output(self):
+        with CaptureStdout() as out: 
+            self.options.source_file = os.path.join(self.this_dir, "data", "bongo-0.1-common-111.tar.bz2")
+            graph.AutobuildTool().run(self.options)
+        graph_txt = out.getvalue()
+        self.assertIn('graph TB', graph_txt)
+        self.assertIn('bongo<br />1<br />111', graph_txt)
+        self.assertIn('bingo<br />0.2<br />222', graph_txt)
 
     def tearDown(self):
         BaseTest.tearDown(self)
