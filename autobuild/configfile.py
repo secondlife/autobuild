@@ -725,7 +725,7 @@ def pretty_print(description, stream=sys.stdout, format='pprint'):
     if format == 'pprint':
         pprint.pprint(compact_to_dict(description), stream, 1, 80)
     elif format == 'json':
-        stream.write(json.dumps(compact_to_dict(description), indent=4))
+        json.dump(compact_to_dict(description), stream, indent=4)
     else:
         raise ValueError(f'Unrecognized format {format}. Expected "json" or "pprint"')
 
