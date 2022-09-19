@@ -99,10 +99,11 @@ class TestPackaging(BaseTest):
 autobuild_package_name="%s"
 autobuild_package_clean="true"
 autobuild_package_metadata="%s"
+autobuild_package_platform="%s"
 autobuild_package_filename="%s"
 autobuild_package_md5="%s"
 $''' % ('test1', re.escape(os.path.join(self.data_dir, "package-test", "autobuild-package.xml")),
-        re.escape(self.tar_name), "[0-9a-f]{32}")
+        "common", re.escape(self.tar_name), "[0-9a-f]{32}")
         expected=re.compile(expected_results_regex, flags=re.MULTILINE)
         assert os.path.exists(results_output), "results file not found: %s" % results_output
         actual_results = open(results_output,'r').read()

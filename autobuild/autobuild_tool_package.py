@@ -211,6 +211,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
             results.write('autobuild_package_name="%s"\n' % package_description.name)
             results.write('autobuild_package_clean="%s"\n' % ("false" if metadata_file.dirty else "true"))
             results.write('autobuild_package_metadata="%s"\n' % metadata_file_path)
+            results.write('autobuild_package_platform="%s"\n' % metadata_file.platform)
         metadata_file.save()
 
     # add the metadata file name to the list of files _after_ putting that list in the metadata
