@@ -515,6 +515,9 @@ class PackageDescription(common.Serialized):
         self.use_scm_version = False
         self.name = None
         self.install_dir = None
+        self.vcs_branch = None
+        self.vcs_revision = None
+        self.vcs_url = None
         if isinstance(arg, dict):
             self.__init_from_dict(dict(arg))
         else:

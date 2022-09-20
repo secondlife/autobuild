@@ -111,6 +111,19 @@ class Git:
         p = self._git("describe", "--dirty", "--tags", "--long", "--match", "*[0-9]*")
         return p.stdout
 
+    @property
+    def revision(self) -> str | None:
+        return self._git("rev-parse", "HEAD").stdout if self.repo_dir else None
+
+    @property
+    def url(self) -> str | None:
+        return self._git("remote", "get-url", "origin").stdout if self.repo_dir else None
+
+    @property
+    def branch(self) -> str | None:
+        return self._git("rev-parse", "--abbrev-ref", "HEAD").stdout if self.repo_dir else None
+
+    @property
     def version(self) -> str | None:
         # If repo_dir is not set then we were unable to find a .git directory
         if not self.repo_dir:
@@ -129,11 +142,17 @@ class Git:
             return str(meta.version)
 
 
+def new_client(root: str) -> Git | None:
+    if not has_cmd("git"):
+        log.warning("git command not available, skipping git version detection")
+        return None
+    return Git(root)
+
+
 def get_version(root: str) -> str | None:
     """
     Attempt to resolve package version from git commit data.
     """
-    if not has_cmd("git"):
-        log.warning("git command not available, skipping git version detection")
-        return None
-    return Git(root).version()
+    git = new_client(root)
+    if git:
+        return git.version

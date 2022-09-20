@@ -3,14 +3,13 @@ from unittest import TestCase
 
 import pytest
 
-from autobuild.common import cmd, has_cmd
+from autobuild.common import cmd
 from autobuild.scm.base import date
 from autobuild.scm.git import get_version
-from tests.basetest import chdir, git_repo
-
-pytestmark = pytest.mark.skipif(not has_cmd("git"), reason="git not found")
+from tests.basetest import chdir, git_repo, needs_git
 
 
+@needs_git
 class GitTests(TestCase):
     repo: str
 
