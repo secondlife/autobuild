@@ -13,8 +13,10 @@ from contextlib import contextmanager, redirect_stdout
 from io import BytesIO, StringIO
 from pathlib import Path
 
+import pytest
+
 from autobuild import common
-from autobuild.common import cmd
+from autobuild.common import cmd, has_cmd
 
 autobuild_dir = Path(__file__).resolve().parent.parent.parent
 
@@ -310,9 +312,13 @@ def git_repo():
             with open(os.path.join(root, ".gitignore"), "w") as f:
                 f.write("stage")
             cmd("git", "init")
+            cmd("git", "remote", "add", "origin", "https://example.com/foo.git")
             cmd("git", "add", "-A")
             cmd("git", "commit", "-m", "Initial")
             cmd("git", "tag", "v1.0.0")
             yield root
     finally:
         os.chdir(owd)
+
+
+needs_git = pytest.mark.skipif(not has_cmd("git"), reason="git not present on system")

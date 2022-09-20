@@ -7,11 +7,12 @@ import logging
 import os
 import re
 
+import autobuild.scm.git
 from autobuild import autobuild_base, common, configfile
 from autobuild.autobuild_tool_configure import _configure_a_configuration
 from autobuild.autobuild_tool_source_environment import get_enriched_environment
 from autobuild.build_id import establish_build_id
-from autobuild.common import AutobuildError
+from autobuild.common import AutobuildError, is_env_enabled
 
 logger = logging.getLogger('autobuild.build')
 
@@ -161,6 +162,16 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                 metadata_file.platform = platform
                 metadata_file.configuration = build_configuration.name
                 metadata_file.build_id = build_id
+
+                if common.is_env_enabled('AUTOBUILD_VCS_INFO'):
+                    git = autobuild.scm.git.new_client(build_directory)
+                    if git:
+                        metadata_file.package_description.vcs_branch = os.environ.get("AUTOBUILD_VCS_BRANCH", git.branch)
+                        metadata_file.package_description.vcs_revision = os.environ.get("AUTOBUILD_VCS_REVISION", git.revision)
+                        metadata_file.package_description.vcs_url = os.environ.get("AUTOBUILD_VCS_URL", git.url)
+                    else:
+                        logger.warning("Unable to initialize git. Repository not found or git CLI not available")
+
                 # get the record of any installed packages
                 logger.debug("installed files in " + args.installed_filename)
 

@@ -3,16 +3,14 @@ import os
 import pprint
 import tempfile
 
-import pytest
-
 import autobuild.common as common
 import autobuild.configfile as configfile
 from autobuild import autobuild_tool_build as build
 from autobuild.autobuild_tool_build import AutobuildTool, BuildError
-from autobuild.common import cmd, has_cmd
+from autobuild.common import cmd
 from autobuild.configfile import PACKAGE_METADATA_FILE, MetadataDescription
 from tests.baseline_compare import AutobuildBaselineCompare
-from tests.basetest import BaseTest, clean_dir, exc
+from tests.basetest import BaseTest, clean_dir, envvar, exc, needs_git
 from tests.executables import echo, envtest, noop
 
 # ****************************************************************************
@@ -171,7 +169,7 @@ class TestEmptyVersionFile(LocalBase):
         with exc(common.AutobuildError, "version_file"):
             build('build', '--config-file=' + self.tmp_file, '--id=123456')
 
-@pytest.mark.skipif(not has_cmd("git"), reason="git not present on system")
+@needs_git
 class TestSCMVersion(LocalBase):
     def get_config(self):
         config = super(TestSCMVersion, self).get_config()
@@ -182,6 +180,7 @@ class TestSCMVersion(LocalBase):
             pass
         # create a git root and add a version tag
         cmd("git", "init", cwd=self.tmp_build_dir)
+        cmd("git", "remote", "add", "origin", "https://example.com/foo.git", cwd=self.tmp_build_dir)
         cmd("git", "add", "empty", cwd=self.tmp_build_dir)
         cmd("git", "commit", "-m", "initial", cwd=self.tmp_build_dir)
         cmd("git", "tag", "v5.0.0", cwd=self.tmp_build_dir)
@@ -190,6 +189,38 @@ class TestSCMVersion(LocalBase):
     def test_autobuild_build(self):
         build('build', '--config-file=' + self.tmp_file, '--id=123456')
         self.assertEqual(self.read_metadata().package_description.version, "5.0.0")
+
+@needs_git
+class TestVCSInfo(LocalBase):
+    def get_config(self):
+        config = super(TestVCSInfo, self).get_config()
+        # create empty file to check into git
+        with open(os.path.join(self.tmp_build_dir, "empty"), "w"):
+            pass
+        # create a git root and add a version tag
+        cmd("git", "init", cwd=self.tmp_build_dir)
+        cmd("git", "checkout", "-b", "main", cwd=self.tmp_build_dir)
+        cmd("git", "remote", "add", "origin", "https://example.com/foo.git", cwd=self.tmp_build_dir)
+        cmd("git", "add", "empty", cwd=self.tmp_build_dir)
+        cmd("git", "commit", "-m", "initial", cwd=self.tmp_build_dir)
+        return config
+
+    def test_opt_in(self):
+        with envvar("AUTOBUILD_VCS_INFO", "true"):
+            build('build', '--config-file=' + self.tmp_file, '--id=123456')
+            pkg = self.read_metadata()
+            self.assertEqual(pkg.package_description.vcs_branch, "main")
+            self.assertEqual(pkg.package_description.vcs_url, "https://example.com/foo.git")
+            self.assertTrue(len(pkg.package_description.vcs_revision) > 7)
+
+    def test_no_info(self):
+        with envvar("AUTOBUILD_VCS_INFO", None):
+            build('build', '--config-file=' + self.tmp_file, '--id=123456')
+            pkg = self.read_metadata()
+            self.assertIsNone(pkg.package_description.vcs_branch)
+            self.assertIsNone(pkg.package_description.vcs_url)
+            self.assertIsNone(pkg.package_description.vcs_revision)
+
 
 class TestVersionFileOddWhitespace(LocalBase):
     def get_config(self):
