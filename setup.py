@@ -4,6 +4,8 @@ import setuptools
 
 setuptools.setup(
     name='autobuild',
+    author='Linden Research, Inc.',
+    author_email='opensource-dev@lists.secondlife.com',
     url='http://wiki.secondlife.com/wiki/Autobuild',
     description='Linden Lab Automated Package Management and Build System',
     long_description=(Path(__file__).parent / "README.md").read_text(),
@@ -21,14 +23,12 @@ setuptools.setup(
     },
     license='MIT',
     classifiers=[
-        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python',
-        'Topic :: Software Development',
-        'Topic :: Software Development :: Libraries :: Python Modules',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: Unix',
+        'Programming Language :: Python :: 3',
+        'Topic :: Software Development :: Libraries :: Python Modules',
     ],
     install_requires=['llbase', 'pydot'],
     extras_require={
