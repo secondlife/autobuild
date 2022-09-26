@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import re
@@ -110,6 +111,20 @@ $''' % ('test1', re.escape(os.path.join(self.data_dir, "package-test", "autobuil
         assert expected.match(actual_results), \
           "\n!!! expected regex:\n%s\n!!! actual result:\n%s" % (expected_results_regex, actual_results)
         clean_file(results_output)
+
+    def test_results_json(self):
+        logger.setLevel(logging.DEBUG)
+        results_file = tempfile.mktemp() + '.json'
+        package.package(self.config, self.config.get_build_directory(None, 'common'),
+                        'common', archive_format='tbz2', results_file=results_file)
+        with open(results_file) as f:
+            results = json.load(f)
+            self.assertEqual(results["autobuild_package_name"], "test1")
+            self.assertEqual(results["autobuild_package_clean"], "true")
+            self.assertEqual(results["autobuild_package_metadata"], os.path.join(self.data_dir, "package-test", "autobuild-package.xml"))
+            self.assertEqual(results["autobuild_package_platform"], "common")
+            self.assertEqual(results["autobuild_package_filename"], self.tar_name)
+            self.assertEqual(len(results["autobuild_package_md5"]), 32)
 
     def test_package_other_version(self):
         # read the existing metadata file and update stored package version
