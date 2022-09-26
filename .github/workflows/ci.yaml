@@ -45,6 +45,7 @@ jobs:
     name: Publish to PyPI
     needs: build
     runs-on: [ubuntu-latest]
+    if: github.event_name != 'pull_request'
     steps:
       - uses: actions/download-artifact@v3
         with:
