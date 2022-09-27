@@ -12,6 +12,8 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+    env:
+      OS: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -31,10 +33,15 @@ jobs:
           # Set up git user for git command to work with tests
           git config --global user.name "tests"
           git config --global user.email "tests@example.com"
-          pytest -vv
+          pytest -v --cov=autobuild --cov-report=xml tests/
 
       - name: Build python package
         run: python -m build
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          env_vars: OS
 
       - uses: actions/upload-artifact@v3
         with:
