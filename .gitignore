@@ -1,7 +1,9 @@
 *~
 autobuild/version.py
 build/
+coverage.xml
 dist/
+.coverage
 .idea
 .venv
 *.pyc

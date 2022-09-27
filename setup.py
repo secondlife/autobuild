@@ -32,7 +32,7 @@ setuptools.setup(
     ],
     install_requires=['llbase', 'pydot'],
     extras_require={
-        'dev': ['pytest'],
+        'dev': ['pytest', 'pytest-cov'],
         'build': ['build', 'setuptools_scm'],
     },
     python_requires='>=3.7',
