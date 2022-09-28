@@ -8,7 +8,7 @@ import string
 import sys
 from io import StringIO
 
-from llbase import llsd
+import llsd
 
 from autobuild import common
 from autobuild.executable import Executable
