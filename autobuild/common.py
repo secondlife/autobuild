@@ -338,6 +338,25 @@ def compute_md5(path):
     return hasher.hexdigest()
 
 
+def compute_blake2b(path):
+    """
+    Returns the blake2b sum for the given file.
+    """
+    import hashlib
+
+    try:
+        stream = open(path, 'rb')
+    except IOError as err:
+        raise AutobuildError("Can't compute blake2b for %s: %s" % (path, err))
+
+    try:
+        hasher = hashlib.blake2b(stream.read())
+    finally:
+        stream.close()
+
+    return hasher.hexdigest()
+
+
 def split_tarname(pathname):
     """
     Given a tarfile pathname of the form:

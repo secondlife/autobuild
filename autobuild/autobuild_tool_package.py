@@ -366,18 +366,15 @@ def _add_file_to_zip_archive(zip_file, unnormalized_file, archive_filename, adde
 
 
 def _print_hash(filename: str, results: dict):
-    fp = open(filename, 'rb')
-    m = hashlib.md5()
-    while True:
-        d = fp.read(65536)
-        if not d:
-            break
-        m.update(d)
+    md5 = common.compute_md5(filename)
+    blake2b = common.compute_blake2b(filename)
+
     # printing unconditionally on stdout for backward compatibility
     # the Linden Lab build scripts no longer rely on this
     # (they use the --results-file option instead)
-    print("md5    %s" % m.hexdigest())
-    results['autobuild_package_md5'] = m.hexdigest()
+    print("md5    %s" % md5)
+    results['autobuild_package_md5'] = md5
+    results['autobuild_package_blake2b'] = blake2b
     # Not using logging, since this output should be produced unconditionally on stdout
     # Downstream build tools utilize this output
 
