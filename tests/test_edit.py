@@ -1,6 +1,6 @@
 import os
 
-from llbase import llsd
+import llsd
 
 from autobuild import configfile
 from autobuild.autobuild_tool_edit import AutobuildTool

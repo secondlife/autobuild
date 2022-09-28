@@ -4,9 +4,6 @@ Low-level autobuild functionality common to all modules.
 Any code that is potentially common to all autobuild sub-commands
 should live in this module. This module should never depend on any
 other autobuild module.
-
-Importing this module will also guarantee that certain dependencies
-are available, such as llbase
 """
 from __future__ import annotations
 
