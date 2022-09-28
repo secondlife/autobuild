@@ -267,7 +267,7 @@ def _install_package(archive_path, install_dir, exclude=[]):
         logger.error("cannot extract non-existing package: %s" % archive_path)
         return False
     logger.info("extracting from %s" % os.path.basename(archive_path))
-    if tarfile.is_tarfile(archive_path):
+    if tarfile.is_tarfile(archive_path) or ".tar.zst" in archive_path:
         return __extract_tar_file(archive_path, install_dir, exclude=exclude)
     elif zipfile.is_zipfile(archive_path):
         return __extract_zip_archive(archive_path, install_dir, exclude=exclude)
@@ -285,8 +285,11 @@ def extract_metadata_from_package(archive_path, metadata_file_name):
         logger.error("no package found at: %s" % archive_path)
     else:
         logger.debug("extracting metadata from %s" % os.path.basename(archive_path))
-        if tarfile.is_tarfile(archive_path):
-            tar = tarfile.open(archive_path, 'r')
+        if tarfile.is_tarfile(archive_path) or ".tar.zst" in archive_path:
+            if ".tar.zst" in archive_path:
+                tar = common.ZstdTarFile(archive_path, 'r')
+            else:
+                tar = tarfile.open(archive_path, 'r')
             try:
                 metadata_file = tar.extractfile(metadata_file_name)
             except KeyError as err:
@@ -305,7 +308,10 @@ def extract_metadata_from_package(archive_path, metadata_file_name):
 
 def __extract_tar_file(cachename, install_dir, exclude=[]):
     # Attempt to extract the package from the install cache
-    tar = tarfile.open(cachename, 'r')
+    if ".tar.zst" in cachename:
+        tar = common.ZstdTarFile(cachename, 'r')
+    else:
+        tar = tarfile.open(cachename, 'r')
     extract = [member for member in tar.getmembers() if member.name not in exclude]
     conflicts = [member.name for member in extract
                  if os.path.exists(os.path.join(install_dir, member.name))

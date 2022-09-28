@@ -65,7 +65,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         parser.add_argument('--archive-format',
                             default=None,
                             dest='archive_format',
-                            help='the format of the archive (tbz2 or zip)')
+                            help='the format of the archive (tbz2, tzst, txz, tgz, or zip)')
         parser.add_argument('--build-dir',
                             default=None,
                             dest='select_dir',  # see common.select_directories()
@@ -239,8 +239,8 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     else:
         archive_description = platform_description.archive
         format = _determine_archive_format(archive_format, archive_description)
-        if format == 'tbz2':
-            _create_tarfile(tarfilename + '.tar.bz2', build_directory, files, results)
+        if format == 'txz' or format == 'tbz2' or format == 'tgz' or format == 'tzst':
+            _create_tarfile(tarfilename, format, build_directory, files, results)
         elif format == 'zip':
             _create_zip_archive(tarfilename + '.zip', build_directory, files, results)
         else:
@@ -288,13 +288,27 @@ def _get_file_list(platform_description, build_directory):
             os.chdir(current_directory)
     return [files, missing]
 
-def _create_tarfile(tarfilename, build_directory, filelist, results: dict):
+def _create_tarfile(tarfilename, format, build_directory, filelist, results: dict):
     if not os.path.exists(os.path.dirname(tarfilename)):
         os.makedirs(os.path.dirname(tarfilename))
     current_directory = os.getcwd()
     os.chdir(build_directory)
     try:
-        tfile = tarfile.open(tarfilename, 'w:bz2')
+        if format == 'txz':
+            tarfilename = tarfilename + '.tar.xz'
+            tfile = tarfile.open(tarfilename, 'w:xz')
+        elif format == 'tbz2':
+            tarfilename = tarfilename + '.tar.bz2'
+            tfile = tarfile.open(tarfilename, 'w:bz2')
+        elif format == 'tgz':
+            tarfilename = tarfilename + '.tar.gz'
+            tfile = tarfile.open(tarfilename, 'w:gz')
+        elif format == 'tzst':
+            tarfilename = tarfilename + '.tar.zst'
+            tfile = common.ZstdTarFile(tarfilename, 'w', level=22)
+        else:
+            raise PackageError("unknown tar archive format: %s" % format)
+
         for file in filelist:
             try:
                 # Make sure permissions are set on Windows.

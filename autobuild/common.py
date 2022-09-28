@@ -9,13 +9,17 @@ from __future__ import annotations
 
 import itertools
 import logging
+import multiprocessing
 import os
 import platform
 import pprint
 import subprocess
 import sys
+import tarfile
 import tempfile
 from collections import OrderedDict
+
+from pyzstd import CParameter, ZstdFile
 
 from autobuild.version import AUTOBUILD_VERSION_STRING
 
@@ -535,3 +539,26 @@ def has_cmd(name) -> bool:
     except OSError:
         return False
     return not p.returncode
+
+
+class ZstdTarFile(tarfile.TarFile):
+    def __init__(self, name, mode='r', *, level=4, zstd_dict=None, **kwargs):
+        zstdoption = None
+        if mode != 'r' and mode != 'rb':
+           zstdoption = {CParameter.compressionLevel : level,
+                         CParameter.nbWorkers : multiprocessing.cpu_count(),
+                         CParameter.checksumFlag : 1}
+        self.zstd_file = ZstdFile(name, mode,
+                                level_or_option=zstdoption,
+                                zstd_dict=zstd_dict)
+        try:
+            super().__init__(fileobj=self.zstd_file, mode=mode, **kwargs)
+        except:
+            self.zstd_file.close()
+            raise
+
+    def close(self):
+        try:
+            super().close()
+        finally:
+            self.zstd_file.close()

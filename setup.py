@@ -30,7 +30,7 @@ setuptools.setup(
         'Programming Language :: Python :: 3',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    install_requires=['llsd', 'pydot'],
+    install_requires=['llsd', 'pydot', 'pyzstd'],
     extras_require={
         'dev': ['pytest', 'pytest-cov'],
         'build': ['build', 'setuptools_scm'],

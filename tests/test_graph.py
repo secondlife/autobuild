@@ -92,7 +92,7 @@ class TestMermaidGraph(BaseTest):
         self.options.graph_type = 'mermaid'
 
     def test_output(self):
-        with CaptureStdout() as out: 
+        with CaptureStdout() as out:
             self.options.source_file = os.path.join(self.this_dir, "data", "bongo-0.1-common-111.tar.bz2")
             graph.AutobuildTool().run(self.options)
         graph_txt = out.getvalue()
