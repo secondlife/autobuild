@@ -64,3 +64,8 @@ def verify_hash(hash_algorithm, pathname, hash):
 @hash_algorithm("md5")
 def _verify_md5(pathname, hash):
     return common.compute_md5(pathname) == hash
+
+@hash_algorithm("blake2b")
+def _verify_blake2b(pathname, hash):
+    return common.compute_blake2b(pathname) == hash
+
