@@ -239,7 +239,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
     else:
         archive_description = platform_description.archive
         format = _determine_archive_format(archive_format, archive_description)
-        if format == 'txz' or format == 'tbz2' or format == 'tgz' or format == 'tzst':
+        if format in ('txz', 'tbz2', 'tgz', 'tzst'):
             _create_tarfile(tarfilename, format, build_directory, files, results)
         elif format == 'zip':
             _create_zip_archive(tarfilename + '.zip', build_directory, files, results)
