@@ -51,6 +51,9 @@ class TestPackaging(BaseTest):
         self.platform = 'common'
         self.tar_basename = os.path.join(self.data_dir, "test1-1.0-common-123456")
         self.tar_name = self.tar_basename + ".tar.bz2"
+        self.tar_gz_name = self.tar_basename + ".tar.gz"
+        self.tar_xz_name = self.tar_basename + ".tar.xz"
+        self.tar_zst_name = self.tar_basename + ".tar.zst"
         self.zip_name = self.tar_basename + ".zip"
         self.expected_files=['include/file1','LICENSES/test1.txt','autobuild-package.xml']
         self.expected_files.sort()
@@ -72,7 +75,10 @@ class TestPackaging(BaseTest):
         BaseTest.tearDown(self)
 
     def tar_has_expected(self,tar):
-        tarball = tarfile.open(tar, 'r:bz2')
+        if 'tar.zst' in tar:
+            tarball = common.ZstdTarFile(tar, 'r')
+        else:
+            tarball = tarfile.open(tar, 'r')
         packaged_files=tarball.getnames()
         packaged_files.sort()
         self.assertEqual(packaged_files, self.expected_files)
@@ -155,6 +161,27 @@ $''' % ('test1', re.escape(os.path.join(self.data_dir, "package-test", "autobuil
         assert os.path.exists(self.tar_name), "%s does not exist" % self.tar_name
         self.tar_has_expected(self.tar_name)
         self.remove(self.tar_name)
+        self.autobuild("package",
+                       "--config-file=" + self.config_path,
+                       "--archive-format=tgz",
+                       "-p", "common")
+        assert os.path.exists(self.tar_gz_name), "%s does not exist" % self.tar_gz_name
+        self.tar_has_expected(self.tar_gz_name)
+        self.remove(self.tar_gz_name)
+        self.autobuild("package",
+                       "--config-file=" + self.config_path,
+                       "--archive-format=txz",
+                       "-p", "common")
+        assert os.path.exists(self.tar_xz_name), "%s does not exist" % self.tar_xz_name
+        self.tar_has_expected(self.tar_xz_name)
+        self.remove(self.tar_xz_name)
+        self.autobuild("package",
+                       "--config-file=" + self.config_path,
+                       "--archive-format=tzst",
+                       "-p", "common")
+        assert os.path.exists(self.tar_zst_name), "%s does not exist" % self.tar_zst_name
+        self.tar_has_expected(self.tar_zst_name)
+        self.remove(self.tar_zst_name)
         self.autobuild("package",
                        "--config-file=" + self.config_path,
                        "--archive-format=zip",
