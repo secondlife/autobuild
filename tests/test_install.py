@@ -750,6 +750,8 @@ class TestDownloadPackage(unittest.TestCase):
         with envvar("AUTOBUILD_GITHUB_TOKEN", None):
             autobuild_tool_install.download_package("https://example.org/foo.tar.bz2")
             mock_urlopen.assert_called()
+            got_req = mock_urlopen.mock_calls[0].args[0]
+            self.assertIsNone(got_req.unredirected_hdrs.get("Authorization"))
 
     @patch("urllib.request.urlopen")
     def test_download_github(self, mock_urlopen: MagicMock):
@@ -758,7 +760,7 @@ class TestDownloadPackage(unittest.TestCase):
             autobuild_tool_install.download_package("https://example.org/foo.tar.bz2", creds="github")
             mock_urlopen.assert_called()
             got_req = mock_urlopen.mock_calls[0].args[0]
-            self.assertEqual(got_req.headers["Authorization"], "Bearer token-123")
+            self.assertEqual(got_req.unredirected_hdrs["Authorization"], "Bearer token-123")
 
     @patch("urllib.request.urlopen")
     def test_download_gitlab(self, mock_urlopen: MagicMock):
@@ -767,7 +769,7 @@ class TestDownloadPackage(unittest.TestCase):
             autobuild_tool_install.download_package("https://example.org/foo.tar.bz2", creds="gitlab")
             mock_urlopen.assert_called()
             got_req = mock_urlopen.mock_calls[0].args[0]
-            self.assertEqual(got_req.headers["Authorization"], "Bearer token-123")
+            self.assertEqual(got_req.unredirected_hdrs["Authorization"], "Bearer token-123")
 
     @patch("urllib.request.urlopen")
     def test_download_github_without_creds(self, mock_urlopen: MagicMock):

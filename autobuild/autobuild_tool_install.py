@@ -193,9 +193,9 @@ def package_cache_path(package):
 
 
 def download_package(package_url: str, timeout=120, creds=None, package_name="") -> http.client.HTTPResponse:
-    headers = {}
-    if creds:
+    req = urllib.request.Request(package_url)
 
+    if creds:
         try:
             token_var = CREDENTIAL_ENVVARS[creds]
         except KeyError:
@@ -203,14 +203,12 @@ def download_package(package_url: str, timeout=120, creds=None, package_name="")
 
         token = os.environ.get(token_var)
         if token:
-            headers["Authorization"] = f"Bearer {token}"
+            req.add_unredirected_header("Authorization", f"Bearer {token}")
         else:
             raise CredentialsNotFoundError(
                 f"Package {package_name} is set to use '{creds}' credentials type but no {token_var} "
                 "environment variable is set"
             )
-
-    req = urllib.request.Request(package_url, headers=headers)
 
     return urllib.request.urlopen(req, data=None, timeout=timeout)
 
