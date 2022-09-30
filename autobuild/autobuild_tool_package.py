@@ -334,7 +334,7 @@ def _create_tarfile(tarfilename, format, build_directory, filelist, results: dic
     # (they use the --results-file option instead)
     print("wrote  %s" % tarfilename)
     results['autobuild_package_filename'] = tarfilename
-    _print_hash(tarfilename, results)
+    _calculate_hashes(tarfilename, results)
 
 
 def _create_zip_archive(archive_filename, build_directory, file_list, results: dict):
@@ -355,7 +355,7 @@ def _create_zip_archive(archive_filename, build_directory, file_list, results: d
     # (they use the --results-file option instead)
     print("wrote  %s" % archive_filename)
     results['autobuild_package_filename'] = archive_filename
-    _print_hash(archive_filename, results)
+    _calculate_hashes(archive_filename, results)
 
 
 def _add_file_to_zip_archive(zip_file, unnormalized_file, archive_filename, added_files):
@@ -379,16 +379,9 @@ def _add_file_to_zip_archive(zip_file, unnormalized_file, archive_filename, adde
         logger.info('added ' + file)
 
 
-def _print_hash(filename: str, results: dict):
-    md5 = common.compute_md5(filename)
-    blake2b = common.compute_blake2b(filename)
-
-    # printing unconditionally on stdout for backward compatibility
-    # the Linden Lab build scripts no longer rely on this
-    # (they use the --results-file option instead)
-    print("md5    %s" % md5)
-    results['autobuild_package_md5'] = md5
-    results['autobuild_package_blake2b'] = blake2b
-    # Not using logging, since this output should be produced unconditionally on stdout
-    # Downstream build tools utilize this output
+def _calculate_hashes(filename: str, results: dict):
+    results['autobuild_package_md5'] = common.compute_md5(filename)
+    results['autobuild_package_blake2b'] = common.compute_blake2b(filename)
+    results['autobuild_package_sha1'] = common.compute_sha1(filename)
+    results['autobuild_package_sha256'] = common.compute_sha256(filename)
 
