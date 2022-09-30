@@ -7,6 +7,7 @@ other autobuild module.
 """
 from __future__ import annotations
 
+import hashlib
 import itertools
 import logging
 import multiprocessing
@@ -18,8 +19,8 @@ import sys
 import tarfile
 import tempfile
 from collections import OrderedDict
-
-from pyzstd import CParameter, ZstdFile
+from functools import partial
+from typing import Callable
 
 from autobuild.version import AUTOBUILD_VERSION_STRING
 
@@ -320,42 +321,26 @@ def dedup_path(path, sep=os.pathsep):
     return sep.join(OrderedDict((dir.rstrip(r'\/'), 1) for dir in path.split(sep)))
 
 
-def compute_md5(path):
+def compute_hash(path: str, hash: Callable[[], hashlib._Hash]):
     """
-    Returns the MD5 sum for the given file.
+    Compute a hash for a file effeciently by streaming it into the hash algorithm
     """
-    from hashlib import md5
-
+    h = hash()
+    b = bytearray(128*1024)
+    mv = memoryview(b)
     try:
-        stream = open(path, 'rb')
+        with open(path, 'rb') as f:
+            while n := f.readinto(mv):
+                h.update(mv[:n])
+            return h.hexdigest()
     except IOError as err:
-        raise AutobuildError("Can't compute MD5 for %s: %s" % (path, err))
-
-    try:
-        hasher = md5(stream.read())
-    finally:
-        stream.close()
-
-    return hasher.hexdigest()
+        raise AutobuildError(f"Can't compute {h.name} for {path}: {err}")
 
 
-def compute_blake2b(path):
-    """
-    Returns the blake2b sum for the given file.
-    """
-    import hashlib
-
-    try:
-        stream = open(path, 'rb')
-    except IOError as err:
-        raise AutobuildError("Can't compute blake2b for %s: %s" % (path, err))
-
-    try:
-        hasher = hashlib.blake2b(stream.read())
-    finally:
-        stream.close()
-
-    return hasher.hexdigest()
+compute_md5 = partial(compute_hash, hash=hashlib.md5)
+compute_blake2b = partial(compute_hash, hash=hashlib.blake2b)
+compute_sha1 = partial(compute_hash, hash=hashlib.sha1)
+compute_sha256 = partial(compute_hash, hash=hashlib.sha256)
 
 
 def split_tarname(pathname):
@@ -543,6 +528,7 @@ def has_cmd(name, subcmd: str = "help") -> bool:
 
 class ZstdTarFile(tarfile.TarFile):
     def __init__(self, name, mode='r', *, level=4, zstd_dict=None, **kwargs):
+        from pyzstd import CParameter, ZstdFile
         zstdoption = None
         if mode != 'r' and mode != 'rb':
            zstdoption = {CParameter.compressionLevel : level,

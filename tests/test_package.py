@@ -110,8 +110,10 @@ autobuild_package_platform="%s"
 autobuild_package_filename="%s"
 autobuild_package_md5="%s"
 autobuild_package_blake2b="%s"
+autobuild_package_sha1="%s"
+autobuild_package_sha256="%s"
 $''' % ('test1', re.escape(os.path.join(self.data_dir, "package-test", "autobuild-package.xml")),
-        "common", re.escape(self.tar_name), "[0-9a-f]{32}", "[0-9a-f]{128}")
+        "common", re.escape(self.tar_name), "[0-9a-f]{32}", "[0-9a-f]{128}", "[0-9a-f]{40}", "[0-9a-f]{64}")
         expected=re.compile(expected_results_regex, flags=re.MULTILINE)
         assert os.path.exists(results_output), "results file not found: %s" % results_output
         actual_results = open(results_output,'r').read()
@@ -133,6 +135,8 @@ $''' % ('test1', re.escape(os.path.join(self.data_dir, "package-test", "autobuil
             self.assertEqual(results["autobuild_package_filename"], self.tar_name)
             self.assertEqual(len(results["autobuild_package_md5"]), 32)
             self.assertEqual(len(results["autobuild_package_blake2b"]), 128)
+            self.assertEqual(len(results["autobuild_package_sha1"]), 40)
+            self.assertEqual(len(results["autobuild_package_sha256"]), 64)
 
     def test_package_other_version(self):
         # read the existing metadata file and update stored package version

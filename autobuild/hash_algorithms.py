@@ -62,10 +62,20 @@ def verify_hash(hash_algorithm, pathname, hash):
 
 
 @hash_algorithm("md5")
-def _verify_md5(pathname, hash):
+def verify_md5(pathname, hash):
     return common.compute_md5(pathname) == hash
 
+
 @hash_algorithm("blake2b")
-def _verify_blake2b(pathname, hash):
+def verify_blake2b(pathname, hash):
     return common.compute_blake2b(pathname) == hash
 
+
+@hash_algorithm("sha1")
+def verify_sha1(pathname, hash):
+    return common.compute_sha1(pathname) == hash
+
+
+@hash_algorithm("sha256")
+def verify_sha256(pathname, hash):
+    return common.compute_sha256(pathname) == hash
