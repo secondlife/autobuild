@@ -4,9 +4,11 @@ import tempfile
 
 import pytest
 
+from tests.basetest import temp_dir
+
 try:
     import pydot
-    with tempfile.TemporaryDirectory() as d:
+    with temp_dir() as d:
         g = pydot.graph_from_dot_data('graph g {}')[0]
         g.write_png(os.path.join(d, "graph.png"))
         pydot_available = True

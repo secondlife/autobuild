@@ -532,10 +532,10 @@ def cmd(*cmd, **kwargs) -> subprocess.CompletedProcess[str]:
     return p
 
 
-def has_cmd(name) -> bool:
+def has_cmd(name, subcmd: str = "help") -> bool:
     """Check whether an executable exists by attempting to run its 'help' subcommand"""
     try:
-        p = cmd(name, "help")
+        p = cmd(name, subcmd)
     except OSError:
         return False
     return not p.returncode

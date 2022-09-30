@@ -18,53 +18,28 @@ import pytest
 from autobuild import common
 from autobuild.common import cmd, has_cmd
 
-autobuild_dir = Path(__file__).resolve().parent.parent.parent
-
-# Small script used by tests such as test_source_environment's where
-# autobuild needs to be called from an external script.
-AUTOBUILD_BIN_SCRIPT = """#!/usr/bin/env python
-from autobuild import autobuild_main
-
-if __name__ == "__main__":
-    autobuild_main.main()
-"""
 
 @contextmanager
-def tmp_autobuild_bin():
+def temp_dir():
     """
-    Create a temporary directory with an autobuild shim script pointing to the
-    autobuild_main in this package. Yields the path to the autobuild script.
+    A PermissionError can be thrown on windows when cleaning up temporary directories.
+    This was addressed in python 3.10 with TemporaryDirectory(ignore_cleanup_errors=True) but
+    until 3.10 is used everywhere we need this hack.
     """
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        autobuild_bin = str(Path(tmp_dir) / "autobuild")
-
-        # Write AUTOBUILD_BIN_SCRIPT contents into temporary directory
-        with open(autobuild_bin, "w") as f:
-            f.write(AUTOBUILD_BIN_SCRIPT)
-
-        # Make script executable
-        os.chmod(autobuild_bin, 0o775)
-
-        # Insert both the temporary bin directory containing autobuild and local autobuild
-        # python module location into the system path.
-        sys.path.insert(0, autobuild_dir)
-        sys.path.insert(0, tmp_dir)
-        try:
-            yield autobuild_bin
-        finally:
-            # Cleanup path
-            sys.path.remove(tmp_dir)
-            sys.path.remove(autobuild_dir)
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            yield tmp
+    except PermissionError:
+        pass
 
 
 class BaseTest(unittest.TestCase):
     def setUp(self):
         self.this_dir = os.path.abspath(os.path.dirname(__file__))
+        self.autobuild_bin = str(Path(__file__).parent / "bin" / "autobuild")
 
-    def run(self, result=None):
-        with tmp_autobuild_bin() as autobuild_bin:
-            self.autobuild_bin = autobuild_bin
-            super(BaseTest, self).run(result)
+        if os.name == "nt":
+            self.autobuild_bin += ".cmd"
 
     def autobuild(self, *args, **kwds):
         """
@@ -300,8 +275,8 @@ def git_repo():
         └── stage
     """
     owd = os.getcwd()
-    try:
-        with tempfile.TemporaryDirectory() as root:
+    with temp_dir() as root:
+        try:
             os.chdir(root)
             with open(os.path.join(root, "file"), "w"):
                 pass
@@ -317,8 +292,11 @@ def git_repo():
             cmd("git", "commit", "-m", "Initial")
             cmd("git", "tag", "v1.0.0")
             yield root
-    finally:
-        os.chdir(owd)
+        finally:
+            # Make sure to chdir out of temp_dir before closing it, otherwise windows
+            # will freak out. https://github.com/python/cpython/issues/86962
+            os.chdir(owd)
 
 
 needs_git = pytest.mark.skipif(not has_cmd("git"), reason="git not present on system")
+needs_nix = pytest.mark.skipif(not has_cmd("which", "bash"), reason="not running in a unix-like environment")

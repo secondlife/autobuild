@@ -1,11 +1,8 @@
-import sys
-
-import pytest
-
 from autobuild.executable import Executable
-from tests.basetest import BaseTest
+from tests.basetest import BaseTest, needs_nix
 
 
+@needs_nix
 class TestExecutable(BaseTest):
     def setUp(self):
         BaseTest.setUp(self)
@@ -23,9 +20,6 @@ class TestExecutable(BaseTest):
         assert childExecutable.get_command() == 'grep'
         assert otherChildExecutable.get_command() == 'egrep'
         assert otherChildExecutable.get_arguments() == ['foo','.']
-        # On Windows, you can't count on grep or egrep.
-        if sys.platform.startswith("win"):
-            pytest.skip("On Windows, can't count on finding grep")
         result = childExecutable()
         assert result == 0, "%s => %s" % (childExecutable._get_all_arguments([]), result)
         result = parentExecutable()
