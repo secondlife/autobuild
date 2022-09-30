@@ -13,14 +13,6 @@ from tests.basetest import *
 from tests.patch import patch
 
 
-def assert_dict_has(d, key, value):
-    try:
-        dval = d[key]
-    except KeyError:
-        raise AssertionError("key %s not in %s" % (key, pformat(d)))
-    else:
-        self.assertEqual(dval, value)
-
 def assert_dict_subset(d, s):
     # Windows insists on capitalizing environment variables, so prepare a copy
     # of d with all-caps keys.
@@ -62,6 +54,8 @@ class Args(object):
         # configurations attribute comes in as a possibly-empty list
         self.configurations = [config] if config is not None else []
 
+
+@needs_nix
 class TestSourceEnvironment(BaseTest):
     def setUp(self):
         BaseTest.setUp(self)
@@ -153,19 +147,24 @@ class TestSourceEnvironment(BaseTest):
         def source_env_and(self, args, commands):
             srcenv = self.autobuild("source_environment", *args)
             scriptname = os.path.join(self.tempdir, "source_env_and.sh")
-            # binary mode because '\r\n' confuses bash
-            with open(scriptname, "wb") as scriptf:
+            with open(scriptname, "w", newline="\n") as scriptf:
                 scriptf.write(srcenv)
                 scriptf.write('\n')
                 scriptf.write(commands)
             try:
-                return subprocess.check_output(["bash", "-c",
-                                                self.shell_path(scriptname)]).rstrip()
+                return subprocess.check_output([self.cygwin_bash(), "-c",
+                                                self.shell_path(scriptname)], universal_newlines=True).rstrip()
             finally:
                 os.remove(scriptname)
 
-        def shell_path(self, path):
-            return subprocess.check_output(["cygpath", "-u", path]).rstrip()
+        @staticmethod
+        def cygwin_bash():
+            """Get path to cygwin/mingw bash. This is necessary because some windows environments might also have WSL installed."""
+            return subprocess.check_output(["cygpath", "-w", "/usr/bin/bash"], universal_newlines=True).rstrip()
+
+        @staticmethod
+        def shell_path(path):
+            return subprocess.check_output(["cygpath", "-u", path], universal_newlines=True).rstrip()
 
     def read_variables(self, *args):
         """

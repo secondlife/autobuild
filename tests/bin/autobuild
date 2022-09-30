@@ -1,0 +1,5 @@
+#!/usr/bin/env python3
+from autobuild import autobuild_main
+
+if __name__ == "__main__":
+    autobuild_main.main()
