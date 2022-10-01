@@ -164,7 +164,7 @@ def establish_platform(specified_platform=None, addrsize=DEFAULT_ADDRSIZE):
     os.environ['AUTOBUILD_ADDRSIZE'] = str(addrsize) # for spawned commands
     os.environ['AUTOBUILD_PLATFORM'] = Platform # for spawned commands
     os.environ['AUTOBUILD_PLATFORM_OVERRIDE'] = Platform # for recursive invocations
-    os.environ['AUTOBUILD_CPU_COUNT'] = str(multiprocessing.cpu_count())
+    os.environ['AUTOBUILD_CPU_COUNT'] = os.environ.get('AUTOBUILD_CPU_COUNT', str(multiprocessing.cpu_count()))
 
     logger.debug("Specified platform %s address-size %d: result %s" \
                  % (specified_platform, specified_addrsize, Platform))
