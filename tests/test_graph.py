@@ -69,16 +69,46 @@ class TestGraph(BaseTest):
         assert_found_in("bingo \\[", output_lines)
         assert_in("bingo -> bongo;", output_lines)
 
-    def test_output(self):
+    def test_dot_output(self):
         self.tmp_dir = tempfile.mkdtemp()
         try:
-            self.options.graph_file = os.path.join(self.tmp_dir, "graph.png")
             self.options.dot_file = os.path.join(self.tmp_dir, "graph.dot")
             self.options.source_file = os.path.join(self.this_dir, "data", "bongo-0.1-common-111.tar.bz2")
             graph.AutobuildTool().run(self.options)
-            # for now, settle for detecting that the png file was created
-            assert os.path.exists(self.options.graph_file)
             assert os.path.exists(self.options.dot_file)
+
+        finally:
+            clean_dir(self.tmp_dir)
+
+    def test_png_output(self):
+        self.tmp_dir = tempfile.mkdtemp()
+        try:
+            self.options.graph_file = os.path.join(self.tmp_dir, "graph.png")
+            self.options.source_file = os.path.join(self.this_dir, "data", "bongo-0.1-common-111.tar.bz2")
+            graph.AutobuildTool().run(self.options)
+            assert os.path.exists(self.options.graph_file)
+
+        finally:
+            clean_dir(self.tmp_dir)
+
+    def test_jpeg_output(self):
+        self.tmp_dir = tempfile.mkdtemp()
+        try:
+            self.options.graph_file = os.path.join(self.tmp_dir, "graph.jpeg")
+            self.options.source_file = os.path.join(self.this_dir, "data", "bongo-0.1-common-111.tar.bz2")
+            graph.AutobuildTool().run(self.options)
+            assert os.path.exists(self.options.graph_file)
+
+        finally:
+            clean_dir(self.tmp_dir)
+
+    def test_svg_output(self):
+        self.tmp_dir = tempfile.mkdtemp()
+        try:
+            self.options.graph_file = os.path.join(self.tmp_dir, "graph.svg")
+            self.options.source_file = os.path.join(self.this_dir, "data", "bongo-0.1-common-111.tar.bz2")
+            graph.AutobuildTool().run(self.options)
+            assert os.path.exists(self.options.graph_file)
 
         finally:
             clean_dir(self.tmp_dir)
