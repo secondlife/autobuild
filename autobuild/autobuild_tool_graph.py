@@ -228,12 +228,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             root.set_shape('octagon')
 
             if args.dot_file:
-                try:
-                    dot_file=open(args.dot_file,'w')
-                except IOError as err:
-                    raise GraphError("Unable to open dot file %s: %s" % (args.dot_file, err))
-                dot_file.write(graph.to_string())
-                dot_file.close()
+                graph.write_raw(args.dot_file)
 
             if args.display or args.graph_file:
                 if args.graph_file:
@@ -243,7 +238,12 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                                                 metadata['package_description']['name'] + "_graph_"
                                                 + args.graph_type + '.png')
                 logger.info("writing %s" % graph_file)
-                graph.write_png(graph_file, prog=args.graph_type)
+                if graph_file.endswith('.svg'):
+                    graph.write_svg(graph_file, prog=args.graph_type)
+                elif graph_file.endswith('.jpeg'):
+                    graph.write_jpeg(graph_file, prog=args.graph_type)
+                else:
+                    graph.write_png(graph_file, prog=args.graph_type)
                 if args.display and not args.graph_file:
                     webbrowser.open('file:'+graph_file)
             else:
