@@ -4,7 +4,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import unittest
 from ast import literal_eval
 from pprint import pformat
 
@@ -319,5 +318,16 @@ replace_switch def xyz $switches""").split()),
         assert_found_assignment("LL_BUILD", "darwin release", stdout)
         assert_found_assignment("SOMETHING_ELSE", "something else", stdout)
 
-if __name__ == '__main__':
-    unittest.main()
+    @needs_cygwin
+    def test_vstoolset_set(self):
+        with capture_stdout_buffer() as outbuf, envvar("AUTOBUILD_VSVER", "170"):
+            self.autobuild_call(self.find_data("empty"), "RelWithDebInfo")
+        stdout = outbuf.getvalue().decode("utf-8")
+        self.assertIn(f"export AUTOBUILD_WIN_VSTOOLSET='v143'", stdout)
+
+    @needs_cygwin
+    def test_vstoolset_not_set_if_vsver_unrecognized(self):
+        with capture_stdout_buffer() as outbuf, envvar("AUTOBUILD_VSVER", "171"):
+            self.autobuild_call(self.find_data("empty"), "RelWithDebInfo")
+        stdout = outbuf.getvalue().decode("utf-8")
+        self.assertNotIn(f"export AUTOBUILD_WIN_VSTOOLSET=", stdout)

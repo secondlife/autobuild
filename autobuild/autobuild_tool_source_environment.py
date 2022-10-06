@@ -21,6 +21,14 @@ class SourceEnvError(common.AutobuildError):
 _VSxxxCOMNTOOLS_re = re.compile(r"VS(.*)COMNTOOLS$")
 _VSxxxCOMNTOOLS_st = "VS%sCOMNTOOLS"
 
+# Map of Visual Studio version to respective default C++ SDK toolset version
+_VSTOOLSETS = {
+    "140": "v140", # 2015
+    "150": "v141", # 2017
+    "160": "v142", # 2019
+    "170": "v143", # 2022
+}
+
 # From VS 2017 on, we have to look for vswhere.exe at this canonical path to
 # discover where the Visual Studio install is.
 # https://stackoverflow.com/a/44323312
@@ -736,6 +744,12 @@ def internal_source_environment(configurations, varsfile):
                 AUTOBUILD_WIN_CMAKE_GEN += " Win64"
             # cmake -G "$AUTOBUILD_WIN_CMAKE_GEN"
             exports["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
+
+            try:
+                # Provide a suggested C++ SDK version for build scripts to use
+                exports["AUTOBUILD_WIN_VSTOOLSET"] = os.environ.get("AUTOBUILD_WIN_VSTOOLSET", _VSTOOLSETS[vsver])
+            except KeyError:
+                logger.warning(f"Unable to determine a suggested AUTOBUILD_WIN_VSTOOLSET for vsver {vsver}")
 
             # load vsvars32.bat variables
             vsvars = load_vsvars(vsver)

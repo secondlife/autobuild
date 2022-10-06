@@ -299,4 +299,5 @@ def git_repo():
 
 
 needs_git = pytest.mark.skipif(not has_cmd("git"), reason="git not present on system")
-needs_nix = pytest.mark.skipif(not has_cmd("which", "bash"), reason="not running in a unix-like environment")
+needs_nix = pytest.mark.skipif(not has_cmd("which", "bash"), reason="needs unix-like environment")
+needs_cygwin = pytest.mark.skipif(not has_cmd("cygpath", "-h"), reason="needs windows environment")
