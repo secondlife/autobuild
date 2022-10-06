@@ -448,7 +448,7 @@ similar.""")
         # function, we want to prepend to its existing PATH rather than
         # replacing it with whatever's visible to Python right now.
         try:
-            PATH = vsvars.pop("PATH")
+            vsvars_path = vsvars.pop("PATH")
         except KeyError:
             pass
         else:
@@ -456,17 +456,26 @@ similar.""")
             # Match patterns of the form %SomeVar%. Match the SHORTEST such
             # string so that %var1% ... %var2% are two distinct matches.
             percents = re.compile(r"%(.*?)%")
-            PATH = ":".join(
+            existing_path = os.environ["PATH"].split(";")
+            vsvars_path = ":".join(
                 # Some pathnames in the PATH var may be individually quoted --
                 # strip quotes from those.
+                #
                 # Moreover, some may have %SomeVar% substitutions; replace
                 # with ${SomeVar} substitutions for bash. (Use curly braces
                 # because we don't want to have to care what follows.)
                 # may as well de-dup while we're at it
+                #
+                # The vsvars32.bat PATH will contain many redundant paths when
+                # combined with an expanded $PATH when load_vsvars is called.
+                # To avoid truncation problems due to a long PATH each variable
+                # is compared to the live PATH so that we can get the set difference.
+                # This solves the problem of needing to dedupe the path in package
+                # buildscripts.
                 dedup(cygpath("-u", percents.sub(r"${\1}", p.strip('"')))
-                      for p in PATH.split(';'))
+                      for p in vsvars_path.split(';') if p not in existing_path)
             )
-            vsvars["PATH"] = PATH + ":$PATH"
+            vsvars["PATH"] = vsvars_path + ":$PATH"
 
         # Now make a list of the items from vsvars.
         # A pathname ending with a backslash (as many do on Windows), when
