@@ -320,14 +320,12 @@ replace_switch def xyz $switches""").split()),
 
     @needs_cygwin
     def test_vstoolset_set(self):
-        with capture_stdout_buffer() as outbuf, envvar("AUTOBUILD_VSVER", "170"):
-            self.autobuild_call(self.find_data("empty"), "RelWithDebInfo")
-        stdout = outbuf.getvalue().decode("utf-8")
-        self.assertIn(f"export AUTOBUILD_WIN_VSTOOLSET='v143'", stdout)
+        with envvar("AUTOBUILD_VSVER", "170"):
+            vars = self.read_variables(self.find_data("empty"))
+        self.assertEqual(vars["AUTOBUILD_WIN_VSTOOLSET"], "v143")
 
     @needs_cygwin
     def test_vstoolset_not_set_if_vsver_unrecognized(self):
-        with capture_stdout_buffer() as outbuf, envvar("AUTOBUILD_VSVER", "171"):
-            self.autobuild_call(self.find_data("empty"), "RelWithDebInfo")
-        stdout = outbuf.getvalue().decode("utf-8")
-        self.assertNotIn(f"export AUTOBUILD_WIN_VSTOOLSET=", stdout)
+        with envvar("AUTOBUILD_VSVER", "171"):
+            vars = self.read_variables(self.find_data("empty"))
+        self.assertTrue("AUTOBUILD_WIN_VSTOOLSET" not in vars)
