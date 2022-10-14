@@ -155,6 +155,7 @@ def setup_module(module):
                      local_archives=[],
                      addrsize=32,
                      package=[],
+                     skip_source_environment=False,
                      ):
             # Take all constructor params and assign as object attributes.
             params = locals().copy()
