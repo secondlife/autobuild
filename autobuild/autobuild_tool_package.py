@@ -213,6 +213,7 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
 
     results = PackageResults({
         'autobuild_package_name': package_description.name,
+        'autobuild_package_version': metadata_file.package_description.version,
         'autobuild_package_clean': 'false' if metadata_file.dirty else 'true',
         'autobuild_package_metadata': metadata_file_path,
         'autobuild_package_platform': metadata_file.platform,

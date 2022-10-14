@@ -104,6 +104,7 @@ class TestPackaging(BaseTest):
                         'common', archive_format='tbz2', results_file=results_output)
         expected_results_regex='''\
 autobuild_package_name="%s"
+autobuild_package_version="%s"
 autobuild_package_clean="true"
 autobuild_package_metadata="%s"
 autobuild_package_platform="%s"
@@ -112,7 +113,7 @@ autobuild_package_md5="%s"
 autobuild_package_blake2b="%s"
 autobuild_package_sha1="%s"
 autobuild_package_sha256="%s"
-$''' % ('test1', re.escape(os.path.join(self.data_dir, "package-test", "autobuild-package.xml")),
+$''' % ('test1', '1.0', re.escape(os.path.join(self.data_dir, "package-test", "autobuild-package.xml")),
         "common", re.escape(self.tar_name), "[0-9a-f]{32}", "[0-9a-f]{128}", "[0-9a-f]{40}", "[0-9a-f]{64}")
         expected=re.compile(expected_results_regex, flags=re.MULTILINE)
         assert os.path.exists(results_output), "results file not found: %s" % results_output
@@ -129,6 +130,7 @@ $''' % ('test1', re.escape(os.path.join(self.data_dir, "package-test", "autobuil
         with open(results_file) as f:
             results = json.load(f)
             self.assertEqual(results["autobuild_package_name"], "test1")
+            self.assertEqual(results["autobuild_package_version"], "1.0")
             self.assertEqual(results["autobuild_package_clean"], "true")
             self.assertEqual(results["autobuild_package_metadata"], os.path.join(self.data_dir, "package-test", "autobuild-package.xml"))
             self.assertEqual(results["autobuild_package_platform"], "common")
