@@ -83,7 +83,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
             os.chdir(current_directory)
 
 
-def _configure_a_configuration(config, build_configuration, extra_arguments, dry_run=False,
+def _configure_a_configuration(config: configfile.BuildConfigurationDescription, build_configuration, extra_arguments, dry_run=False,
                                environment=None):
     try:
         common_build_configuration = \

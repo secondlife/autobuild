@@ -13,7 +13,7 @@ from io import StringIO
 from typing import NamedTuple
 
 from autobuild import autobuild_base, common, configfile
-from autobuild.autobuild_tool_install import extract_metadata_from_package
+from autobuild.autobuild_tool_install import get_metadata_from_package
 
 logger = logging.getLogger('autobuild.graph')
 
@@ -130,11 +130,9 @@ class AutobuildTool(autobuild_base.AutobuildBase):
         else:
             # assume that the file is a package archive and try to get metadata from it
             logger.info("searching for metadata in autobuild package file %s" % args.source_file)
-            metadata_stream = extract_metadata_from_package(args.source_file, configfile.PACKAGE_METADATA_FILE)
-            if metadata_stream is not None:
-                metadata = configfile.MetadataDescription(stream=metadata_stream)
-                if not metadata:
-                    raise GraphError("No metadata found in archive '%s'" % args.file)
+            metadata = get_metadata_from_package(args.source_file)
+            if not metadata:
+                raise GraphError("No metadata found in archive '%s'" % args.source_file)
 
         if not metadata:
             raise GraphError("No metadata found")
