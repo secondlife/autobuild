@@ -681,6 +681,7 @@ class ArchiveDescription(common.Serialized):
     # Implementations for various values of hash_algorithm should be found in
     # hash_algorithms.py.
     def __init__(self, dictionary=None):
+        self.creds = None
         self.format = None
         self.hash = None
         self.hash_algorithm = None

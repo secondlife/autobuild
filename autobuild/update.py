@@ -190,7 +190,7 @@ class _Update_1_1(object):
 
     @staticmethod
     def ArchiveDescription():
-        return {'format': None, 'hash': None, 'hash_algorithm': None, 'url': None}
+        return {'creds': None, 'format': None, 'hash': None, 'hash_algorithm': None, 'url': None}
 
     @staticmethod
     def BuildConfigurationDescription():
