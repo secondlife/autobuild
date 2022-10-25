@@ -380,7 +380,7 @@ def _install_binary(configured_name, platform, package, config_file, install_dir
 
     # get the package file in the cache, downloading if needed, and verify the hash
     # (raises InstallError on failure, so no check is needed)
-    cachefile = get_package_file(package_name, archive.url, hash_algorithm=(archive.hash_algorithm or 'md5'), expected_hash=archive.hash)
+    cachefile = get_package_file(package_name, archive.url, hash_algorithm=(archive.hash_algorithm or 'md5'), expected_hash=archive.hash, creds=(archive.creds or None))
     if cachefile is None:
         raise InstallError("Failed to download package '%s' from '%s'" % (package_name, archive.url))
 
