@@ -320,12 +320,9 @@ replace_switch def xyz $switches""").split()),
 
     @needs_cygwin
     def test_vstoolset_set(self):
+        # n.b. This test will need to be updated from time to time:
+        # AUTOBUILD_VSVER is validated against the Visual Studio versions
+        # installed on the host system.
         with envvar("AUTOBUILD_VSVER", "170"):
             vars = self.read_variables(self.find_data("empty"))
         self.assertEqual(vars["AUTOBUILD_WIN_VSTOOLSET"], "v143")
-
-    @needs_cygwin
-    def test_vstoolset_not_set_if_vsver_unrecognized(self):
-        with envvar("AUTOBUILD_VSVER", "120"):
-            vars = self.read_variables(self.find_data("empty"))
-        self.assertTrue("AUTOBUILD_WIN_VSTOOLSET" not in vars)
