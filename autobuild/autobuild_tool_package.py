@@ -22,7 +22,6 @@ following metadata in the autobuild.xml file:
 
 import getpass
 import glob
-import hashlib
 import json
 import logging
 import os
@@ -32,7 +31,7 @@ import tarfile
 from collections import UserDict
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from autobuild import autobuild_base, common, configfile
+from autobuild import autobuild_base, common, configfile, archive_utils
 from autobuild.common import AutobuildError
 
 logger = logging.getLogger('autobuild.package')
@@ -306,7 +305,7 @@ def _create_tarfile(tarfilename, format, build_directory, filelist, results: dic
             tfile = tarfile.open(tarfilename, 'w:gz')
         elif format == 'tzst':
             tarfilename = tarfilename + '.tar.zst'
-            tfile = common.ZstdTarFile(tarfilename, 'w', level=22)
+            tfile = archive_utils.ZstdTarFile(tarfilename, 'w', level=22)
         else:
             raise PackageError("unknown tar archive format: %s" % format)
 

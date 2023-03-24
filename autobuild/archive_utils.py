@@ -1,4 +1,6 @@
-"""Utilities for detecting file types"""
+import multiprocessing
+import tarfile
+import zipfile
 
 class ArchiveType:
     GZ = "gz"
@@ -47,3 +49,39 @@ def detect_archive_type(filename: str):
     if f_type:
         return f_type
     return _archive_type_from_signature(filename)
+
+
+def open_archive(filename: str) -> tarfile.TarFile | zipfile.ZipFile:
+    f_type = detect_archive_type(filename)
+
+    if f_type == ArchiveType.ZST:
+        return ZstdTarFile(filename, "r")
+
+    if f_type == ArchiveType.ZIP:
+        return zipfile.ZipFile(filename, "r")
+
+    return tarfile.open(filename, "r")
+
+
+class ZstdTarFile(tarfile.TarFile):
+    def __init__(self, name, mode='r', *, level=4, zstd_dict=None, **kwargs):
+        from pyzstd import CParameter, ZstdFile
+        zstdoption = None
+        if mode != 'r' and mode != 'rb':
+           zstdoption = {CParameter.compressionLevel : level,
+                         CParameter.nbWorkers : multiprocessing.cpu_count(),
+                         CParameter.checksumFlag : 1}
+        self.zstd_file = ZstdFile(name, mode,
+                                level_or_option=zstdoption,
+                                zstd_dict=zstd_dict)
+        try:
+            super().__init__(fileobj=self.zstd_file, mode=mode, **kwargs)
+        except:
+            self.zstd_file.close()
+            raise
+
+    def close(self):
+        try:
+            super().close()
+        finally:
+            self.zstd_file.close()

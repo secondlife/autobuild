@@ -14,16 +14,14 @@ import logging
 import os
 import pprint
 import sys
-import tarfile
 import urllib.error
 import urllib.parse
 import urllib.request
-import zipfile
 
 from autobuild import autobuild_base, common, configfile
 from autobuild.autobuild_tool_source_environment import get_enriched_environment
 from autobuild.hash_algorithms import verify_hash
-from autobuild import filetype
+from autobuild import archive_utils
 
 logger = logging.getLogger('autobuild.install')
 
@@ -405,7 +403,7 @@ def _install_binary(configured_name, platform, package, config_file, install_dir
 
 def get_metadata_from_package(package_file) -> configfile.MetadataDescription:
     try:
-        with open_archive(package_file) as archive:
+        with archive_utils.open_archive(package_file) as archive:
             f = archive.extractfile(configfile.PACKAGE_METADATA_FILE)
             return configfile.MetadataDescription(stream=f)
     except (FileNotFoundError, KeyError):
@@ -439,18 +437,6 @@ def _default_metadata_for_package(package_file: str, package = None):
     return metadata
 
 
-def open_archive(filename: str) -> tarfile.TarFile | zipfile.ZipFile:
-    f_type = filetype.detect_archive_type(filename)
-
-    if f_type == filetype.ArchiveType.ZST:
-        return common.ZstdTarFile(filename, "r")
-
-    if f_type == filetype.ArchiveType.ZIP:
-        return zipfile.ZipFile(filename, "r")
-
-    return tarfile.open(filename, "r")
-
-
 class ExtractPackageResults:
     files: list[str]
     conflicts: list[str]
@@ -468,7 +454,7 @@ class ExtractPackageResults:
 
 
 def extract_package(package_file: str, install_dir: str, dry_run: bool = False) -> ExtractPackageResults:
-    with open_archive(package_file) as archive:
+    with archive_utils.open_archive(package_file) as archive:
         results = ExtractPackageResults()
         for t in archive:
             if t.name == configfile.PACKAGE_METADATA_FILE:

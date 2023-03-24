@@ -9,7 +9,7 @@ from string import Template
 from zipfile import ZipFile
 
 import autobuild.autobuild_tool_package as package
-from autobuild import common, configfile
+from autobuild import common, configfile, archive_utils
 from tests.basetest import BaseTest, CaptureStdout, ExpectError, clean_dir, clean_file
 
 # ****************************************************************************
@@ -76,7 +76,7 @@ class TestPackaging(BaseTest):
 
     def tar_has_expected(self,tar):
         if 'tar.zst' in tar:
-            tarball = common.ZstdTarFile(tar, 'r')
+            tarball = archive_utils.ZstdTarFile(tar, 'r')
         else:
             tarball = tarfile.open(tar, 'r')
         packaged_files=tarball.getnames()
