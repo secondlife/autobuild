@@ -23,6 +23,7 @@ import zipfile
 from autobuild import autobuild_base, common, configfile
 from autobuild.autobuild_tool_source_environment import get_enriched_environment
 from autobuild.hash_algorithms import verify_hash
+from autobuild import filetype
 
 logger = logging.getLogger('autobuild.install')
 
@@ -439,12 +440,15 @@ def _default_metadata_for_package(package_file: str, package = None):
 
 
 def open_archive(filename: str) -> tarfile.TarFile | zipfile.ZipFile:
-    if filename.endswith(".tar.zst"):
+    f_type = filetype.detect_archive_type(filename)
+
+    if f_type == filetype.ArchiveType.ZST:
         return common.ZstdTarFile(filename, "r")
-    elif filename.endswith(".zip"):
+
+    if f_type == filetype.ArchiveType.ZIP:
         return zipfile.ZipFile(filename, "r")
-    else:
-        return tarfile.open(filename, "r")
+
+    return tarfile.open(filename, "r")
 
 
 class ExtractPackageResults:
