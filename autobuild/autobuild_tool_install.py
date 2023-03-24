@@ -202,6 +202,10 @@ def download_package(package_url: str, timeout=120, creds=None, package_name="")
             token_var = CREDENTIAL_ENVVARS[creds]
         except KeyError:
             logger.warning(f"Unrecognized creds={creds} value")
+        
+        if creds == "github":
+            # Request octet-stream if creds=github, or else we'll get a JSON response back
+            req.add_unredirected_header("Accept", "application/octet-stream")
 
         token = os.environ.get(token_var)
         if token:
