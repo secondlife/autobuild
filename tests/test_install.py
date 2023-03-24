@@ -762,6 +762,7 @@ class TestDownloadPackage(unittest.TestCase):
             mock_urlopen.assert_called()
             got_req = mock_urlopen.mock_calls[0].args[0]
             self.assertEqual(got_req.unredirected_hdrs["Authorization"], "Bearer token-123")
+            self.assertEqual(got_req.unredirected_hdrs["Accept"], "application/octet-stream")
 
     @patch("urllib.request.urlopen")
     def test_download_gitlab(self, mock_urlopen: MagicMock):
