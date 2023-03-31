@@ -1,6 +1,7 @@
 import multiprocessing
 import tarfile
 import zipfile
+from typing import Union
 
 class ArchiveType:
     GZ = "gz"
@@ -51,7 +52,7 @@ def detect_archive_type(filename: str):
     return _archive_type_from_signature(filename)
 
 
-def open_archive(filename: str) -> tarfile.TarFile | zipfile.ZipFile:
+def open_archive(filename: str) -> Union[tarfile.TarFile, zipfile.ZipFile]:
     f_type = detect_archive_type(filename)
 
     if f_type == ArchiveType.ZST:
