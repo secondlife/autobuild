@@ -61,6 +61,8 @@ jobs:
     name: Publish to PyPI
     needs: build
     runs-on: [ubuntu-latest]
+    permissions:
+      id-token: write
     if: github.event_name != 'pull_request'
     steps:
       - uses: actions/download-artifact@v3
@@ -71,11 +73,8 @@ jobs:
       - name: Test Publish package
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.SHARED_PYPI_TEST_TOKEN }}
           repository_url: https://test.pypi.org/legacy/
 
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@release/v1
         if: startsWith(github.event.ref, 'refs/tags/v')
-        with:
-          password: ${{ secrets.SHARED_PYPI_TOKEN }}
