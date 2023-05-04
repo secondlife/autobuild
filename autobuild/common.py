@@ -326,12 +326,12 @@ def compute_hash(path: str, hash: Callable[[], hashlib._Hash]):
     Compute a hash for a file effeciently by streaming it into the hash algorithm
     """
     h = hash()
-    b = bytearray(128*1024)
-    mv = memoryview(b)
     try:
         with open(path, 'rb') as f:
-            while n := f.readinto(mv):
-                h.update(mv[:n])
+            chunk = f.read(8192)
+            while chunk:
+                h.update(chunk)
+                chunk = f.read(8192)
             return h.hexdigest()
     except IOError as err:
         raise AutobuildError(f"Can't compute {h.name} for {path}: {err}")

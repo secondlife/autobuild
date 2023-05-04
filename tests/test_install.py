@@ -751,7 +751,8 @@ class TestDownloadPackage(unittest.TestCase):
         with envvar("AUTOBUILD_GITHUB_TOKEN", None):
             autobuild_tool_install.download_package("https://example.org/foo.tar.bz2")
             mock_urlopen.assert_called()
-            got_req = mock_urlopen.mock_calls[0].args[0]
+            _, args, _ = mock_urlopen.mock_calls[0]
+            got_req = args[0]
             self.assertIsNone(got_req.unredirected_hdrs.get("Authorization"))
 
     @patch("urllib.request.urlopen")
@@ -760,7 +761,8 @@ class TestDownloadPackage(unittest.TestCase):
         with envvar("AUTOBUILD_GITHUB_TOKEN", "token-123"):
             autobuild_tool_install.download_package("https://example.org/foo.tar.bz2", creds="github")
             mock_urlopen.assert_called()
-            got_req = mock_urlopen.mock_calls[0].args[0]
+            _, args, _ = mock_urlopen.mock_calls[0]
+            got_req = args[0]
             self.assertEqual(got_req.unredirected_hdrs["Authorization"], "Bearer token-123")
             self.assertEqual(got_req.unredirected_hdrs["Accept"], "application/octet-stream")
 
@@ -770,7 +772,8 @@ class TestDownloadPackage(unittest.TestCase):
         with envvar("AUTOBUILD_GITLAB_TOKEN", "token-123"):
             autobuild_tool_install.download_package("https://example.org/foo.tar.bz2", creds="gitlab")
             mock_urlopen.assert_called()
-            got_req = mock_urlopen.mock_calls[0].args[0]
+            _, args, _ = mock_urlopen.mock_calls[0]
+            got_req = args[0]
             self.assertEqual(got_req.unredirected_hdrs["Authorization"], "Bearer token-123")
 
     @patch("urllib.request.urlopen")
