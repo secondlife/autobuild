@@ -1,0 +1,9 @@
+name: Bump major version 
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  Tag:
+    uses: secondlife/update-major-tag-workflow/.github/workflows/update-major-tag.yaml@v1
