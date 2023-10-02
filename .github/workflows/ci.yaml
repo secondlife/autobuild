@@ -26,7 +26,7 @@ jobs:
       OS: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # fetch all history for setuptools_scm to be able to read tags
 
