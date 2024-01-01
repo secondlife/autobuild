@@ -54,7 +54,7 @@ jobs:
         with:
           env_vars: OS
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: dist-${{ matrix.os }}
           path: dist
