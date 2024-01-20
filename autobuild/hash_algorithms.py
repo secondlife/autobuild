@@ -56,6 +56,9 @@ def verify_hash(hash_algorithm, pathname, hash):
         raise AutobuildError("Unsupported hash type %s for %s" %
                              (hash_algorithm, pathname))
 
+    # The final comparison should be case insensitive
+    hash = hash.lower()
+
     # Apparently we do have a function to support this hash_algorithm. Call
     # it.
     return function(pathname, hash)
