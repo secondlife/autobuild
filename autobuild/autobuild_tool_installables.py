@@ -17,7 +17,7 @@ logger = logging.getLogger('autobuild.installables')
 
 
 # Match key=value arguments.
-_key_value_regexp = re.compile(r'(\w+)\s*=\s*(\S+)')
+_key_value_regexp = re.compile(r'(\w+)\s*=\s*(\S+)?')
 
 
 class InstallablesError(common.AutobuildError):
@@ -219,9 +219,12 @@ def edit(config, args_name, args_archive, arguments):
         installed_package_description.platforms[platform_name] = platform_description.copy()
 
     for element in _ARCHIVE_ATTRIBUTES:
-        if element in metadata.archive \
-          and metadata.archive[element] is not None:
-            installed_package_description.platforms[platform_name].archive[element] = metadata.archive[element]
+        if element in metadata.archive:
+            if metadata.archive[element] is None:
+                # Allow installables edit to remove archive elements, such as creds, by passing "creds="
+                del installed_package_description.platforms[platform_name].archive[element]
+            else:
+                installed_package_description.platforms[platform_name].archive[element] = metadata.archive[element]
 
 
 
