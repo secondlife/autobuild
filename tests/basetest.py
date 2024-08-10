@@ -262,7 +262,7 @@ def envvar(key: str, val: str | None):
 
 
 @contextmanager
-def git_repo():
+def git_repo(initial_tag="v1.0.0"):
     """
     Initialize a new git repository in a temporary directory, yield its path, clean after context exit.
 
@@ -290,7 +290,7 @@ def git_repo():
             cmd("git", "remote", "add", "origin", "https://example.com/foo.git")
             cmd("git", "add", "-A")
             cmd("git", "commit", "-m", "Initial")
-            cmd("git", "tag", "v1.0.0")
+            cmd("git", "tag", initial_tag)
             yield root
         finally:
             # Make sure to chdir out of temp_dir before closing it, otherwise windows
