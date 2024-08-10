@@ -10,6 +10,22 @@ from tests.basetest import chdir, git_repo, needs_git
 
 
 @needs_git
+class InvalidSemverTests(TestCase):
+    def test_invalid_semver(self):
+        with git_repo("v1.1.1q") as repo:
+            version = get_version(repo)
+            self.assertEqual(version, "1.1.1q")
+
+    def test_dirty_invalid_semver(self):
+        with git_repo("v1.1.1q") as repo:
+            with open(os.path.join(repo, "file"), "w") as f:
+                f.write("+1")
+            cmd("git", "add", "file")
+            version = get_version(repo)
+            self.assertRegex(version, fr"^1\.1\.1q\-dev0\.g[a-z0-9]{{7}}.d{date()}$")
+
+
+@needs_git
 class GitTests(TestCase):
     repo: str
 

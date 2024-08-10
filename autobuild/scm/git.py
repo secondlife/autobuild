@@ -54,7 +54,7 @@ class GitMeta(NamedTuple):
     dirty: bool
     distance: int
     commit: str # Short commit hash
-    version: Semver
+    version: Semver | str
 
 
 def _find_repo_dir(start: Path, level: int = 0) -> Path | None:
@@ -87,7 +87,7 @@ def _parse_describe(describe: str) -> GitMeta:
         dirty=dirty,
         distance=int(distance),
         commit=commit[1:], # omit "g" prefix
-        version=Semver.parse(raw_tag),
+        version=Semver.parse(raw_tag) or raw_tag.lstrip("v"),
     )
 
 
@@ -131,12 +131,15 @@ class Git:
             return None
         meta = _parse_describe(self.describe())
 
+        # If the tag is not a valid semver, then use the raw tag as the next version.
+        next_version = meta.version.next if isinstance(meta.version, Semver) else meta.version
+
         if meta.dirty:
             # dirty + distance or no distance
-            return f"{meta.version.next}-dev{meta.distance}.g{meta.commit}.d{date()}"
+            return f"{next_version}-dev{meta.distance}.g{meta.commit}.d{date()}"
         elif meta.distance:
             # clean + distance
-            return f"{meta.version.next}-dev{meta.distance}.g{meta.commit}"
+            return f"{next_version}-dev{meta.distance}.g{meta.commit}"
         else:
             # clean + no distance
             return str(meta.version)
