@@ -18,10 +18,9 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from autobuild import autobuild_base, common, configfile
+from autobuild import archive_utils, autobuild_base, common, configfile
 from autobuild.autobuild_tool_source_environment import get_enriched_environment
 from autobuild.hash_algorithms import verify_hash
-from autobuild import archive_utils
 
 logger = logging.getLogger('autobuild.install')
 
@@ -201,7 +200,7 @@ def download_package(package_url: str, timeout=120, creds=None, package_name="")
             token_var = CREDENTIAL_ENVVARS[creds]
         except KeyError:
             logger.warning(f"Unrecognized creds={creds} value")
-        
+
         if creds == "github":
             # Request octet-stream if creds=github, or else we'll get a JSON response back
             req.add_unredirected_header("Accept", "application/octet-stream")
@@ -895,7 +894,7 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             action='store_true',
                             default=False,
                             dest='cache_only',
-                            help="fetch remote pacakges and populate the cache but do not install.\nintended for use preparing environment for offline operation")
+                            help="fetch remote packages and populate the cache but do not install.\nintended for use preparing environment for offline operation")
 
     def run(self, args):
         platform=common.get_current_platform()
