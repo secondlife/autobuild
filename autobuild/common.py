@@ -39,7 +39,7 @@ PLATFORM_LINUX     = 'linux'
 PLATFORM_LINUX64   = 'linux64'
 PLATFORM_COMMON    = 'common'
 
-DEFAULT_ADDRSIZE = 32
+DEFAULT_ADDRSIZE = 64
 
 # Similarly, if we have an explicit platform in the environment, keep it. We
 # used to query os.environ in establish_platform(), instead of up here. The
