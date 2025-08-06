@@ -156,6 +156,7 @@ def setup_module(module):
                      addrsize=32,
                      package=[],
                      skip_source_environment=False,
+                     cache_only=False,
                      ):
             # Take all constructor params and assign as object attributes.
             params = locals().copy()
@@ -782,3 +783,48 @@ class TestDownloadPackage(unittest.TestCase):
         with envvar("AUTOBUILD_GITHUB_TOKEN", None):
             with self.assertRaises(CredentialsNotFoundError):
                 autobuild_tool_install.download_package("https://example.org/foo.tar.bz2", creds="github")
+
+# -------------------------------------  -------------------------------------
+class TestInstallCacheOnly(BaseTest):
+    def setup_method(self, module):
+        super(TestInstallCacheOnly, self).setup_method(module)
+
+        self.pkg = "bogus"
+        # Set up options with cache_only flag
+        self.options.package = [self.pkg]
+        self.options.cache_only = True
+
+        # Ensure the package is not in the cache initially
+        cache_file = os.path.join(common.get_install_cache_dir(), "bogus-0.1-common-111.tar.bz2")
+        clean_file(cache_file)
+        assert not os.path.exists(cache_file)
+
+    def test_cache_only_success(self):
+        # Run install with --cache-only flag
+        autobuild_tool_install.AutobuildTool().run(self.options)
+
+        # Verify package was downloaded to cache
+        cache_file = os.path.join(common.get_install_cache_dir(), "bogus-0.1-common-111.tar.bz2")
+        assert os.path.exists(cache_file)
+
+        # Verify package was NOT installed to install directory
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
+
+        # Verify package is not listed in installed manifest
+        assert_not_in(self.pkg, query_manifest(self.options))
+
+    def test_cache_only_with_local_archives(self):
+        # Set up options with cache_only flag and local archives
+        cache_opts = self.options.copy()
+        cache_opts.local_archives = [os.path.join(mydir, "data", "bogus-0.1-common-111.tar.bz2")]
+
+        # Run install with --cache-only flag
+        autobuild_tool_install.AutobuildTool().run(cache_opts)
+
+        # Verify nothing was installed
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "lib", "bogus.lib"))
+        assert not os.path.exists(os.path.join(INSTALL_DIR, "include", "bogus.h"))
+
+        # Verify package is not listed in installed manifest
+        assert_not_in(self.pkg, query_manifest(self.options))
