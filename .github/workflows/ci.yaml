@@ -73,6 +73,7 @@ jobs:
 
       - name: Test Publish package
         uses: pypa/gh-action-pypi-publish@release/v1
+        continue-on-error: true
         with:
           repository-url: https://test.pypi.org/legacy/
           attestations: false
