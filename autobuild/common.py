@@ -99,7 +99,7 @@ def is_system_64bit():
     """
     Returns True if the build system is 64-bit compatible.
     """
-    return platform.machine().lower() in ("x86_64", "amd64", "arm64")
+    return platform.machine().lower() in ("x86_64", "amd64", "arm64", "aarch64")
 
 def is_system_windows():
     # Note that Python has a commitment to the value "win32" even for 64-bit

@@ -18,10 +18,9 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from autobuild import autobuild_base, common, configfile
+from autobuild import archive_utils, autobuild_base, common, configfile
 from autobuild.autobuild_tool_source_environment import get_enriched_environment
 from autobuild.hash_algorithms import verify_hash
-from autobuild import archive_utils
 
 logger = logging.getLogger('autobuild.install')
 
@@ -201,7 +200,7 @@ def download_package(package_url: str, timeout=120, creds=None, package_name="")
             token_var = CREDENTIAL_ENVVARS[creds]
         except KeyError:
             logger.warning(f"Unrecognized creds={creds} value")
-        
+
         if creds == "github":
             # Request octet-stream if creds=github, or else we'll get a JSON response back
             req.add_unredirected_header("Accept", "application/octet-stream")
@@ -301,7 +300,7 @@ def get_package_file(package_name, package_url, hash_algorithm='md5', expected_h
     return cache_file
 
 
-def do_install(packages, config_file, installed, platform, install_dir, dry_run, local_archives=[]):
+def do_install(packages, config_file, installed, platform, install_dir, dry_run, local_archives=[], cache_only=False):
     """
     Install the specified list of packages. By default this will download the
     packages to the local cache, extract the contents of those
@@ -322,10 +321,12 @@ def do_install(packages, config_file, installed, platform, install_dir, dry_run,
 
         # Existing tarball install, or new package install of either kind
         if pname in local_archives:
-            if _install_local(pname, platform, package, local_archives[pname], install_dir, installed, dry_run):
-                installed_pkgs.append(pname)
+            if not cache_only:
+                # local packages don't need to be placed in the cache
+                if _install_local(pname, platform, package, local_archives[pname], install_dir, installed, dry_run):
+                    installed_pkgs.append(pname)
         else:
-            if _install_binary(pname, platform, package, config_file, install_dir, installed, dry_run):
+            if _install_binary(pname, platform, package, config_file, install_dir, installed, dry_run, cache_only=cache_only):
                 installed_pkgs.append(pname)
     return installed_pkgs
 
@@ -354,7 +355,7 @@ def _install_local(configured_name, platform, package, package_path, install_dir
     else:
         return False
 
-def _install_binary(configured_name, platform, package, config_file, install_dir, installed, dry_run):
+def _install_binary(configured_name, platform, package, config_file, install_dir, installed, dry_run, cache_only=False):
     # Check that we have a platform-specific or common url to use.
     req_plat = package.get_platform(platform)
     package_name = getattr(package, 'name', '(undefined)')
@@ -386,6 +387,9 @@ def _install_binary(configured_name, platform, package, config_file, install_dir
     cachefile = get_package_file(package_name, archive.url, hash_algorithm=(archive.hash_algorithm or 'md5'), expected_hash=archive.hash, creds=(archive.creds or None))
     if cachefile is None:
         raise InstallError("Failed to download package '%s' from '%s'" % (package_name, archive.url))
+
+    if cache_only:
+        return True
 
     metadata, files = _install_common(configured_name, platform, package, cachefile, install_dir, installed, dry_run)
     if metadata:
@@ -761,9 +765,9 @@ def install_packages(args, config_file, install_dir, platform, packages):
 
     # do the actual install of any new/updated packages
     packages = do_install(packages, config_file, installed, platform, install_dir,
-                          args.dry_run, local_archives=local_archives)
+                          args.dry_run, local_archives=local_archives, cache_only=args.cache_only)
 
-    if not args.dry_run:
+    if not args.dry_run and not args.cache_only:
         # update the installed-packages.xml file
         try:
             # in case we got this far without ever having created installed_file's
@@ -886,6 +890,11 @@ class AutobuildTool(autobuild_base.AutobuildBase):
                             help="install packages for a specific build configuration\n(may be specified as comma separated values in $AUTOBUILD_CONFIGURATION)",
                             metavar='CONFIGURATION',
                             default=self.configurations_from_environment())
+        parser.add_argument('--cache-only',
+                            action='store_true',
+                            default=False,
+                            dest='cache_only',
+                            help="fetch remote packages and populate the cache but do not install.\nintended for use preparing environment for offline operation")
 
     def run(self, args):
         platform=common.get_current_platform()
