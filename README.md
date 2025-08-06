@@ -21,7 +21,7 @@ For more information, see [Autobuild's wiki page][wiki].
 
 | Name | Default | Description |
 |-|-|-|
-| AUTOBUILD_ADDRSIZE | 32 | Target address size |
+| AUTOBUILD_ADDRSIZE | 64 | Target address size |
 | AUTOBUILD_BUILD_ID | - | Build identifier |
 | AUTOBUILD_CONFIGURATION | - | Target build configuration |
 | AUTOBUILD_CONFIG_FILE | autobuild.xml | Autobuild configuration filename |
