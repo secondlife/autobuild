@@ -46,12 +46,6 @@ jobs:
       - name: Build python package
         run: python -m build
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v5
-        if: matrix.os == 'ubuntu-latest'
-        with:
-          env_vars: OS
-
       - uses: actions/upload-artifact@v4
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         with:
