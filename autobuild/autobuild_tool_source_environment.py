@@ -733,10 +733,10 @@ def internal_source_environment(configurations, varsfile):
                 # vswhere might have reported (e.g.) "158" or "161". Ignore
                 # the minor version when choosing the CMake generator.
                 AUTOBUILD_WIN_CMAKE_GEN = {
-                    '12': "Visual Studio 12",
-                    '14': "Visual Studio 14",
-                    '15': "Visual Studio 15",
-                    '16': "Visual Studio 16",
+                    '12': "Visual Studio 12 2013",
+                    '14': "Visual Studio 14 2015",
+                    '15': "Visual Studio 15 2017",
+                    '16': "Visual Studio 16 2019",
                     '17': "Visual Studio 17 2022",
                     }[vsver[:-1]]
             except KeyError:
@@ -747,11 +747,7 @@ def internal_source_environment(configurations, varsfile):
                 # error here. Plus this way, we defer the error until we hit a
                 # build that actually consumes AUTOBUILD_WIN_CMAKE_GEN.
                 AUTOBUILD_WIN_CMAKE_GEN = "Visual Studio %s" % (vsver[:-1])
-            # Of course CMake also needs to know bit width :-P
-            # Or at least it used to, until VS 2019.
-            if os.environ["AUTOBUILD_ADDRSIZE"] == "64" and vsver < '160':
-                AUTOBUILD_WIN_CMAKE_GEN += " Win64"
-            # cmake -G "$AUTOBUILD_WIN_CMAKE_GEN"
+
             exports["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
 
             try:
