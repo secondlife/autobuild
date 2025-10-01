@@ -28,7 +28,7 @@ jobs:
         with:
           fetch-depth: 0 # fetch all history for setuptools_scm to be able to read tags
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
