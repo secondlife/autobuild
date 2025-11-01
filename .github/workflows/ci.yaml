@@ -46,7 +46,7 @@ jobs:
       - name: Build python package
         run: python -m build
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         with:
           name: dist
