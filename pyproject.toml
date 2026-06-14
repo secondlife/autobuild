@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autobuild"
+description = "Linden Lab Automated Package Management and Build System"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Linden Research, Inc.", email = "opensource-dev@lists.secondlife.com" },
+]
+requires-python = ">=3.7"
+dynamic = ["version"]
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: Unix",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "llsd>=1.2.4",
+    "pydot",
+    "pyzstd==0.18.0",
+]
+
+[project.urls]
+Homepage = "http://wiki.secondlife.com/wiki/Autobuild"
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov"]
+build = ["build", "setuptools_scm"]
+
+[project.scripts]
+autobuild = "autobuild.autobuild_main:main"
+
+[tool.setuptools.packages.find]
+exclude = ["tests*"]
+
+[tool.setuptools_scm]
+# Disable local-version to allow uploads to test.pypi.org
+local_scheme = "no-local-version"
+version_file = "autobuild/version.py"
+version_file_template = "AUTOBUILD_VERSION_STRING = '{version}'"

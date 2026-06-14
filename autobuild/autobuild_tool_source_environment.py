@@ -21,13 +21,56 @@ class SourceEnvError(common.AutobuildError):
 _VSxxxCOMNTOOLS_re = re.compile(r"VS(.*)COMNTOOLS$")
 _VSxxxCOMNTOOLS_st = "VS%sCOMNTOOLS"
 
-# Map of Visual Studio major version to corresponding default C++ SDK toolset version
-_VSTOOLSETS = {
-    "14": "v140", # 2015
-    "15": "v141", # 2017
-    "16": "v142", # 2019
-    "17": "v143", # 2022
+# Single source of truth for Visual Studio version specifics, keyed by VS major
+# version (the leading digits of AUTOBUILD_VSVER -- e.g. "17" for 170/VS2022,
+# "18" for 180/VS2026). Each entry is (release_year, default_v_toolset). The
+# year drives the CMake generator name ("Visual Studio <major> <year>") and the
+# toolset is the suggested /p:PlatformToolset value. toolset is None for VS
+# versions predating the vNNN toolset naming convention.
+#
+# To support a newer Visual Studio, add one row here -- nothing else in this
+# module hardcodes a VS version or generator string.
+_VS_VERSIONS = {
+    "12": ("2013", None),   # VS2013
+    "14": ("2015", "v140"), # VS2015
+    "15": ("2017", "v141"), # VS2017
+    "16": ("2019", "v142"), # VS2019
+    "17": ("2022", "v143"), # VS2022
+    "18": ("2026", "v145"), # VS2026
 }
+
+
+def _vs_major(vsver):
+    """Reduce an AUTOBUILD_VSVER value (e.g. "170", or a vswhere-derived "158")
+    to its VS major-version key (e.g. "17", "15") by dropping the minor digit.
+    """
+    return vsver[:-1]
+
+
+def win_cmake_generator(vsver):
+    """Return the CMake -G generator string for the given AUTOBUILD_VSVER.
+
+    Uses the central _VS_VERSIONS table; for an unknown major version, falls
+    back to a best-guess "Visual Studio <major>" so a build that actually
+    consumes the generator surfaces a clear CMake error (and a hint to update
+    autobuild) rather than failing here.
+    """
+    major = _vs_major(vsver)
+    entry = _VS_VERSIONS.get(major)
+    if entry is None:
+        logger.warning("No CMake generator mapping for AUTOBUILD_VSVER=%s; "
+                       "guessing -- update _VS_VERSIONS in autobuild if this is wrong",
+                       vsver)
+        return "Visual Studio %s" % major
+    return "Visual Studio %s %s" % (major, entry[0])
+
+
+def win_vstoolset(vsver):
+    """Return the suggested MSVC v-toolset for the given AUTOBUILD_VSVER, or
+    None if the major version is unknown or predates the vNNN convention.
+    """
+    entry = _VS_VERSIONS.get(_vs_major(vsver))
+    return entry[1] if entry else None
 
 # From VS 2017 on, we have to look for vswhere.exe at this canonical path to
 # discover where the Visual Studio install is.
@@ -728,34 +771,19 @@ def internal_source_environment(configurations, varsfile):
             # isn't necessarily straightforward -- we may have to maintain a
             # lookup dict. That dict should not be replicated into each 3p repo,
             # it should be central. It should be here.
-            try:
-                # vsver might have been set by reading vswhere output, and
-                # vswhere might have reported (e.g.) "158" or "161". Ignore
-                # the minor version when choosing the CMake generator.
-                AUTOBUILD_WIN_CMAKE_GEN = {
-                    '12': "Visual Studio 12 2013",
-                    '14': "Visual Studio 14 2015",
-                    '15': "Visual Studio 15 2017",
-                    '16': "Visual Studio 16 2019",
-                    '17': "Visual Studio 17 2022",
-                    }[vsver[:-1]]
-            except KeyError:
-                # We don't have a specific mapping for this value of vsver. Take
-                # a wild guess. If we guess wrong, CMake will complain, and the
-                # user will have to update autobuild -- which is no worse than
-                # what s/he'd have to do anyway if we immediately produced an
-                # error here. Plus this way, we defer the error until we hit a
-                # build that actually consumes AUTOBUILD_WIN_CMAKE_GEN.
-                AUTOBUILD_WIN_CMAKE_GEN = "Visual Studio %s" % (vsver[:-1])
+            # The vsver -> generator mapping lives centrally in _VS_VERSIONS
+            # (see win_cmake_generator). An explicit AUTOBUILD_WIN_CMAKE_GEN in
+            # the environment wins, mirroring AUTOBUILD_WIN_VSTOOLSET below, so a
+            # not-yet-tabled Visual Studio can be used without code changes.
+            exports["AUTOBUILD_WIN_CMAKE_GEN"] = os.environ.get(
+                "AUTOBUILD_WIN_CMAKE_GEN", win_cmake_generator(vsver))
 
-            exports["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
-
-            try:
-                # Provide a suggested C++ SDK version for build scripts to
-                # use. Just as with AUTOBUILD_WIN_CMAKE_GEN above, use only
-                # the first two digits of vsver to select it.
-                exports["AUTOBUILD_WIN_VSTOOLSET"] = os.environ.get("AUTOBUILD_WIN_VSTOOLSET", _VSTOOLSETS[vsver[:-1]])
-            except KeyError:
+            # Provide a suggested C++ SDK version for build scripts to use. An
+            # explicit AUTOBUILD_WIN_VSTOOLSET in the environment wins.
+            vstoolset = os.environ.get("AUTOBUILD_WIN_VSTOOLSET") or win_vstoolset(vsver)
+            if vstoolset:
+                exports["AUTOBUILD_WIN_VSTOOLSET"] = vstoolset
+            else:
                 logger.warning(f"Unable to determine a suggested AUTOBUILD_WIN_VSTOOLSET for vsver {vsver}")
 
             # load vsvars32.bat variables

@@ -326,3 +326,50 @@ replace_switch def xyz $switches""").split()),
         with envvar("AUTOBUILD_VSVER", "170"):
             vars = self.read_variables(self.find_data("empty"))
         self.assertEqual(vars["AUTOBUILD_WIN_VSTOOLSET"], "v143")
+        self.assertEqual(vars["AUTOBUILD_WIN_CMAKE_GEN"], "Visual Studio 17 2022")
+
+    @needs_cygwin
+    def test_win_cmake_gen_env_override(self):
+        # An explicit AUTOBUILD_WIN_CMAKE_GEN in the environment wins over the
+        # value derived from AUTOBUILD_VSVER, so a not-yet-tabled Visual Studio
+        # can be targeted without changing autobuild.
+        with envvar("AUTOBUILD_VSVER", "170"), \
+             envvar("AUTOBUILD_WIN_CMAKE_GEN", "Visual Studio 99 2099"):
+            vars = self.read_variables(self.find_data("empty"))
+        self.assertEqual(vars["AUTOBUILD_WIN_CMAKE_GEN"], "Visual Studio 99 2099")
+
+
+# Pure-function tests for the central Visual Studio version mapping. These have
+# no Visual Studio / vswhere dependency, so they run on every platform.
+class TestWinVSVersionMapping(BaseTest):
+    def test_cmake_generator_known(self):
+        cases = {
+            "120": "Visual Studio 12 2013",
+            "140": "Visual Studio 14 2015",
+            "150": "Visual Studio 15 2017",
+            "160": "Visual Studio 16 2019",
+            "170": "Visual Studio 17 2022",
+            "180": "Visual Studio 18 2026",
+            # vswhere may report a non-zero minor digit; only the major matters.
+            "158": "Visual Studio 15 2017",
+        }
+        for vsver, expected in cases.items():
+            self.assertEqual(atse.win_cmake_generator(vsver), expected, vsver)
+
+    def test_vstoolset_known(self):
+        cases = {
+            "120": None,  # predates the vNNN toolset convention
+            "140": "v140",
+            "150": "v141",
+            "160": "v142",
+            "170": "v143",
+            "180": "v145",
+        }
+        for vsver, expected in cases.items():
+            self.assertEqual(atse.win_vstoolset(vsver), expected, vsver)
+
+    def test_unknown_major_falls_back(self):
+        # Unknown major -> best-guess generator (no year) and no toolset, so a
+        # downstream CMake invocation surfaces a clear error.
+        self.assertEqual(atse.win_cmake_generator("990"), "Visual Studio 99")
+        self.assertIsNone(atse.win_vstoolset("990"))
