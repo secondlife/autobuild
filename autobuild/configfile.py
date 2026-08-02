@@ -6,6 +6,7 @@ import pprint
 import re
 import string
 import sys
+import xml.etree.ElementTree as ET
 from io import StringIO
 
 import llsd
@@ -35,6 +36,44 @@ class ConfigurationError(common.AutobuildError):
 
 class NoVersionFileKeyError(common.AutobuildError):
     pass
+
+
+def _iter_duplicate_llsd_keys(element, path=()):
+    if element.tag == 'map':
+        seen = set()
+        children = list(element)
+        index = 0
+        while index < len(children):
+            key_element = children[index]
+            if key_element.tag != 'key':
+                yield from _iter_duplicate_llsd_keys(key_element, path)
+                index += 1
+                continue
+
+            key = key_element.text or ''
+            value_element = children[index + 1] if index + 1 < len(children) else None
+            key_path = path + (key,)
+            if key in seen:
+                yield '.'.join(key_path)
+            else:
+                seen.add(key)
+            if value_element is not None:
+                yield from _iter_duplicate_llsd_keys(value_element, key_path)
+            index += 2
+    elif element.tag in ('array', 'llsd'):
+        for child in list(element):
+            yield from _iter_duplicate_llsd_keys(child, path)
+
+
+def _warn_duplicate_llsd_keys(xml_bytes, source):
+    try:
+        root = ET.fromstring(xml_bytes)
+    except ET.ParseError:
+        return
+
+    for key_path in _iter_duplicate_llsd_keys(root):
+        logger.warning("File '%s' contains duplicate LLSD key '%s'; later definitions override earlier ones",
+                       source, key_path)
 
 
 class ConfigurationDescription(common.Serialized):
@@ -217,6 +256,7 @@ class ConfigurationDescription(common.Serialized):
             if not autobuild_xml:
                 logger.warning("Configuration file '%s' is empty" % self.path)
                 return
+            _warn_duplicate_llsd_keys(autobuild_xml, self.path)
             try:
                 saved_data = llsd.parse(autobuild_xml)
             except llsd.LLSDParseError:
@@ -431,6 +471,7 @@ class MetadataDescription(common.Serialized):
         elif stream:
             metadata_xml = stream.read()
         if metadata_xml:
+            _warn_duplicate_llsd_keys(metadata_xml, self.path or '<stream>')
             try:
                 parsed_llsd = llsd.parse(metadata_xml)
             except llsd.LLSDParseError:

@@ -61,6 +61,61 @@ class TestConfigFile(BaseTest, AutobuildBaselineCompare):
         # check that we fall back to the 32 bit version if no 64 bit is found
         assert reloaded.get_platform('darwin64').build_directory == 'darwin_build'
 
+    def test_configuration_warns_on_duplicate_llsd_keys(self):
+        tmp_file = self.get_tmp_file()
+        with open(tmp_file, 'wb') as f:
+            f.write(b"""<?xml version="1.0" ?>
+<llsd>
+  <map>
+    <key>installables</key>
+    <map>
+      <key>icu4c</key>
+      <map>
+        <key>name</key>
+        <string>icu4c</string>
+        <key>platforms</key>
+        <map>
+          <key>linux64</key>
+          <map>
+            <key>archive</key>
+            <map>
+              <key>hash</key>
+              <string>1111111111111111111111111111111111111111</string>
+              <key>hash_algorithm</key>
+              <string>sha1</string>
+              <key>url</key>
+              <string>https://example.com/first.tar.zst</string>
+            </map>
+          </map>
+          <key>linux64</key>
+          <map>
+            <key>archive</key>
+            <map>
+              <key>hash</key>
+              <string>2222222222222222222222222222222222222222</string>
+              <key>hash_algorithm</key>
+              <string>sha1</string>
+              <key>url</key>
+              <string>https://example.com/second.tar.zst</string>
+            </map>
+          </map>
+        </map>
+      </map>
+    </map>
+    <key>type</key>
+    <string>autobuild</string>
+    <key>version</key>
+    <string>1.3</string>
+  </map>
+</llsd>
+""")
+
+        with self.assertLogs(configfile.logger, level='WARNING') as captured:
+            config = configfile.ConfigurationDescription(tmp_file)
+
+        assert config.installables['icu4c'].platforms['linux64'].archive.url == 'https://example.com/second.tar.zst'
+        assert any("installables.icu4c.platforms.linux64" in message for message in captured.output)
+
     def test_configuration_save_expanded(self):
         config = self.fake_config()
         # pretend to expand variables -- doesn't matter that there are no
