@@ -12,11 +12,13 @@ jobs:
     strategy:
       matrix:
         # Keep this list up to date with supported Windows runner images.
+        #
         # When windows-latest ships a new Visual Studio major version and
         # test_newest_vs_known fails, follow the steps in MAINTENANCE.md:
-        # add the outgoing windows-latest image here so its toolchain stays
-        # tested, then update the test and autobuild source for the new one.
-        # See: MAINTENANCE.md
+        # add the outgoing windows-latest image here (e.g., windows-2026)
+        # so its toolchain stays tested, then update the test and autobuild
+        # source for the new one.
+        # See: MAINTENANCE.md for other steps
         os: [ubuntu-latest, macos-latest, windows-latest, windows-2022]
         python-version: ["3.11"]
         include:
