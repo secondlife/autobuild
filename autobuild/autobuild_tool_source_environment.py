@@ -27,6 +27,7 @@ _VSTOOLSETS = {
     "15": "v141", # 2017
     "16": "v142", # 2019
     "17": "v143", # 2022
+    "18": "v145", # 2026
 }
 
 # From VS 2017 on, we have to look for vswhere.exe at this canonical path to
@@ -738,6 +739,7 @@ def internal_source_environment(configurations, varsfile):
                     '15': "Visual Studio 15 2017",
                     '16': "Visual Studio 16 2019",
                     '17': "Visual Studio 17 2022",
+                    '18': "Visual Studio 18 2026",
                     }[vsver[:-1]]
             except KeyError:
                 # We don't have a specific mapping for this value of vsver. Take
