@@ -1,3 +1,11 @@
+"""Tests for versions derived from:
+
+- Git tags
+- commit distance from a tag
+- clean and dirty working-tree state
+- valid and nonstandard version strings
+"""
+
 import os
 from unittest import TestCase
 

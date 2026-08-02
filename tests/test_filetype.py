@@ -1,3 +1,9 @@
+"""Tests for archive-type detection from:
+
+- filename extensions
+- file signatures
+"""
+
 import shutil
 from os import path
 from pathlib import Path

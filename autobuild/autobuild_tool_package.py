@@ -24,7 +24,9 @@ import getpass
 import glob
 import json
 import logging
+import ntpath
 import os
+import posixpath
 import re
 import subprocess
 import tarfile
@@ -138,6 +140,11 @@ class PackageResults(UserDict):
                     f.write(f'{k}="{v}"\n')
 
 
+def _is_absolute_manifest_path(path):
+    """Recognize absolute manifest paths using either platform's syntax."""
+    return posixpath.isabs(path) or ntpath.isabs(path)
+
+
 def package(config, build_directory, platform_name, archive_filename=None, archive_format=None, clean_only=False, results_file=None, dry_run=False):
     """
     Create an archive for the given platform.
@@ -192,7 +199,10 @@ def package(config, build_directory, platform_name, archive_filename=None, archi
             files.add(package_description.license_file)
     if 'source_directory' in metadata_file.package_description:
         del metadata_file.package_description['source_directory']
-    disallowed_paths=[path for path in files if ".." in path or os.path.isabs(path)]
+    # Manifest entries are portable archive paths, not host-native paths. In
+    # particular, Python 3.13 changed ntpath.isabs("/") to return False, so
+    # check both POSIX and Windows absolute-path syntax explicitly.
+    disallowed_paths=[path for path in files if ".." in path or _is_absolute_manifest_path(path)]
     if disallowed_paths:
         raise PackageError("Absolute paths or paths with parent directory elements are not allowed:\n  "+"\n  ".join(sorted(disallowed_paths))+"\n")
     metadata_file.manifest = files

@@ -1,3 +1,10 @@
+"""Tests for:
+
+- executable invocation
+- inherited commands
+- inherited options and arguments
+"""
+
 from autobuild.executable import Executable
 from tests.basetest import BaseTest, needs_nix
 

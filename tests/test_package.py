@@ -1,3 +1,11 @@
+"""Tests for:
+
+- archive packaging
+- package metadata and results output
+- alternate package versions
+- manifest validation and path safety
+"""
+
 import json
 import logging
 import os
@@ -36,6 +44,22 @@ class PackageOptions(object):
         self.archive_format=None
         self.select_dir=None
         self.autobuild_filename=os.path.join(data_dir, "autobuild-package-config.xml")
+
+
+class TestManifestPaths(BaseTest):
+    """Verify archive manifests reject absolute paths using either OS syntax."""
+
+    def test_absolute_paths_use_both_platform_syntaxes(self):
+        for path in ("/", "/etc/passwd", "C:/Windows", r"C:\Windows",
+                     r"\\server\share"):
+            with self.subTest(path=path):
+                self.assertTrue(package._is_absolute_manifest_path(path))
+
+    def test_relative_paths_remain_allowed(self):
+        for path in ("include/file", r"include\file"):
+            with self.subTest(path=path):
+                self.assertFalse(package._is_absolute_manifest_path(path))
+
 
 class TestPackaging(BaseTest):
     def setUp(self):

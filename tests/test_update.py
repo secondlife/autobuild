@@ -1,3 +1,11 @@
+"""Tests for Autobuild configuration migrations:
+
+- updater registration
+- migration-chain selection
+- loop and dead-end detection
+- conversion to the current format
+"""
+
 from unittest import TestCase
 
 from autobuild import update

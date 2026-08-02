@@ -1,3 +1,9 @@
+"""Tests for:
+
+- shared cross-platform helpers
+- executable discovery
+"""
+
 from autobuild import common
 from tests.basetest import BaseTest
 

@@ -21,13 +21,29 @@ class SourceEnvError(common.AutobuildError):
 _VSxxxCOMNTOOLS_re = re.compile(r"VS(.*)COMNTOOLS$")
 _VSxxxCOMNTOOLS_st = "VS%sCOMNTOOLS"
 
+# Map of Visual Studio major version to the corresponding CMake generator.
+_VS_GENERATORS = {
+    "12": "Visual Studio 12 2013",
+    "14": "Visual Studio 14 2015",
+    "15": "Visual Studio 15 2017",
+    "16": "Visual Studio 16 2019",
+    "17": "Visual Studio 17 2022",
+    "18": "Visual Studio 18 2026",
+}
+
 # Map of Visual Studio major version to corresponding default C++ SDK toolset version
 _VSTOOLSETS = {
     "14": "v140", # 2015
     "15": "v141", # 2017
     "16": "v142", # 2019
     "17": "v143", # 2022
+    "18": "v145", # 2026
 }
+
+def _get_vs_generator(vsver):
+    """Return the CMake generator for an AUTOBUILD_VSVER value."""
+    major = vsver[:-1]
+    return _VS_GENERATORS.get(major, "Visual Studio %s" % major)
 
 # From VS 2017 on, we have to look for vswhere.exe at this canonical path to
 # discover where the Visual Studio install is.
@@ -728,25 +744,11 @@ def internal_source_environment(configurations, varsfile):
             # isn't necessarily straightforward -- we may have to maintain a
             # lookup dict. That dict should not be replicated into each 3p repo,
             # it should be central. It should be here.
-            try:
-                # vsver might have been set by reading vswhere output, and
-                # vswhere might have reported (e.g.) "158" or "161". Ignore
-                # the minor version when choosing the CMake generator.
-                AUTOBUILD_WIN_CMAKE_GEN = {
-                    '12': "Visual Studio 12 2013",
-                    '14': "Visual Studio 14 2015",
-                    '15': "Visual Studio 15 2017",
-                    '16': "Visual Studio 16 2019",
-                    '17': "Visual Studio 17 2022",
-                    }[vsver[:-1]]
-            except KeyError:
-                # We don't have a specific mapping for this value of vsver. Take
-                # a wild guess. If we guess wrong, CMake will complain, and the
-                # user will have to update autobuild -- which is no worse than
-                # what s/he'd have to do anyway if we immediately produced an
-                # error here. Plus this way, we defer the error until we hit a
-                # build that actually consumes AUTOBUILD_WIN_CMAKE_GEN.
-                AUTOBUILD_WIN_CMAKE_GEN = "Visual Studio %s" % (vsver[:-1])
+            # vsver might have been set by reading vswhere output, and vswhere
+            # might have reported (e.g.) "158" or "161". Ignore the minor
+            # version when choosing the CMake generator. For an unknown future
+            # version, retain the historical best-effort fallback.
+            AUTOBUILD_WIN_CMAKE_GEN = _get_vs_generator(vsver)
 
             exports["AUTOBUILD_WIN_CMAKE_GEN"] = AUTOBUILD_WIN_CMAKE_GEN
 

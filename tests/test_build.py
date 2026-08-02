@@ -1,3 +1,11 @@
+"""Tests for:
+
+- build orchestration
+- package metadata validation
+- child-process environment setup
+- configuration substitutions
+"""
+
 import logging
 import os
 import pprint

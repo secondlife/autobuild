@@ -1,3 +1,11 @@
+"""Tests for installable package metadata:
+
+- adding entries
+- editing entries
+- removing entries
+- persistence in Autobuild configuration
+"""
+
 import os
 
 import autobuild.autobuild_tool_installables as installables

@@ -1,3 +1,10 @@
+"""Tests for build identifiers derived from:
+
+- timestamps
+- environment overrides
+- source-control versions
+"""
+
 import os
 import time
 from unittest.mock import MagicMock, patch

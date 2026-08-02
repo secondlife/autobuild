@@ -1,3 +1,10 @@
+"""Tests for semantic-version:
+
+- parsing
+- normalization
+- next-version calculation
+"""
+
 import pytest
 
 from autobuild.scm.base import Semver

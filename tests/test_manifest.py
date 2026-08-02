@@ -1,3 +1,10 @@
+"""Tests for manifest entry editing through:
+
+- the Python API
+- the Autobuild command-line interface
+- add, remove, and clear operations
+"""
+
 import logging
 import os
 

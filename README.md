@@ -37,4 +37,4 @@ For more information, see [Autobuild's wiki page][wiki].
 | AUTOBUILD_VCS_INFO | false | Whether to include version control information in autobuild-package.xml |
 | AUTOBUILD_VCS_REVISION | git commit | autobuild-package.xml VCS commit reference to include in autobuild-package.xml. Defaults to current git commit sha. |
 | AUTOBUILD_VCS_URL | git remote url | autobuild-package.xml VCS info: repository URL |
-| AUTOBUILD_VSVER | - | Target Visual Studio version to use on windows |
+| AUTOBUILD_VSVER | - | Target Visual Studio version to use on Windows (for example, `170` for Visual Studio 2022 or `180` for Visual Studio 2026) |

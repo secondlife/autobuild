@@ -1,3 +1,10 @@
+"""Tests for:
+
+- top-level command-line parsing
+- tool discovery and dispatch
+- help and version output
+"""
+
 import sys
 
 import autobuild.autobuild_main

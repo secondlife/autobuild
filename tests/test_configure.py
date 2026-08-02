@@ -1,3 +1,10 @@
+"""Tests for configure-command execution through:
+
+- the Python API
+- the Autobuild command-line interface
+- argument substitution and build identifiers
+"""
+
 import os
 
 import autobuild.common as common

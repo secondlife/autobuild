@@ -1,3 +1,10 @@
+"""Tests for Autobuild configuration:
+
+- serialization and reloading
+- platform and build inheritance
+- environment-variable expansion
+"""
+
 from autobuild import configfile
 from autobuild.executable import Executable
 from tests.baseline_compare import AutobuildBaselineCompare

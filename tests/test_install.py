@@ -1,3 +1,11 @@
+"""Tests for package:
+
+- downloading and caching
+- installation, updates, and removal
+- dependency and file conflicts
+- malformed metadata and download errors
+"""
+
 import logging
 import os
 import posixpath

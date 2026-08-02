@@ -1,3 +1,10 @@
+"""Tests for non-interactive edits to:
+
+- build commands
+- configure commands
+- platform configuration entries
+"""
+
 import os
 
 import llsd

@@ -1,3 +1,11 @@
+"""Tests for:
+
+- generated build environments
+- variable-file parsing and expansion
+- platform and configuration shorthand variables
+- Visual Studio generator and toolset selection
+"""
+
 import logging
 import os
 import shutil
@@ -52,6 +60,40 @@ class Args(object):
         # -c argument is specified as action="append", which means
         # configurations attribute comes in as a possibly-empty list
         self.configurations = [config] if config is not None else []
+
+
+class TestVisualStudioMappings(BaseTest):
+    """Protect existing generator/toolset mappings while adding VS 2026 support."""
+
+    def test_generators(self):
+        expected = {
+            "120": "Visual Studio 12 2013",
+            "140": "Visual Studio 14 2015",
+            "150": "Visual Studio 15 2017",
+            "160": "Visual Studio 16 2019",
+            "170": "Visual Studio 17 2022",
+            "180": "Visual Studio 18 2026",
+        }
+        for vsver, generator in expected.items():
+            with self.subTest(vsver=vsver):
+                self.assertEqual(atse._get_vs_generator(vsver), generator)
+
+    def test_generator_ignores_minor_version(self):
+        self.assertEqual(atse._get_vs_generator("188"),
+                         "Visual Studio 18 2026")
+
+    def test_unknown_generator_uses_historical_fallback(self):
+        self.assertEqual(atse._get_vs_generator("190"),
+                         "Visual Studio 19")
+
+    def test_toolsets(self):
+        self.assertEqual(atse._VSTOOLSETS, {
+            "14": "v140",
+            "15": "v141",
+            "16": "v142",
+            "17": "v143",
+            "18": "v145",
+        })
 
 
 @needs_nix

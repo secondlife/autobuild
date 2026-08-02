@@ -1,3 +1,10 @@
+"""Tests for dependency-graph generation as:
+
+- DOT source
+- rendered image files
+- Mermaid source
+"""
+
 import logging
 import os
 import tempfile
