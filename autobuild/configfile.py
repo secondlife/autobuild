@@ -39,6 +39,13 @@ class NoVersionFileKeyError(common.AutobuildError):
 
 
 def _iter_duplicate_llsd_keys(element, path=()):
+    """
+    Yield dotted LLSD map paths that are defined more than once in raw XML.
+
+    We inspect the ElementTree instead of the parsed LLSD structure because
+    llsd.parse() has already applied the existing "last definition wins"
+    behavior by the time it returns a dict-like object.
+    """
     if element.tag == 'map':
         seen = set()
         children = list(element)
@@ -66,6 +73,13 @@ def _iter_duplicate_llsd_keys(element, path=()):
 
 
 def _warn_duplicate_llsd_keys(xml_bytes, source):
+    """
+    Log duplicate LLSD map keys without changing Autobuild's merge semantics.
+
+    This runs before parsing so package metadata can warn about repeated keys
+    introduced by merges while still allowing the later value to override the
+    earlier one, as Autobuild has historically done.
+    """
     try:
         root = ET.fromstring(xml_bytes)
     except ET.ParseError:
@@ -256,6 +270,8 @@ class ConfigurationDescription(common.Serialized):
             if not autobuild_xml:
                 logger.warning("Configuration file '%s' is empty" % self.path)
                 return
+            # Warn on repeated raw LLSD keys before llsd.parse() collapses them
+            # into a single dict entry.
             _warn_duplicate_llsd_keys(autobuild_xml, self.path)
             try:
                 saved_data = llsd.parse(autobuild_xml)
