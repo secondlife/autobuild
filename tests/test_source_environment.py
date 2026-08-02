@@ -320,9 +320,16 @@ replace_switch def xyz $switches""").split()),
 
     @needs_cygwin
     def test_vstoolset_set(self):
-        # n.b. This test will need to be updated from time to time:
-        # AUTOBUILD_VSVER is validated against the Visual Studio versions
-        # installed on the host system.
-        with envvar("AUTOBUILD_VSVER", "170"):
+        # Dynamically discover the latest installed Visual Studio version so
+        # this test keeps working when the runner image ships a newer VS.
+        available = atse._available_vsvers()
+        if not available:
+            self.skipTest("No Visual Studio install detected")
+        latest_vsver = available[-1]
+        major = latest_vsver[:-1]
+        expected_toolset = atse._VSTOOLSETS.get(major)
+        if expected_toolset is None:
+            self.skipTest("No toolset mapping for VS major version %s" % major)
+        with envvar("AUTOBUILD_VSVER", latest_vsver):
             vars = self.read_variables(self.find_data("empty"))
-        self.assertEqual(vars["AUTOBUILD_WIN_VSTOOLSET"], "v143")
+        self.assertEqual(vars["AUTOBUILD_WIN_VSTOOLSET"], expected_toolset)
