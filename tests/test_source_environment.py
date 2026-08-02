@@ -11,6 +11,16 @@ from autobuild import autobuild_tool_source_environment as atse
 from tests.basetest import *
 from tests.patch import patch
 
+# The most recent Visual Studio major version (first two digits of AUTOBUILD_VSVER)
+# that autobuild is known to support. This is used by test_newest_vs_known (below)
+# to catch whenever windows-latest starts shipping an unrecognized compiler.
+#
+# When this test fails, follow the steps in MAINTENANCE.md to update autobuild
+# for the new toolchain and move the old windows-latest image to ci.yml.
+#
+# See: MAINTENANCE.md
+NEWEST_KNOWN_VS_MAJOR = "18"  # Visual Studio 2026
+
 
 def assert_dict_subset(d, s):
     # Windows insists on capitalizing environment variables, so prepare a copy
@@ -333,3 +343,25 @@ replace_switch def xyz $switches""").split()),
         with envvar("AUTOBUILD_VSVER", latest_vsver):
             vars = self.read_variables(self.find_data("empty"))
         self.assertEqual(vars["AUTOBUILD_WIN_VSTOOLSET"], expected_toolset)
+
+    @needs_cygwin
+    def test_newest_vs_known(self):
+        # This test intentionally fails (rather than skips) when windows-latest
+        # ships a Visual Studio major version newer than NEWEST_KNOWN_VS_MAJOR.
+        # A failure here means autobuild needs to be updated to support the new
+        # toolchain.  Follow the steps in MAINTENANCE.md to resolve it.
+        #
+        # See: MAINTENANCE.md
+        available = atse._available_vsvers()
+        if not available:
+            self.skipTest("No Visual Studio install detected")
+        latest_vsver = available[-1]
+        major = latest_vsver[:-1]
+        self.assertLessEqual(
+            major,
+            NEWEST_KNOWN_VS_MAJOR,
+            "Visual Studio major version %r is newer than the newest known version %r. "
+            "autobuild needs to be updated to support this toolchain. "
+            "See MAINTENANCE.md for the steps required."
+            % (major, NEWEST_KNOWN_VS_MAJOR),
+        )
